@@ -1,0 +1,7 @@
+{"timestamp":1704451200000,"duration":1000,"tokenUsage":{"input":1000,"output":2000},"outcome":"complete","taskType":"sdk-invoke"}
+{"timestamp":1704451201000,"duration":1200,"tokenUsage":{"input":1200,"output":2200},"outcome":"complete","taskType":"sdk-invoke"}
+this is not valid json
+{"timestamp":1704451203000,"duration":800,"tokenUsage":{"input":800,"output":1500},"outcome":"complete","taskType":"query"}
+{"timestamp":1704451204000,"duration":1500,"tokenUsage":{"input":1500,"output":3000},"outcome":"partial","taskType":"sdk-invoke"}
+another corrupted line
+{"timestamp":1704451206000,"duration":500,"tokenUsage":{"input":500,"output":1000},"outcome":"complete","taskType":"query"}

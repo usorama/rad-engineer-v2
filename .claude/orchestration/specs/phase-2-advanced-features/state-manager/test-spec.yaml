@@ -1,0 +1,34 @@
+# Test Specification: StateManager
+
+metadata:
+  component: "StateManager"
+  version: "1.0.0"
+
+test_requirements:
+  overall_coverage: 80
+  unit_test_count: 8
+
+unit_tests:
+  save_load:
+    description: "Test checkpoint save/load"
+    file: "test/advanced/StateManager.test.ts"
+    test_cases:
+      - name: "Save and load checkpoint successfully"
+      - name: "Return null for missing checkpoint"
+      - name: "Overwrite existing checkpoint"
+
+  compact:
+    description: "Test state compaction"
+    test_cases:
+      - name: "Remove old checkpoints"
+      - name: "Keep recent checkpoints"
+
+  list:
+    description: "Test checkpoint listing"
+    test_cases:
+      - name: "Return empty array when no checkpoints"
+      - name: "List all checkpoint names"
+
+success_criteria:
+  - criterion: "Checkpoint persistence works"
+    expected: "State saved to disk and restored"

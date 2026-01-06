@@ -1,0 +1,189 @@
+# Research Specification: ResourceManager
+# Phase 1 - Core Orchestrator
+#
+# INSTRUCTIONS:
+# 1. This spec defines research requirements for ResourceManager component
+# 2. Execute 2 parallel research agents to gather evidence
+# 3. All claims MUST have verified sources (no "I think", "probably", etc.)
+# 4. After research, create component-spec.yaml and test-spec.yaml
+
+metadata:
+  component_name: "ResourceManager"
+  phase: "Phase 1 - Core Orchestrator"
+  version: "1.0.0"
+  status: "research"
+  created: "2026-01-05"
+  researchers:
+    - "Research Agent #1 (Concurrency & Limits)"
+    - "Research Agent #2 (System Monitoring)"
+
+research_questions:
+  # Define 3-5 key questions that research must answer
+  # Each question must be answerable with verified evidence
+
+  - question_id: "RQ-001"
+    question: "What are the system resource limits for concurrent agent execution (CPU, memory, threads)?"
+    priority: "critical"
+    success_criteria: "Verified from system measurements and Node.js documentation"
+    assigned_to: "Research Agent #1"
+
+  - question_id: "RQ-002"
+    question: "How do we enforce maximum concurrent agent limits (2-3 agents) to prevent system overload?"
+    priority: "critical"
+    success_criteria: "Verified patterns from existing codebase and best practices"
+    assigned_to: "Research Agent #1"
+
+  - question_id: "RQ-003"
+    question: "What system monitoring capabilities exist in ResourceMonitor.ts for tracking resource usage?"
+    priority: "critical"
+    success_criteria: "Verified against existing ResourceMonitor implementation"
+    assigned_to: "Research Agent #2"
+
+  - question_id: "RQ-004"
+    question: "What are the safe operating thresholds for system resources (CPU %, memory %, thread count)?"
+    priority: "high"
+    success_criteria: "Numerical values from system measurements or documentation"
+    assigned_to: "Research Agent #2"
+
+  - question_id: "RQ-005"
+    question: "How do we integrate ResourceManager with existing SDKIntegration and BaselineMeasurement components?"
+    priority: "high"
+    success_criteria: "Verified integration points from existing codebase"
+    assigned_to: "Research Agent #2"
+
+research_streams:
+  # Define parallel research streams (max 2-3 agents)
+
+  stream_1:
+    agent_type: "research"
+    focus: "Concurrent agent management and limits enforcement"
+    questions:
+      - "RQ-001"
+      - "RQ-002"
+    evidence_sources:
+      - "Existing codebase (CLAUDE.md rules, SDKIntegration.ts)"
+      - "System measurements"
+      - "Node.js documentation (worker_threads, cluster)"
+      - "Best practices for concurrency control"
+    deliverable: "evidence/resource-manager-concurrency.md"
+
+  stream_2:
+    agent_type: "research"
+    focus: "System monitoring integration and thresholds"
+    questions:
+      - "RQ-003"
+      - "RQ-004"
+      - "RQ-005"
+    evidence_sources:
+      - "rad-engineer/src/sdk/ResourceMonitor.ts"
+      - "rad-engineer/src/sdk/BaselineMeasurement.ts"
+      - "Node.js os module documentation"
+      - "System metrics best practices"
+    deliverable: "evidence/resource-manager-monitoring.md"
+
+evidence_requirements:
+  # Every claim must have one of these verification types
+
+  verification_types:
+    - type: "codebase_analysis"
+      description: "Verified against existing code"
+      confidence: "high"
+      required_for: "integration point claims"
+
+    - type: "measurement"
+      description: "Actual system measurement or benchmark"
+      confidence: "high"
+      required_for: "all performance claims"
+
+    - type: "primary_source"
+      description: "Official documentation or API reference"
+      confidence: "high"
+      required_for: "all capability claims"
+
+  claim_format: |
+    For each claim, use this format:
+    ```yaml
+    claims:
+      - id: "CLAIM-001"
+        statement: "[Specific verifiable claim]"
+        evidence_type: "[codebase_analysis|measurement|primary_source]"
+        source: "[file path or URL]"
+        verification_method: "[How to verify this claim]"
+        confidence: "[high|medium|low]"
+        required_for: "[component method or feature]"
+    ```
+
+prohibited_patterns:
+  # NEVER use these patterns in research findings
+
+  - pattern: "I think..."
+    reason: "Speculation, not evidence"
+    correction: "Find primary source or mark as unknown"
+
+  - pattern: "It should work..."
+    reason: "Unverified assumption"
+    correction: "Test and document actual result"
+
+  - pattern: "Probably..."
+    reason: "Uncertainty without evidence"
+    correction: "Verify or state 'unknown'"
+
+  - pattern: "We can assume..."
+    reason: "Assumptions lead to implementation gaps"
+    correction: "Document as assumption, not claim"
+
+output_format:
+  research_findings:
+    file: "evidence/research-findings.md"
+    required_sections:
+      - "## Evidence Summary"
+      - "## Verified Claims (table format)"
+      - "## Code Evidence (examples)"
+      - "## References (all sources)"
+      - "## Next Steps"
+
+  claim_table_format: |
+    | Claim ID | Capability | Status | Evidence Source | Verified By |
+
+validation_criteria:
+  research_complete_when:
+    - "All research questions have answers with verified sources"
+    - "All claims map to evidence IDs"
+    - "Code examples provided for integration patterns"
+    - "References section complete"
+    - "No prohibited patterns present"
+    - "Ready to generate component-spec.yaml"
+
+next_steps:
+  after_research:
+    - step: "Create component-spec.yaml"
+      uses: "research-findings.md"
+      evidence_required: "All claims have evidence IDs"
+
+    - step: "Create test-spec.yaml"
+      uses: "component-spec.yaml"
+      thresholds_from: "research-findings.md verified numbers"
+
+    - step: "Validate specs"
+      check: "All test requirements map to component methods"
+      evidence_check: "All evidence IDs trace to research-findings.md"
+
+---
+# RESEARCH EXECUTION PLAN
+#
+# Research Agent #1 (Concurrency & Limits):
+# - Analyze existing CLAUDE.md rules for agent concurrency
+# - Research system limits (CPU, memory, threads)
+# - Document patterns for enforcing 2-3 agent limit
+# - Research queue/semaphore patterns for concurrency control
+#
+# Research Agent #2 (System Monitoring):
+# - Analyze ResourceMonitor.ts implementation
+# - Research safe operating thresholds
+# - Document integration points with SDKIntegration and BaselineMeasurement
+# - Research resource monitoring best practices
+#
+# Both agents return:
+# - Structured findings with verified claims
+# - Code examples for integration patterns
+# - References to all sources

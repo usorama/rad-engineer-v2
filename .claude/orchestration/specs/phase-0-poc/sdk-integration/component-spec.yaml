@@ -1,0 +1,592 @@
+# Component Specification: SDK Integration
+# Phase 0 - Prerequisites & Foundation (Week 1-2)
+
+metadata:
+  component_name: SDKIntegration
+  phase: "Phase 0 - Prerequisites & Foundation"
+  version: "1.0.0"
+  status: "specification"
+  created: "2026-01-05"
+  evidence_sources:
+    - "research-findings.md#claude-sdk-capabilities"
+    - "research-findings.md#system-monitoring-apis"
+    - "research-findings.md#existing-infrastructure"
+    - "SMART_ORCHESTRATOR_EXECUTE_INTEGRATION_PLAN.md#phase-0"
+
+interface:
+  class_name: SDKIntegration
+  language: "TypeScript"
+  runtime: "Node.js"
+  dependencies:
+    - name: "@anthropic-ai/sdk"
+      version: "latest"
+      evidence: "research-findings.md#claim-1"
+    - name: "psutil"
+      version: "latest"
+      evidence: "research-findings.md#claim-2"
+    - name: "claude-agent-sdk"
+      version: "latest"
+      evidence: "research-findings.md#sdk-capabilities-table"
+
+  description: |
+    Manages Claude Agent SDK integration for production-quality orchestration.
+    Replaces simulation with actual SDK message loop, tool execution, and streaming.
+    Provides verified SDK capabilities (streaming, tools, hooks, memory) as foundation
+    for custom orchestration logic.
+
+methods:
+  initSDK:
+    signature: "async initSDK(config: SDKConfig): Promise<InitResult>"
+    description: "Initialize Claude Agent SDK with streaming and tool execution"
+    inputs:
+      config:
+        type: "SDKConfig"
+        properties:
+          apiKey:
+            type: "string"
+            description: "Anthropic API key from environment variable"
+            required: true
+          model:
+            type: "string"
+            description: "Model identifier (e.g., 'claude-3-5-sonnet-20241022')"
+            required: true
+            default: "'claude-3-5-sonnet-20241022'"
+          stream:
+            type: "boolean"
+            description: "Enable streaming responses"
+            required: false
+            default: "true"
+            evidence: "research-findings.md#code-evidence-streaming"
+          hooks:
+            type: "Record<string, Function>"
+            description: "Event hooks for tool execution lifecycle"
+            required: false
+            properties:
+              on_tool_start:
+                type: "(tool: string) => void"
+              on_tool_end:
+                type: "(tool: string, result: unknown) => void"
+            evidence: "research-findings.md#code-evidence-hooks"
+    outputs:
+      success:
+        type: "InitResult"
+        properties:
+          success: "boolean"
+          sdkInitialized: "boolean"
+          streamingEnabled: "boolean"
+          hooksRegistered: "boolean"
+          error:
+            type: "Error | null"
+            description: "Initialization error if failed"
+    failure_modes:
+      - error: "API_KEY_MISSING"
+        description: "ANTHROPIC_API_KEY environment variable not set"
+        detection: "config.apiKey is undefined"
+        recovery: "Throw error with instructions to set environment variable"
+        timeout: "N/A"
+      - error: "SDK_INSTALL_FAILED"
+        description: "Claude Agent SDK package not installed"
+        detection: "import statement throws MODULE_NOT_FOUND"
+        recovery: "Run 'pip install claude-agent-sdk' and retry"
+        timeout: "30s"
+      - error: "INITIALIZATION_TIMEOUT"
+        description: "SDK initialization exceeds timeout"
+        detection: "init call takes >10s"
+        recovery: "Retry once, then escalate to human"
+        timeout: "10s"
+      - error: "INVALID_MODEL"
+        description: "Model name not recognized by API"
+        detection: "API returns 400 error"
+        recovery: "Fallback to default model, log warning"
+        timeout: "5s"
+    evidence_requirements:
+      - id: "EVIDENCE-001"
+        claim: "SDK supports streaming responses"
+        source: "research-findings.md#claim-1"
+        verification: "Test streaming flag in actual SDK call"
+      - id: "EVIDENCE-002"
+        claim: "SDK supports event hooks"
+        source: "research-findings.md#claim-1"
+        verification: "Register hooks and verify they fire during tool execution"
+
+  testAgent:
+    signature: "async testAgent(task: AgentTask): Promise<TestResult>"
+    description: "Execute single agent task with SDK message loop"
+    inputs:
+      task:
+        type: "AgentTask"
+        properties:
+          prompt:
+            type: "string"
+            description: "Task prompt for agent"
+            required: true
+            constraint: "Must be ≤500 characters (enforced by PromptValidator in later phases)"
+          tools:
+            type: "Tool[]"
+            description: "Available tools for agent execution"
+            required: false
+            default: "[Read, Write, Edit, Bash]"
+          context:
+            type: "TaskContext"
+            description: "Task execution context (minimal for Phase 0)"
+            required: false
+            default: "{ files: [], history: [] }"
+    outputs:
+      success:
+        type: "TestResult"
+        properties:
+          success: "boolean"
+          agentResponse:
+            type: "string"
+            description: "Agent's response message"
+          tokensUsed:
+            type: "TokenUsage"
+            properties:
+              promptTokens: "number"
+              completionTokens: "number"
+              totalTokens: "number"
+          duration:
+            type: "number"
+            description: "Execution time in milliseconds"
+          toolsInvoked:
+            type: "string[]"
+            description: "List of tools agent used"
+          error:
+            type: "Error | null"
+            description: "Execution error if failed"
+    failure_modes:
+      - error: "AGENT_TIMEOUT"
+        description: "Agent does not respond within timeout"
+        detection: "No response in 120s"
+        recovery: "Kill agent, retry with simplified task (max 3 attempts)"
+        timeout: "120s"
+      - error: "TOOL_EXECUTION_FAILED"
+        description: "Agent tool execution throws error"
+        detection: "Tool returns non-zero exit code"
+        recovery: "Log error, continue execution, report in TestResult"
+        timeout: "variable"
+      - error: "STREAM_INTERRUPTED"
+        description: "Streaming response interrupted"
+        detection: "Stream ends unexpectedly"
+        recovery: "Retry without streaming, report degradation"
+        timeout: "30s"
+      - error: "CONTEXT_OVERFLOW"
+        description: "Agent context window exceeded"
+        detection: "Token count > 80% of window"
+        recovery: "Auto-compact context, retry with minimal context"
+        timeout: "N/A"
+    evidence_requirements:
+      - id: "EVIDENCE-003"
+        claim: "SDK provides tool execution"
+        source: "research-findings.md#sdk-capabilities-table"
+        verification: "Execute agent with Read tool, verify file read succeeds"
+      - id: "EVIDENCE-004"
+        claim: "SDK supports streaming"
+        source: "research-findings.md#code-evidence-streaming"
+        verification: "Verify chunks arrive incrementally, not all at once"
+
+  measureBaseline:
+    signature: "async measureBaseline(iterations: number): Promise<BaselineMetrics>"
+    description: "Execute baseline measurement tests for comparison data"
+    inputs:
+      iterations:
+        type: "number"
+        description: "Number of test iterations to run"
+        required: true
+        default: "10"
+        constraint: "Must be ≥10 for statistical significance"
+    outputs:
+      success:
+        type: "BaselineMetrics"
+        properties:
+          totalAgents:
+            type: "number"
+            description: "Total agents spawned"
+          successCount:
+            type: "number"
+            description: "Successful agent completions"
+          failureCount:
+            type: "number"
+            description: "Failed agent executions"
+          successRate:
+            type: "number"
+            description: "successCount / totalAgents"
+          averageDuration:
+            type: "number"
+            description: "Average execution time in milliseconds"
+          totalTokens:
+            type: "TokenUsage"
+            description: "Aggregate token usage across all tests"
+          contextOverflows:
+            type: "number"
+            description: "Count of context overflow incidents"
+          failuresByType:
+            type: "Record<string, number>"
+            description: "Breakdown of failures by error type"
+            properties:
+              contextOverflow: "number"
+              typeErrors: "number"
+              testFailures: "number"
+              timeouts: "number"
+    failure_modes:
+      - error: "INSUFFICIENT_ITERATIONS"
+        description: "Too few iterations for statistical significance"
+        detection: "iterations < 10"
+        recovery: "Throw error, request iterations ≥10"
+        timeout: "N/A"
+      - error: "MEASUREMENT_TIMEOUT"
+        description: "Baseline measurement takes too long"
+        detection: "Total time > 30 minutes"
+        recovery: "Stop measurement, use partial data with warning"
+        timeout: "1800s (30 minutes)"
+      - error: "AGENT_FAILURE_CLUSTER"
+        description: "Multiple consecutive agent failures"
+        detection: "5+ agents fail in sequence"
+        recovery: "Pause measurement, alert human, investigate root cause"
+        timeout: "N/A"
+    evidence_requirements:
+      - id: "EVIDENCE-005"
+        claim: "Baseline methodology is valid"
+        source: "research-findings.md#4-baseline-measurement-approach"
+        verification: "Execute 5 waves of 2-3 agents as specified in methodology"
+      - id: "EVIDENCE-006"
+        claim: "Token measurement is accurate"
+        source: "research-findings.md#token-measurement"
+        verification: "Compare Task tool wrapper output against SDK token counts"
+
+integration_points:
+  check_system_resources:
+    type: "script"
+    path: ".claude/hooks/check-system-resources.sh"
+    description: "Existing shell script for system resource monitoring"
+    integration_method: "Wrapper invocation from TypeScript"
+    evidence: "research-findings.md#3-existing-infrastructure"
+    capabilities:
+      - check: "kernel_task CPU percentage"
+        threshold: "> 50%"
+        evidence: "research-findings.md#5-crash-thresholds"
+        action: "Return exit code 1, prevent agent spawn"
+      - check: "Memory pressure"
+        threshold: "> 80%"
+        evidence: "research-findings.md#5-crash-thresholds"
+        action: "Return exit code 1, prevent agent spawn"
+      - check: "Process count"
+        threshold: "> 400"
+        evidence: "research-findings.md#5-crash-thresholds"
+        action: "Return exit code 1, prevent agent spawn"
+    integration_pattern:
+      type: "pre-flight check"
+      when: "Before each agent spawn in testAgent()"
+      implementation: |
+        ```typescript
+        const canSpawn = await this.checkSystemResources();
+        if (!canSpawn.can_spawn_agent) {
+          throw new Error('Resource threshold exceeded');
+        }
+        ```
+      fallback: "If script unavailable, use psutil directly (research-findings.md#2)"
+
+  resource_monitoring:
+    type: "library"
+    name: "psutil"
+    description: "Python system monitoring library (used via Node.js bindings)"
+    evidence: "research-findings.md#2-system-monitoring-apis"
+    integration_method: "Node.js child process or native bindings"
+    capabilities:
+      - metric: "CPU (kernel_task)"
+        method: "psutil.cpu_percent()"
+        threshold: "> 50%"
+        evidence: "research-findings.md#2-system-monitoring-apis"
+      - metric: "Memory pressure"
+        method: "psutil.virtual_memory()"
+        threshold: "> 80%"
+        evidence: "research-findings.md#2-system-monitoring-apis"
+      - metric: "Process count"
+        method: "len(list(psutil.process_iter()))"
+        threshold: "> 400"
+        evidence: "research-findings.md#2-system-monitoring-apis"
+    integration_pattern:
+      type: "continuous monitoring"
+      when: "During agent execution (every 5 seconds)"
+      implementation: |
+        ```python
+        # Python subprocess
+        import psutil
+        import json
+
+        def check_resources():
+            cpu = psutil.cpu_percent(interval=0.1)
+            mem = psutil.virtual_memory()
+            processes = len(list(psutil.process_iter()))
+
+            return json.dumps({
+                'kernel_task_cpu': cpu,
+                'memory_pressure': mem.percent,
+                'process_count': processes,
+                'can_spawn_agent': cpu < 50 and mem.percent < 80 and processes < 400
+            })
+        ```
+
+evidence_requirements:
+  mandatory:
+    - id: "EVIDENCE-001"
+      claim: "SDK supports streaming responses"
+      source: "research-findings.md#claim-1"
+      verification_method: "Unit test with stream=True, verify chunked response"
+      required_for: "initSDK()"
+    - id: "EVIDENCE-002"
+      claim: "SDK supports event hooks"
+      source: "research-findings.md#claim-1"
+      verification_method: "Register hooks, log execution, verify hooks fired"
+      required_for: "initSDK()"
+    - id: "EVIDENCE-003"
+      claim: "SDK provides tool execution"
+      source: "research-findings.md#sdk-capabilities-table"
+      verification_method: "Execute Read tool, verify file contents returned"
+      required_for: "testAgent()"
+    - id: "EVIDENCE-004"
+      claim: "SDK supports streaming"
+      source: "research-findings.md#code-evidence-streaming"
+      verification_method: "Measure time between chunks, verify incremental delivery"
+      required_for: "testAgent()"
+    - id: "EVIDENCE-005"
+      claim: "Baseline methodology is valid"
+      source: "research-findings.md#4-baseline-measurement-approach"
+      verification_method: "Execute 5 waves, compare against methodology specification"
+      required_for: "measureBaseline()"
+    - id: "EVIDENCE-006"
+      claim: "Token measurement is accurate"
+      source: "research-findings.md#token-measurement"
+      verification_method: "Cross-validate Task tool tokens with SDK tokens"
+      required_for: "measureBaseline()"
+    - id: "EVIDENCE-007"
+      claim: "System crashes at 5+ concurrent agents"
+      source: "research-findings.md#claim-3"
+      verification_method: "Historical evidence from CLAUDE.md (685 threads crash)"
+      required_for: "resource constraints"
+    - id: "EVIDENCE-008"
+      claim: "Existing monitoring script provides foundation"
+      source: "research-findings.md#claim-4"
+      verification_method: "Run check-system-resources.sh, verify exit codes"
+      required_for: "integration_points.check_system_resources"
+
+  verification_protocol:
+    standard: "All evidence must be verified against primary sources (context7, official docs)"
+    format: "Each evidence ID maps to claim → source → verification method → required_for"
+    tracking: "Evidence verification results stored in .claude/orchestration/specs/phase-0-poc/sdk-integration/evidence/verification-log.json"
+    frequency: "Verify during implementation, re-verify before Phase 0 gate"
+
+success_criteria:
+  phase_0_gate:
+    criteria:
+      - criterion: "Actual SDK integration working (not simulation)"
+        measurement_method: |
+          ```bash
+          # Verification command
+          cd .claude/orchestration/poc
+          bun test sdk-integration.test.ts
+          # Must pass: actual SDK call, not mock
+          ```
+        threshold: "All tests pass with real SDK"
+        evidence: "test logs show SDK method calls, not mock responses"
+        status: "pending"
+        priority: "critical"
+
+      - criterion: "Can spawn 1 agent and receive response"
+        measurement_method: |
+          ```bash
+          # Single agent test
+          node -e "
+          const sdk = new SDKIntegration();
+          await sdk.initSDK({ apiKey: process.env.ANTHROPIC_API_KEY });
+          const result = await sdk.testAgent({ prompt: 'Echo hello' });
+          console.log(result.success);
+          "
+          ```
+        threshold: "result.success === true"
+        evidence: "Agent response logged, non-empty string"
+        status: "pending"
+        priority: "critical"
+
+      - criterion: "Tool execution works (Read, Write, Edit, Bash)"
+        measurement_method: |
+          ```bash
+          # Tool execution test
+          bun test tool-execution.test.ts
+          # Tests each tool individually
+          ```
+        threshold: "All 4 tools execute successfully"
+        evidence: "File operations verified, shell commands return exit codes"
+        status: "pending"
+        priority: "critical"
+
+      - criterion: "Baseline metrics documented"
+        measurement_method: |
+          ```bash
+          # Baseline measurement
+          node -e "
+          const sdk = new SDKIntegration();
+          const metrics = await sdk.measureBaseline(10);
+          console.log(JSON.stringify(metrics, null, 2));
+          " > baseline-metrics.json
+          ```
+        threshold: "metrics file exists, contains all required fields"
+        evidence: "baseline-metrics.json in .claude/orchestration/docs/"
+        status: "pending"
+        priority: "high"
+
+      - criterion: "Streaming responses verified"
+        measurement_method: |
+          ```typescript
+          // Streaming verification
+          const chunks: string[] = [];
+          for await (const chunk of agent.stream('Hello')) {
+            chunks.push(chunk);
+          }
+          console.log(\`Received \${chunks.length} chunks\`);
+          ```
+        threshold: "chunks.length > 1 (proves incremental delivery)"
+        evidence: "Streaming logs show multiple chunks with timestamps"
+        status: "pending"
+        priority: "high"
+
+      - criterion: "Event hooks verified"
+        measurement_method: |
+          ```typescript
+          // Hook verification
+          const hookLog: string[] = [];
+          await sdk.initSDK({
+            hooks: {
+              on_tool_start: (tool) => hookLog.push(\`start:\${tool}\`),
+              on_tool_end: (tool, result) => hookLog.push(\`end:\${tool}\`)
+            }
+          });
+          ```
+        threshold: "hookLog contains 'start:Read' and 'end:Read' entries"
+        evidence: "Hook execution logged with correct tool names"
+        status: "pending"
+        priority: "high"
+
+    aggregate_success:
+      description: "Phase 0 gate decision"
+      decision_logic:
+        - "IF 3 critical criteria pass → GO to Phase 1"
+        - "IF 2 critical criteria pass + documented blocker → CONDITIONAL GO"
+        - "IF <2 critical criteria pass → NO-GO, reassess approach"
+      evidence_required: "All criteria must have verification logs linked"
+      human_approval: "Required for GO decision"
+      status: "pending"
+
+implementation_notes:
+  constraints:
+    - constraint: "Use actual Claude Agent SDK (not simulation)"
+      rationale: "Critical review identified simulation as critical gap"
+      evidence: "SMART_ORCHESTRATOR_EXECUTE_INTEGRATION_PLAN.md#critical-context-1"
+      enforcement: "Code review verifies SDK method calls, no mock responses"
+    - constraint: "All prompts must be ≤500 characters"
+      rationale: "Agent context management best practice"
+      evidence: "CLAUDE.md#agent-context-v2"
+      enforcement: "PromptValidator enforces in later phases, manual check in Phase 0"
+    - constraint: "Maximum 2-3 concurrent agents"
+      rationale: "System crash verified at 5+ agents (685 threads)"
+      evidence: "research-findings.md#claim-3"
+      enforcement: "ResourceManager enforces in later phases, manual limit in Phase 0"
+    - constraint: "Resource checks before agent spawn"
+      rationale: "Prevent system crashes from resource exhaustion"
+      evidence: "research-findings.md#5-crash-thresholds"
+      enforcement: "call checkSystemResources() in testAgent() before spawn"
+
+  prohibited:
+    - prohibition: "No mock implementations of SDK methods"
+      rationale: "Defeats purpose of Phase 0 (actual SDK integration)"
+      detection: "Code review looks for 'mock', 'stub', 'fake' in SDK calls"
+      consequence: "Pull request rejected, rewrite required"
+    - prohibition: "No skipping resource checks"
+      rationale: "System crash risk is high and verified"
+      detection: "Test coverage includes resource check verification"
+      consequence: "Test failure, fix required before Phase 0 gate"
+    - prohibition: "No unverified claims in documentation"
+      rationale: "Critical review found speculative claims throughout"
+      detection: "Documentation review checks for evidence IDs"
+      consequence: "Documentation flagged for revision, block Phase 0 gate"
+
+  development_guidance:
+    setup_steps:
+      - step: "Install Claude Agent SDK"
+        command: "pip install claude-agent-sdk"
+        verification: "import succeeds without MODULE_NOT_FOUND"
+      - step: "Install psutil for system monitoring"
+        command: "pip install psutil"
+        verification: "python -c 'import psutil; print(psutil.cpu_percent())'"
+      - step: "Set ANTHROPIC_API_KEY environment variable"
+        command: "export ANTHROPIC_API_KEY=sk-ant-..."
+        verification: "echo $ANTHROPIC_API_KEY | grep sk-ant-"
+      - step: "Verify existing monitoring script"
+        command: "bash .claude/hooks/check-system-resources.sh; echo $?"
+        verification: "Exit code 0 if resources OK, 1 if exceeded"
+
+    testing_strategy:
+      unit_tests:
+        - test: "SDK initialization"
+          file: "sdk-integration.test.ts"
+          coverage: "initSDK() method"
+          mocks: "Allowed for API calls (not SDK methods)"
+        - test: "Agent execution"
+          file: "agent-execution.test.ts"
+          coverage: "testAgent() method"
+          mocks: "Allowed for API responses (not SDK streaming)"
+        - test: "Baseline measurement"
+          file: "baseline-measurement.test.ts"
+          coverage: "measureBaseline() method"
+          mocks: "Allowed for agent responses (not SDK calls)"
+      integration_tests:
+        - test: "End-to-end agent workflow"
+          file: "e2e-agent-workflow.test.ts"
+          scenario: "Initialize SDK, spawn agent, execute tool, verify response"
+          real_sdk: "Required (no mocks)"
+          verification: "All steps execute without errors"
+      evidence_verification:
+        - test: "Evidence verification tests"
+          file: "evidence-verification.test.ts"
+          purpose: "Verify each evidence ID with actual SDK behavior"
+          real_sdk: "Required"
+          verification: "Each claim verified against SDK output"
+
+    risk_mitigation:
+      risk_1:
+        name: "SDK integration more complex than expected"
+        probability: "medium"
+        impact: "high"
+        mitigation:
+          - "Start with hello-world agent example from SDK docs"
+          - "Incrementally add features (streaming, tools, hooks)"
+          - "Document each integration step with evidence"
+          - "Week 2 buffer for unforeseen complexity"
+      risk_2:
+        name: "System monitoring incompatible with macOS"
+        probability: "low"
+        impact: "medium"
+        mitigation:
+          - "Test psutil on target macOS first (Day 1)"
+          - "Fallback to existing shell script if psutil fails"
+          - "Evidence shows shell script already works"
+      risk_3:
+        name: "Token tracking differs from Task tool"
+        probability: "medium"
+        impact: "low"
+        mitigation:
+          - "Document both measurement methods"
+          - "Compare in baseline, note discrepancies"
+          - "Use SDK token counts as ground truth"
+
+    deliverables:
+      week_1:
+        - "SDK installation and verification (install log)"
+        - "Hello-world agent execution (agent response log)"
+        - "Streaming verification (streaming chunk logs)"
+        - "Tool execution test (tool execution log)"
+      week_2:
+        - "Complete agent execution tests (10 test results)"
+        - "Baseline metrics report (baseline-metrics.json)"
+        - "Evidence verification log (verification-log.json)"
+        - "Phase 0 gate documentation (gate-criteria.md)"

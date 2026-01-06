@@ -1,0 +1,708 @@
+# Component Specification: Baseline Measurement
+# Phase 0 - Prerequisites & Foundation
+#
+# INSTRUCTIONS:
+# 1. This spec defines the BaselineMeasurement component for tracking performance metrics
+# 2. All claims have evidence IDs from research-findings.md
+# 3. All failure modes have detection + recovery + timeout
+# 4. Success criteria are measurable with PASS/FAIL thresholds
+
+metadata:
+  component_name: "BaselineMeasurement"
+  phase: "Phase 0 - Prerequisites & Foundation"
+  version: "1.0.0"
+  status: "specification"
+  created: "2026-01-05"
+  evidence_sources:
+    - "evidence/research-findings.md"
+    - "rad-engineer/src/sdk/SDKIntegration.ts"
+    - "rad-engineer/src/sdk/types.ts"
+
+interface:
+  class_name: "BaselineMeasurement"
+  language: "TypeScript"
+  runtime: "Node.js"
+  dependencies:
+    - name: "@anthropic-ai/sdk"
+      version: "^0.30.0"
+      evidence: "evidence/research-findings.md#CLAIM-001"
+    - name: "node:fs/promises"
+      version: "built-in"
+      evidence: "evidence/research-findings.md#CLAIM-008"
+
+  description: |
+    The BaselineMeasurement component provides deterministic metrics collection, persistence,
+    and statistical analysis for agent orchestration performance. It tracks token usage,
+    execution time, and success rates through wrapped SDK calls, stores metrics in JSONL
+    format with buffered writes, and calculates percentiles and trends for baseline
+    reporting. All capabilities verified against Anthropic SDK documentation (CLAIM-001)
+    and Node.js fs/promises API (CLAIM-008).
+
+methods:
+  recordMetric:
+    signature: "async recordMetric(data: MetricData): Promise<void>"
+    description: "Records a single metric entry with timestamp, tokens, duration, and outcome"
+    inputs:
+      data:
+        type: "MetricData"
+        description: "Metric entry containing timestamp, tokens, duration, outcome, task type"
+        required: true
+        default: "N/A"
+        evidence: "evidence/research-findings.md#CLAIM-001"
+    outputs:
+      success:
+        type: "void"
+        properties: []
+    failure_modes:
+      - error: "INVALID_METRIC_DATA"
+        description: "Required metric fields are missing or invalid"
+        detection: "Check for required fields: timestamp, duration, outcome"
+        recovery: "Log error and skip this metric entry, continue processing"
+        timeout: "N/A"
+
+      - error: "FILE_WRITE_FAILED"
+        description: "Unable to append metric to JSONL file"
+        detection: "fs.appendFile() throws error"
+        recovery: "Add to in-memory buffer, retry on next recordMetric() call"
+        timeout: "1 second"
+
+      - error: "BUFFER_OVERFLOW"
+        description: "In-memory buffer exceeds maximum size"
+        detection: "Buffer length > 1000 entries"
+        recovery: "Force flush to disk, clear buffer, continue processing"
+        timeout: "5 seconds"
+
+    evidence_requirements:
+      - id: "EVIDENCE-001"
+        claim: "Token usage available via response.usage property"
+        source: "evidence/research-findings.md#CLAIM-001"
+        verification: "Inspect SDK response object for usage property"
+        required_for: "recordMetric() input data extraction"
+
+      - id: "EVIDENCE-002"
+        claim: "JSONL format supports append-only writes"
+        source: "evidence/research-findings.md#CLAIM-008"
+        verification: "fs.appendFile() adds newline-terminated JSON"
+        required_for: "recordMetric() persistence"
+
+  getMetrics:
+    signature: "async getMetrics(filter?: MetricFilter): Promise<MetricSummary>"
+    description: "Retrieves and aggregates metrics with optional filtering and statistical analysis"
+    inputs:
+      filter:
+        type: "MetricFilter"
+        description: "Optional filter by time range, task type, outcome"
+        required: false
+        default: "{}"
+        evidence: "evidence/research-findings.md#CLAIM-009"
+    outputs:
+      success:
+        type: "MetricSummary"
+        properties:
+          count: "number"
+          tokenStats: "{average, p50, p95, p99}"
+          durationStats: "{average, p50, p95, p99}"
+          successRate: "number"
+          trend: "increasing|stable|decreasing"
+    failure_modes:
+      - error: "FILE_READ_FAILED"
+        description: "Unable to read metrics file from disk"
+        detection: "fs.readFile() throws error"
+        recovery: "Return empty summary with warning log, don't crash"
+        timeout: "2 seconds"
+
+      - error: "INVALID_METRIC_FORMAT"
+        description: "Metrics file contains corrupted JSON lines"
+        detection: "JSON.parse() throws error on line"
+        recovery: "Skip corrupted lines, log count of skipped entries"
+        timeout: "N/A"
+
+      - error: "INSUFFICIENT_DATA"
+        description: "Not enough data points for statistical analysis"
+        detection: "Filtered metrics < 10 entries"
+        recovery: "Return available metrics with warning about low sample size"
+        timeout: "N/A"
+
+    evidence_requirements:
+      - id: "EVIDENCE-003"
+        claim: "Percentile calculations provide robust statistics"
+        source: "evidence/research-findings.md#CLAIM-009"
+        verification: "Calculate p50, p95, p99 from sorted values"
+        required_for: "getMetrics() statistical analysis"
+
+      - id: "EVIDENCE-004"
+        claim: "Moving window detects trends"
+        source: "evidence/research-findings.md#CLAIM-010"
+        verification: "Compare recent vs older averages to determine trend"
+        required_for: "getMetrics() trend detection"
+
+  exportMetrics:
+    signature: "async exportMetrics(format: 'json' | 'csv'): Promise<string>"
+    description: "Exports all metrics in specified format for external analysis"
+    inputs:
+      format:
+        type: "'json' | 'csv'"
+        description: "Export format: JSON array or CSV with headers"
+        required: true
+        default: "N/A"
+        evidence: "evidence/research-findings.md#CLAIM-008"
+    outputs:
+      success:
+        type: "string"
+        properties:
+          data: "Serialized metrics in requested format"
+    failure_modes:
+      - error: "UNSUPPORTED_FORMAT"
+        description: "Requested export format is not supported"
+        detection: "format parameter not in ['json', 'csv']"
+        recovery: "Throw error with supported formats list"
+        timeout: "N/A"
+
+      - error: "SERIALIZATION_FAILED"
+        description: "Unable to serialize metrics to requested format"
+        detection: "JSON.stringify() or CSV generation throws error"
+        recovery: "Return raw JSONL file contents as fallback"
+        timeout: "2 seconds"
+
+    evidence_requirements:
+      - id: "EVIDENCE-005"
+        claim: "JSONL format can be converted to JSON or CSV"
+        source: "evidence/research-findings.md#CLAIM-008"
+        verification: "Parse each line, transform to target format"
+        required_for: "exportMetrics() format conversion"
+
+  generateBaseline:
+    signature: "async generateBaseline(): Promise<BaselineReport>"
+    description: "Generates comprehensive baseline report from collected metrics"
+    inputs: {}
+    outputs:
+      success:
+        type: "BaselineReport"
+        properties:
+          summary: "MetricSummary"
+          thresholds: "{token, timeout, successRate}"
+          recommendations: "string[]"
+          generatedAt: "Date"
+    failure_modes:
+      - error: "INSUFFICIENT_BASELINE_DATA"
+        description: "Not enough data to generate reliable baseline"
+        detection: "Total metrics < 50 entries"
+        recovery: "Generate partial baseline with warning about sample size"
+        timeout: "N/A"
+
+      - error: "STATISTICAL_ANALYSIS_FAILED"
+        description: "Unable to calculate statistics from metrics"
+        detection: "Percentile or trend calculation throws error"
+        recovery: "Return baseline with available statistics, log error"
+        timeout: "2 seconds"
+
+    evidence_requirements:
+      - id: "EVIDENCE-006"
+        claim: "Token thresholds: 150K warning, 175K critical, 190K maximum"
+        source: "evidence/research-findings.md#CLAIM-005"
+        verification: "Compare measured values against thresholds"
+        required_for: "generateBaseline() threshold comparison"
+
+      - id: "EVIDENCE-007"
+        claim: "Success rate thresholds: 70% minimum, 90% target, 95% excellent"
+        source: "evidence/research-findings.md#CLAIM-007"
+        verification: "Calculate success rate from outcomes, compare to thresholds"
+        required_for: "generateBaseline() success rate assessment"
+
+  flush:
+    signature: "async flush(): Promise<void>"
+    description: "Forces immediate flush of in-memory buffer to disk"
+    inputs: {}
+    outputs:
+      success:
+        type: "void"
+        properties: []
+    failure_modes:
+      - error: "FLUSH_FAILED"
+        description: "Unable to write buffer contents to disk"
+        detection: "fs.appendFile() throws error"
+        recovery: "Keep buffer in memory, log error, retry on next flush()"
+        timeout: "5 seconds"
+
+      - error: "BUFFER_EMPTY"
+        description: "Flush called on empty buffer (not an error)"
+        detection: "Buffer length is 0"
+        recovery: "Return immediately, no action needed"
+        timeout: "N/A"
+
+    evidence_requirements:
+      - id: "EVIDENCE-008"
+        claim: "In-memory buffering reduces disk I/O overhead"
+        source: "evidence/research-findings.md#CLAIM-008"
+        verification: "Buffer accumulates 100 entries before auto-flush"
+        required_for: "flush() buffer management"
+
+integration_points:
+  SDKIntegration:
+    type: "library"
+    path: "rad-engineer/src/sdk/SDKIntegration.ts"
+    description: "Wraps SDK calls to extract token usage and timing data"
+    integration_method: "Decorator pattern: wrap invokeAgent() and streamAgent() calls"
+    evidence: "evidence/research-findings.md#CLAIM-002"
+    capabilities:
+      - check: "Token usage extraction"
+        threshold: "response.usage must exist"
+        evidence: "evidence/research-findings.md#CLAIM-002"
+        action: "Extract input_tokens and output_tokens from response"
+      - check: "Latency measurement"
+        threshold: "Timestamp diff < 5ms overhead"
+        evidence: "evidence/research-findings.md#CLAIM-003"
+        action: "Measure before/after SDK call with performance.now()"
+    integration_pattern:
+      type: "pre-flight"
+      when: "Before each SDK call, start timer. After call, record metric."
+      implementation: |
+        ```typescript
+        async function measuredSDKCall(agentId: string, input: any) {
+          const startTime = performance.now();
+          try {
+            const response = await sdk.invokeAgent(agentId, input);
+            const duration = performance.now() - startTime;
+
+            await baseline.recordMetric({
+              timestamp: Date.now(),
+              duration,
+              tokenUsage: {
+                input: response.usage?.input_tokens || 0,
+                output: response.usage?.output_tokens || 0,
+              },
+              outcome: 'complete',
+              taskType: 'sdk-invoke',
+            });
+
+            return response;
+          } catch (error) {
+            const duration = performance.now() - startTime;
+
+            await baseline.recordMetric({
+              timestamp: Date.now(),
+              duration,
+              outcome: 'failed',
+              errorType: error.constructor.name,
+              taskType: 'sdk-invoke',
+            });
+
+            throw error;
+          }
+        }
+        ```
+      fallback: "If metric recording fails, log warning but don't fail the SDK call"
+
+  ResourceMonitor:
+    type: "library"
+    path: "rad-engineer/src/sdk/ResourceMonitor.ts"
+    description: "Extends existing system resource monitoring with metrics persistence"
+    integration_method: "Composition: add BaselineMeasurement as dependency"
+    evidence: "evidence/research-findings.md#Agent-2"
+    capabilities:
+      - check: "System metrics availability"
+        threshold: "CPU, memory metrics accessible"
+        evidence: "rad-engineer/src/sdk/ResourceMonitor.ts"
+        action: "Correlate agent performance with system resource usage"
+    integration_pattern:
+      type: "continuous"
+      when: "On each ResourceMonitor check, optionally sync with BaselineMeasurement"
+      implementation: |
+        ```typescript
+        class ResourceMonitor {
+          private baseline?: BaselineMeasurement;
+
+          setBaseline(baseline: BaselineMeasurement) {
+            this.baseline = baseline;
+          }
+
+          async check() {
+            const metrics = await this.getSystemMetrics();
+
+            if (this.baseline && metrics.cpu > 80) {
+              // Correlate high CPU with task performance
+              await this.baseline.recordMetric({
+                timestamp: Date.now(),
+                systemContext: { cpu: metrics.cpu, memory: metrics.memory },
+                taskType: 'system-check',
+              });
+            }
+          }
+        }
+        ```
+      fallback: "If BaselineMeasurement unavailable, ResourceMonitor runs independently"
+
+  FileSystem:
+    type: "script"
+    path: "node:fs/promises"
+    description: "Persists metrics to rad-engineer/metrics/baseline.jsonl"
+    integration_method: "Direct API calls: mkdir, appendFile, readFile"
+    evidence: "evidence/research-findings.md#CLAIM-008"
+    capabilities:
+      - check: "File system write access"
+        threshold: "Can create and write to rad-engineer/metrics/"
+        evidence: "evidence/research-findings.md#CLAIM-008"
+        action: "Create directory on init, append JSONL lines"
+      - check: "File size limits"
+        threshold: "Max 10MB per file"
+        evidence: "evidence/research-findings.md#Agent-2"
+        action: "Rotate file when size exceeded"
+    integration_pattern:
+      type: "post-execution"
+      when: "After each recordMetric() call, append to file"
+      implementation: |
+        ```typescript
+        import { mkdir, appendFile, stat } from 'node:fs/promises';
+
+        class BaselineMeasurement {
+          private metricsFile = 'rad-engineer/metrics/baseline.jsonl';
+
+          async init() {
+            await mkdir('rad-engineer/metrics', { recursive: true });
+          }
+
+          async recordMetric(data: MetricData) {
+            const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+
+            try {
+              const stats = await stat(this.metricsFile);
+              if (stats.size > MAX_SIZE) {
+                await this.rotateLog();
+              }
+            } catch {
+              // File doesn't exist yet, that's OK
+            }
+
+            await appendFile(
+              this.metricsFile,
+              JSON.stringify(data) + '\n',
+              'utf-8'
+            );
+          }
+        }
+        ```
+      fallback: "If file system unavailable, keep metrics in memory only, log warning"
+
+evidence_requirements:
+  mandatory:
+    - id: "EVIDENCE-001"
+      claim: "Token usage available via response.usage property"
+      source: "evidence/research-findings.md#CLAIM-001"
+      verification_method: "Inspect SDK response object for usage property with input_tokens and output_tokens"
+      required_for: "recordMetric() token data extraction"
+
+    - id: "EVIDENCE-002"
+      claim: "JSONL format supports append-only writes"
+      source: "evidence/research-findings.md#CLAIM-008"
+      verification_method: "fs.appendFile() adds newline-terminated JSON, verify file contents after writes"
+      required_for: "recordMetric() persistence"
+
+    - id: "EVIDENCE-003"
+      claim: "Percentile calculations provide robust statistics"
+      source: "evidence/research-findings.md#CLAIM-009"
+      verification_method: "Calculate p50, p95, p99 from sorted array, verify with known test data"
+      required_for: "getMetrics() statistical analysis"
+
+    - id: "EVIDENCE-004"
+      claim: "Moving window detects trends"
+      source: "evidence/research-findings.md#CLAIM-010"
+      verification_method: "Compare recent average vs older average with 10% tolerance bands"
+      required_for: "getMetrics() trend detection"
+
+    - id: "EVIDENCE-005"
+      claim: "JSONL format can be converted to JSON or CSV"
+      source: "evidence/research-findings.md#CLAIM-008"
+      verification_method: "Parse each line, transform to target format, verify output is valid"
+      required_for: "exportMetrics() format conversion"
+
+    - id: "EVIDENCE-006"
+      claim: "Token thresholds: 150K warning, 175K critical, 190K maximum"
+      source: "evidence/research-findings.md#CLAIM-005"
+      verification_method: "Compare measured values against thresholds in unit tests"
+      required_for: "generateBaseline() threshold comparison"
+
+    - id: "EVIDENCE-007"
+      claim: "Success rate thresholds: 70% minimum, 90% target, 95% excellent"
+      source: "evidence/research-findings.md#CLAIM-007"
+      verification_method: "Calculate success rate from outcomes, compare to thresholds in tests"
+      required_for: "generateBaseline() success rate assessment"
+
+    - id: "EVIDENCE-008"
+      claim: "In-memory buffering reduces disk I/O overhead"
+      source: "evidence/research-findings.md#CLAIM-008"
+      verification_method: "Measure time to record 100 metrics with buffering vs without"
+      required_for: "flush() buffer management"
+
+  verification_protocol:
+    standard: "All evidence must be verified against primary sources (SDK docs, Node.js docs)"
+    format: "Each evidence ID maps to claim → source → verification method → required_for"
+    tracking: "rad-engineer/test/baseline/BaselineMeasurement.evidence.test.ts"
+    frequency: "Evidence verified during specification, re-verified during implementation testing"
+
+success_criteria:
+  phase_0_gate:
+    criteria:
+      - criterion: "Token usage tracking functional"
+        measurement_method: |
+          ```bash
+          cd rad-engineer
+          bun test test/baseline/token-tracking.test.ts
+          ```
+        threshold: "All tests pass (10/10), coverage ≥ 80%"
+        evidence: "Test output shows input_tokens and output_tokens extracted correctly"
+        status: "pending"
+        priority: "critical"
+
+      - criterion: "Metrics persistence to JSONL file"
+        measurement_method: |
+          ```bash
+          cd rad-engineer
+          bun test test/baseline/persistence.test.ts
+          ls -lh metrics/baseline.jsonl
+          cat metrics/baseline.jsonl | head -5
+          ```
+        threshold: "File exists, contains valid JSON lines, ≥ 10 entries"
+        evidence: "File contents show metric entries with timestamp, tokens, duration, outcome"
+        status: "pending"
+        priority: "critical"
+
+      - criterion: "Percentile calculations accurate"
+        measurement_method: |
+          ```bash
+          cd rad-engineer
+          bun test test/baseline/statistics.test.ts
+          ```
+        threshold: "p50, p95, p99 match expected values for test data"
+        evidence: "Test output shows correct percentile calculations"
+        status: "pending"
+        priority: "high"
+
+      - criterion: "Baseline report generation"
+        measurement_method: |
+          ```bash
+          cd rad-engineer
+          bun run src/baseline/generate-baseline.ts
+          cat baseline-report.json
+          ```
+        threshold: "Report contains summary, thresholds, recommendations"
+        evidence: "baseline-report.json includes all required sections"
+        status: "pending"
+        priority: "high"
+
+      - criterion: "Performance overhead < 1ms per metric"
+        measurement_method: |
+          ```bash
+          cd rad-engineer
+          bun test test/baseline/performance.test.ts
+          ```
+        threshold: "Average metric recording time < 1ms (1000 metrics in < 1 second)"
+        evidence: "Performance test output shows sub-millisecond average"
+        status: "pending"
+        priority: "high"
+
+      - criterion: "Success rate tracking functional"
+        measurement_method: |
+          ```bash
+          cd rad-engineer
+          bun test test/baseline/success-tracking.test.ts
+          ```
+        threshold: "Success rate calculated correctly (70%/90%/95% thresholds met)"
+        evidence: "Test output shows accurate success rate calculations"
+        status: "pending"
+        priority: "medium"
+
+    aggregate_success:
+      description: "Phase 0 gate decision for BaselineMeasurement component"
+      decision_logic:
+        - "IF 6 critical + high criteria pass → GO to implementation"
+        - "IF 5 critical + high criteria pass + 1 documented blocker → CONDITIONAL GO"
+        - "IF < 5 critical + high criteria pass → NO-GO, reassess approach"
+      evidence_required: "All criteria must have verification logs linked (test outputs, file contents)"
+      human_approval: "Required for GO decision"
+      status: "pending"
+
+implementation_notes:
+  constraints:
+    - constraint: "Use actual Anthropic SDK responses, not mock data"
+      rationale: "Baseline must reflect real-world performance, not simulated values"
+      evidence: "evidence/research-findings.md#CLAIM-001"
+      enforcement: "Integration tests require real SDK calls, unit tests may mock"
+
+    - constraint: "Maximum 10MB per metrics file"
+      rationale: "Prevent file system saturation, enable rotation"
+      evidence: "evidence/research-findings.md#Agent-2"
+      enforcement: "Check file size before each append, rotate when exceeded"
+
+    - constraint: "Buffer flush at 100 entries or 60 seconds"
+      rationale: "Balance performance (buffering) with data safety (flush frequency)"
+      evidence: "evidence/research-findings.md#CLAIM-008"
+      enforcement: "Auto-flush in recordMetric(), also manual flush() available"
+
+    - constraint: "Minimum 50 metrics for baseline report"
+      rationale: "Statistical significance requires adequate sample size"
+      evidence: "evidence/research-findings.md#CLAIM-009"
+      enforcement: "generateBaseline() warns if < 50 entries, proceeds with partial data"
+
+  prohibited:
+    - prohibition: "Do not use 'any' types for metric data"
+      rationale: "Type safety prevents runtime errors and data corruption"
+      detection: "ESLint rule @typescript-eslint/no-explicit-any"
+      consequence: "Type check failure, must fix before commit"
+
+    - prohibition: "Do not estimate or guess token usage"
+      rationale: "Baseline requires actual measured values, not estimates"
+      detection: "Code review checks for hardcoded token values"
+      consequence: "Invalid baseline, re-run with actual data"
+
+    - prohibition: "Do not skip error handling in metric recording"
+      rationale: "Metric recording failures should not crash the application"
+      detection: "All async methods wrapped in try/catch with logging"
+      consequence: "Unhandled exceptions cause crashes, must add error handling"
+
+    - prohibition: "Do not flush buffer on every recordMetric() call"
+      rationale: "Excessive disk I/O causes performance degradation"
+      detection: "Profiler shows high disk write frequency"
+      consequence: "Performance overhead exceeds threshold, implement buffering"
+
+  development_guidance:
+    setup_steps:
+      - step: "Create metrics directory"
+        command: "mkdir -p rad-engineer/metrics"
+        verification: "ls -ld rad-engineer/metrics"
+
+      - step: "Install dependencies"
+        command: "cd rad-engineer && bun install"
+        verification: "bun pm ls | grep anthropic"
+
+      - step: "Run type check"
+        command: "cd rad-engineer && bun run typecheck"
+        verification: "Output shows 0 errors"
+
+      - step: "Run linter"
+        command: "cd rad-engineer && bun run lint"
+        verification: "Output shows no warnings"
+
+    testing_strategy:
+      unit_tests:
+        - test: "Token tracking extraction"
+          file: "test/baseline/token-tracking.test.ts"
+          coverage: "Extract input_tokens and output_tokens from SDK response"
+          mocks: "Mock SDK response object, not the extraction logic"
+
+        - test: "Percentile calculations"
+          file: "test/baseline/statistics.test.ts"
+          coverage: "Calculate p50, p95, p99 from sorted array"
+          mocks: "No mocks needed, pure calculation functions"
+
+        - test: "Moving window trend detection"
+          file: "test/baseline/trend-detection.test.ts"
+          coverage: "Detect increasing/stable/decreasing trends"
+          mocks: "No mocks needed, pure calculation functions"
+
+        - test: "Metric data validation"
+          file: "test/baseline/validation.test.ts"
+          coverage: "Validate required fields in MetricData"
+          mocks: "No mocks needed, validation logic"
+
+        - test: "Export format conversion"
+          file: "test/baseline/export.test.ts"
+          coverage: "Convert JSONL to JSON and CSV formats"
+          mocks: "Mock file system for read/write"
+
+      integration_tests:
+        - test: "End-to-end metrics collection"
+          file: "test/baseline/e2e-collection.test.ts"
+          scenario: "Record metrics, flush to disk, verify file contents"
+          real_dependencies: "Required (file system, no SDK mocks)"
+          verification: "File contains valid JSONL with all fields"
+
+        - test: "SDK integration wrapper"
+          file: "test/baseline/sdk-integration.test.ts"
+          scenario: "Wrap SDK call, extract metrics, verify recording"
+          real_dependencies: "Allowed (can use real SDK or mock)"
+          verification: "Metric recorded with correct tokens and duration"
+
+        - test: "Buffer flush behavior"
+          file: "test/baseline/buffer-flush.test.ts"
+          scenario: "Fill buffer to 100 entries, verify auto-flush"
+          real_dependencies: "Required (file system)"
+          verification: "File written after 100th entry"
+
+        - test: "File rotation"
+          file: "test/baseline/rotation.test.ts"
+          scenario: "Write until 10MB exceeded, verify rotation"
+          real_dependencies: "Required (file system)"
+          verification: "New file created with timestamp suffix"
+
+      performance_tests:
+        - test: "Metric recording overhead"
+          file: "test/baseline/performance-overhead.test.ts"
+          scenario: "Record 1000 metrics, measure total time"
+          verification: "Average time < 1ms per metric"
+
+        - test: "Large file read performance"
+          file: "test/baseline/performance-read.test.ts"
+          scenario: "Read 10MB JSONL file, calculate statistics"
+          verification: "Read and parse in < 1 second"
+
+    risk_mitigation:
+      risk_1:
+        name: "File system saturation"
+        probability: "low"
+        impact: "high"
+        mitigation:
+          - "Implement 10MB file size limit"
+          - "Automatic log rotation when limit exceeded"
+          - "Periodic cleanup of old metric files"
+
+      risk_2:
+        name: "Metrics file corruption"
+        probability: "low"
+        impact: "medium"
+        mitigation:
+          - "Append-only writes prevent corruption of existing data"
+          - "Validate JSON on read, skip corrupted lines"
+          - "Backup file before rotation"
+
+      risk_3:
+        name: "Performance overhead"
+        probability: "low"
+        impact: "medium"
+        mitigation:
+          - "In-memory buffering (100 entries)"
+          - "Async, non-blocking writes"
+          - "Performance tests enforce < 1ms threshold"
+
+      risk_4:
+        name: "Incomplete metrics on crash"
+        probability: "medium"
+        impact: "low"
+        mitigation:
+          - "Process signal handlers (SIGINT, SIGTERM) for graceful shutdown"
+          - "Auto-flush on buffer fill (every 100 entries)"
+          - "Warning if buffer has data at startup"
+
+    deliverables:
+      week_1:
+        - "BaselineMeasurement class with recordMetric(), getMetrics(), flush()"
+        - "Unit tests for token tracking and statistics"
+        - "Integration tests for persistence"
+
+      week_2:
+        - "exportMetrics() and generateBaseline() methods"
+        - "SDK integration wrapper"
+        - "Performance tests and optimization"
+
+      week_3:
+        - "Buffer management and file rotation"
+        - "Comprehensive integration tests"
+        - "Documentation and examples"
+
+---
+# SPECIFICATION COMPLETE
+#
+# Evidence Quality: HIGH
+# All claims trace to research-findings.md
+# All failure modes have detection + recovery + timeout
+# All success criteria are measurable with PASS/FAIL thresholds
+# Ready for test-spec.yaml creation

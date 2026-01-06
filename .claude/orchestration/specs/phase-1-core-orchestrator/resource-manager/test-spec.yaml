@@ -1,0 +1,657 @@
+# Test Specification: ResourceManager
+# Phase 1 - Core Orchestrator
+#
+# All test requirements map to component-spec.yaml methods
+# All thresholds are verified numbers from research-findings.md
+# Coverage requirement: ≥80% overall
+
+metadata:
+  component: "ResourceManager"
+  version: "1.0.0"
+  created: "2026-01-05"
+  evidence_sources:
+    - "specs/phase-1-core-orchestrator/resource-manager/evidence/research-findings.md"
+    - "specs/phase-1-core-orchestrator/resource-manager/component-spec.yaml"
+  verified_thresholds:
+    max_concurrent_agents: 3        # from CLAIM-001
+    kernel_task_cpu: 50            # from CLAIM-003
+    memory_free_percent: 20        # from CLAIM-004
+    process_count: 400            # from CLAIM-005
+    thread_count_warning: 300      # from CLAIM-010
+    thread_count_critical: 400     # from production data
+    cpu_safe: 50                   # from CLAIM-008
+    memory_safe: 2147483648        # 2GB from CLAIM-009
+
+test_requirements:
+  overall_coverage: 80
+  unit_test_count: 12
+  integration_test_count: 3
+  e2e_test_count: 1
+
+unit_tests:
+  canSpawnAgent:
+    description: "Test agent spawn eligibility checks"
+    file: "test/core/ResourceManager.test.ts"
+    test_cases:
+      - name: "Returns true when under limit and resources OK"
+        input:
+          activeAgents: 1
+          maxConcurrent: 2
+          systemResources: "OK"
+        expected:
+          canSpawn: true
+        assertions:
+          - "activeAgents < maxConcurrent"
+          - "System resources within thresholds"
+
+      - name: "Returns false when at concurrent limit"
+        input:
+          activeAgents: 2
+          maxConcurrent: 2
+        expected:
+          canSpawn: false
+        assertions:
+          - "activeAgents >= maxConcurrent"
+
+      - name: "Returns false when kernel_task CPU > 50%"
+        input:
+          activeAgents: 1
+          kernelTaskCpu: 65
+        expected:
+          canSpawn: false
+        assertions:
+          - "CPU threshold exceeded"
+
+      - name: "Returns false when memory < 20%"
+        input:
+          memoryFreePercent: 15
+        expected:
+          canSpawn: false
+        assertions:
+          - "Memory threshold exceeded"
+
+      - name: "Returns false when thread count > 300"
+        input:
+          threadCount: 350
+        expected:
+          canSpawn: false
+        assertions:
+          - "Thread threshold exceeded"
+
+    coverage_requirements:
+      branches: 85
+      functions: 90
+      lines: 90
+
+  registerAgent:
+    description: "Test agent registration"
+    file: "test/core/ResourceManager.test.ts"
+    test_cases:
+      - name: "Successfully register agent under limit"
+        input:
+          agentId: "agent-1"
+          currentCount: 0
+          maxConcurrent: 2
+        expected:
+          registered: true
+          activeCount: 1
+        assertions:
+          - "Agent added to activeAgents set"
+          - "getActiveAgentCount() returns 1"
+
+      - name: "Throw error when exceeding concurrent limit"
+        input:
+          agentId: "agent-3"
+          currentCount: 2
+          maxConcurrent: 2
+        expected:
+          error: "AGENT_LIMIT_EXCEEDED"
+        assertions:
+          - "Error thrown with current count and limit"
+
+      - name: "Throw error for duplicate agent ID"
+        input:
+          agentId: "agent-1"
+          existingAgent: true
+        expected:
+          error: "DUPLICATE_AGENT_ID"
+        assertions:
+          - "Error thrown with agent ID"
+
+    coverage_requirements:
+      branches: 85
+      functions: 90
+      lines: 85
+
+  unregisterAgent:
+    description: "Test agent unregistration"
+    file: "test/core/ResourceManager.test.ts"
+    test_cases:
+      - name: "Successfully unregister existing agent"
+        input:
+          agentId: "agent-1"
+          existingAgent: true
+        expected:
+          unregistered: true
+          activeCount: 0
+        assertions:
+          - "Agent removed from activeAgents set"
+          - "getActiveAgentCount() decreased"
+
+      - name: "Log warning for non-existent agent (idempotent)"
+        input:
+          agentId: "agent-999"
+          existingAgent: false
+        expected:
+          warning: true
+          noError: true
+        assertions:
+          - "Warning logged"
+          - "No error thrown"
+
+    coverage_requirements:
+      branches: 80
+      functions: 85
+      lines: 85
+
+  checkResources:
+    description: "Test system resource checking"
+    file: "test/core/ResourceManager.test.ts"
+    test_cases:
+      - name: "Return all metrics within thresholds"
+        input:
+          kernelTaskCpu: 30
+          memoryFreePercent: 40
+          processCount: 200
+          threadCount: 150
+        expected:
+          canSpawnAgent: true
+          violations: []
+        assertions:
+          - "All metrics within thresholds"
+          - "Empty violations array"
+
+      - name: "Return violations when CPU exceeds threshold"
+        input:
+          kernelTaskCpu: 65
+        expected:
+          canSpawnAgent: false
+          violations: ["CPU exceeded"]
+        assertions:
+          - "CPU > 50% in violations"
+
+      - name: "Return violations when memory low"
+        input:
+          memoryFreePercent: 15
+        expected:
+          canSpawnAgent: false
+          violations: ["Memory low"]
+        assertions:
+          - "Memory < 20% in violations"
+
+      - name: "Return violations when threads high"
+        input:
+          threadCount: 350
+        expected:
+          canSpawnAgent: false
+          violations: ["Thread count high"]
+        assertions:
+          - "Threads > 300 in violations"
+
+    coverage_requirements:
+      branches: 85
+      functions: 90
+      lines: 90
+
+  getActiveAgentCount:
+    description: "Test active agent count retrieval"
+    file: "test/core/ResourceManager.test.ts"
+    test_cases:
+      - name: "Return 0 when no agents active"
+        input: {}
+        expected:
+          count: 0
+        assertions:
+          - "activeAgents.size === 0"
+
+      - name: "Return correct count with active agents"
+        input:
+          activeAgents: ["agent-1", "agent-2"]
+        expected:
+          count: 2
+        assertions:
+          - "activeAgents.size === 2"
+
+    coverage_requirements:
+      branches: 80
+      functions: 85
+      lines: 85
+
+  setBaseline:
+    description: "Test baseline establishment"
+    file: "test/core/ResourceManager.test.ts"
+    test_cases:
+      - name: "Successfully set baseline via ResourceMonitor"
+        input:
+          monitorAvailable: true
+        expected:
+          baselineSet: true
+        assertions:
+          - "ResourceMonitor.setBaseline() called"
+
+      - name: "Handle ResourceMonitor.setBaseline() failure"
+        input:
+          monitorAvailable: false
+        expected:
+          error: "BASELINE_SET_FAILED"
+        assertions:
+          - "Error logged"
+          - "Continues without baseline"
+
+    coverage_requirements:
+      branches: 80
+      functions: 85
+      lines: 85
+
+integration_tests:
+  resource_monitor_integration:
+    description: "Test ResourceMonitor integration"
+    file: "test/core/integration/resource-monitor.test.ts"
+    test_cases:
+      - name: "Use ResourceMonitor.getCurrentMetrics() for checking"
+        setup:
+          monitor: "ResourceMonitor singleton"
+        steps:
+          - "Initialize ResourceManager with ResourceMonitor"
+          - "Call checkResources()"
+          - "Verify metrics from ResourceMonitor"
+        expected:
+          usesResourceMonitor: true
+          metricsValid: true
+        assertions:
+          - "ResourceMonitor.getCurrentMetrics() called"
+          - "Metrics contain CPU, memory, threads"
+
+      - name: "Set baseline at initialization"
+        setup:
+          monitor: "ResourceMonitor singleton"
+        steps:
+          - "Create ResourceManager instance"
+          - "Call setBaseline()"
+          - "Verify baseline established"
+        expected:
+          baselineSet: true
+        assertions:
+          - "ResourceMonitor.setBaseline() called"
+          - "getDeltaFromBaseline() works"
+
+    coverage_requirements:
+      branches: 85
+      functions: 85
+      lines: 85
+
+  wave_execution:
+    description: "Test wave-based execution pattern"
+    file: "test/core/integration/wave-execution.test.ts"
+    test_cases:
+      - name: "Execute 10 tasks in waves of 2"
+        setup:
+          tasks: 10
+          waveSize: 2
+        steps:
+          - "ResourceManager initialized with maxConcurrent=2"
+          - "Execute tasks in waves"
+          - "Verify no more than 2 agents active at once"
+        expected:
+          maxConcurrent: 2
+          allTasksComplete: true
+        assertions:
+          - "At any point, activeAgents.size <= 2"
+          - "All 10 tasks completed"
+
+      - name: "Execute 6 tasks in waves of 3"
+        setup:
+          tasks: 6
+          waveSize: 3
+        steps:
+          - "ResourceManager initialized with maxConcurrent=3"
+          - "Execute tasks in waves"
+          - "Verify no more than 3 agents active at once"
+        expected:
+          maxConcurrent: 3
+          allTasksComplete: true
+        assertions:
+          - "At any point, activeAgents.size <= 3"
+
+    coverage_requirements:
+      branches: 85
+      functions: 90
+      lines: 90
+
+  sdk_integration:
+    description: "Test SDK integration"
+    file: "test/core/integration/sdk-integration.test.ts"
+    test_cases:
+      - name: "Wrap SDK createAgent() with resource check"
+        setup:
+          sdk: "SDKIntegration instance"
+          resourceManager: "ResourceManager instance"
+        steps:
+          - "Call SDK.createAgent() with config"
+          - "SDK calls resourceManager.canSpawnAgent() first"
+          - "If true, registers agent after spawn"
+        expected:
+          agentCreated: true
+          agentRegistered: true
+        assertions:
+          - "canSpawnAgent() called before createAgent()"
+          - "registerAgent() called after successful spawn"
+
+      - name: "Block agent spawn when limit reached"
+        setup:
+          activeAgents: 3
+          maxConcurrent: 3
+        steps:
+          - "Attempt to spawn 4th agent"
+          - "SDK checks resourceManager.canSpawnAgent()"
+          - "Returns false, throws error"
+        expected:
+          agentCreated: false
+          error: "AGENT_LIMIT_EXCEEDED"
+        assertions:
+          - "4th spawn blocked"
+          - "Error includes current count"
+
+    coverage_requirements:
+      branches: 85
+      functions: 85
+      lines: 85
+
+chaos_tests:
+  description: "Test system resilience under stress"
+  file: "test/core/chaos/chaos.test.ts"
+
+  test_cases:
+    - name: "ResourceMonitor becomes unavailable"
+      setup:
+        injectFailure: "ResourceMonitor.getInstance() returns null"
+      chaos:
+        type: "service_unavailable"
+        inject: "ResourceMonitor singleton failure"
+      expected:
+        fallback: true
+        continues: true
+      assertions:
+          - "Uses execFileNoThrow fallback"
+          - "Logs degraded mode"
+
+    - name: "System check commands fail"
+      setup:
+        injectFailure: "execFileNoThrow returns error"
+      chaos:
+        type: "external_service_failure"
+        inject: "ps command fails"
+      expected:
+        handlesGracefully: true
+      assertions:
+          - "Returns canSpawn: false (conservative)"
+          - "Logs check failure"
+
+    - name: "Rapid agent spawn attempts (stress test)"
+      setup:
+        spawnAttempts: 10
+        maxConcurrent: 2
+      chaos:
+        type: "resource_spike"
+        inject: "Simultaneous spawn requests"
+      expected:
+        maxConcurrent: 2
+        blocked: 8
+      assertions:
+          - "Only 2 agents active at any time"
+          - "8 spawn attempts blocked"
+
+    - name: "Thread count spikes during execution"
+      setup:
+        threadCount: 350
+        activeAgents: 2
+      chaos:
+        type: "resource_spike"
+        inject: "Thread count increases to 350"
+      expected:
+        warning: true
+        newAgentsBlocked: true
+      assertions:
+          - "canSpawnAgent() returns false"
+          - "Warning logged for thread count"
+
+    - name: "Memory pressure increases during execution"
+      setup:
+        memoryFreePercent: 15
+        activeAgents: 2
+      chaos:
+        type: "resource_spike"
+        inject: "Memory drops to 15%"
+      expected:
+        newAgentsBlocked: true
+        existingAgentsContinue: true
+      assertions:
+          - "New spawns blocked"
+          - "Existing agents not affected"
+
+    - name: "Kernel task CPU spikes during execution"
+      setup:
+        kernelTaskCpu: 75
+        activeAgents: 2
+      chaos:
+        type: "resource_spike"
+        inject: "CPU spikes to 75%"
+      expected:
+        newAgentsBlocked: true
+      assertions:
+          - "canSpawnAgent() returns false"
+          - "CPU violation logged"
+
+coverage_requirements:
+  overall:
+    minimum: 80
+    target: 85
+
+  by_component:
+    canSpawnAgent:
+      statements: 85
+      branches: 85
+      functions: 90
+      lines: 90
+
+    registerAgent:
+      statements: 85
+      branches: 85
+      functions: 90
+      lines: 85
+
+    unregisterAgent:
+      statements: 80
+      branches: 80
+      functions: 85
+      lines: 85
+
+    checkResources:
+      statements: 85
+      branches: 85
+      functions: 90
+      lines: 90
+
+    getActiveAgentCount:
+      statements: 80
+      branches: 80
+      functions: 85
+      lines: 85
+
+    setBaseline:
+      statements: 80
+      branches: 80
+      functions: 85
+      lines: 85
+
+  critical_paths:
+    agent_lifecycle: 95
+    resource_enforcement: 95
+    threshold_checking: 90
+
+verification_commands:
+  pre_implementation:
+    - description: "Verify ResourceMonitor exists"
+      command: "ls -la rad-engineer/src/sdk/ResourceMonitor.ts"
+      expected_output: "File exists"
+
+    - description: "Verify execFileNoThrow utility exists"
+      command: "ls -la rad-engineer/src/utils/execFileNoThrow.ts"
+      expected_output: "File exists"
+
+  unit_tests:
+    - description: "Run ResourceManager unit tests"
+      command: "cd rad-engineer && bun test test/core/ResourceManager.test.ts"
+      expected_output: "All tests pass, coverage >= 80%"
+
+  integration_tests:
+    - description: "Run ResourceMonitor integration tests"
+      command: "cd rad-engineer && bun test test/core/integration/resource-monitor.test.ts"
+      expected_output: "All tests pass"
+
+    - description: "Run wave execution tests"
+      command: "cd rad-engineer && bun test test/core/integration/wave-execution.test.ts"
+      expected_output: "All tests pass"
+
+    - description: "Run SDK integration tests"
+      command: "cd rad-engineer && bun test test/core/integration/sdk-integration.test.ts"
+      expected_output: "All tests pass"
+
+  chaos_tests:
+    - description: "Run chaos engineering tests"
+      command: "cd rad-engineer && bun test test/core/chaos/chaos.test.ts"
+      expected_output: "Chaos tests pass, system recovers"
+
+  coverage_verification:
+    - description: "Verify overall coverage"
+      command: "cd rad-engineer && bun test test/core/ --coverage | grep 'Coverage'"
+      expected_output: "All metrics >= 80%"
+
+success_criteria:
+  phase_1_week_1:
+    - description: "Agent limit enforcement (max 3)"
+      verification: "cd rad-engineer && bun test test/core/ResourceManager.test.ts --grep 'agent limit'"
+      expected: "4th agent spawn blocked with error, 3 agents run successfully"
+
+    - description: "System resource checking functional"
+      verification: "cd rad-engineer && bun test test/core/ResourceManager.test.ts --grep 'checkResources'"
+      expected: "CPU, memory, process checks all return valid values"
+
+  phase_1_week_2:
+    - description: "Thread count monitoring"
+      verification: "cd rad-engineer && bun test test/core/ResourceManager.test.ts --grep 'thread'"
+      expected: "Warning at 300 threads, block at 350 threads"
+
+    - description: "Integration with ResourceMonitor"
+      verification: "cd rad-engineer && bun test test/core/integration/resource-monitor.test.ts"
+      expected: "ResourceManager uses ResourceMonitor.getCurrentMetrics()"
+
+  evidence_requirements:
+    - description: "Collect agent count during tests"
+      format: "JSON"
+      fields:
+        - activeCount: "number"
+        - maxConcurrent: "number"
+        - canSpawn: "boolean"
+
+    - description: "Collect system metrics during tests"
+      format: "JSON"
+      fields:
+        - kernelTaskCpu: "number"
+        - memoryFreePercent: "number"
+        - processCount: "number"
+        - threadCount: "number"
+
+  phase_gate_criteria:
+    go:
+      - "Agent limit enforcement: 4th spawn blocked"
+      - "System resource checking functional"
+      - "Thread count monitoring working"
+      - "ResourceMonitor integration verified"
+
+    no_go:
+      - "4th agent not blocked (limit enforcement broken)"
+      - "System resources not checked"
+      - "Thread thresholds not enforced"
+
+evidence_collection_frequency:
+  during_tests:
+    agent_count: "Every spawn/unregister operation"
+    system_metrics: "Every checkResources() call"
+
+  post_tests:
+    aggregate_metrics: "After each test suite completes"
+    generate_report: "After all tests pass"
+
+test_data_requirements:
+  fixtures:
+    - name: "resource-metrics.json"
+      source: "test/fixtures/resource-metrics.json"
+      required: true
+      structure:
+        - cpuUsage: "number"
+        - memoryUsage: "number"
+        - threadCount: "number"
+        - agentCount: "number"
+
+  test_environments:
+    local:
+      description: "Local development environment"
+      requirements:
+        - "Node.js v20+"
+        - "ResourceMonitor available"
+        - "execFileNoThrow utility available"
+
+    ci:
+      description: "Continuous integration environment"
+      requirements:
+        - "All dependencies installed via bun install"
+        - "Monitoring utilities available (ps, memory_pressure)"
+
+documentation_requirements:
+  test_documentation:
+    - "test/core/README.md - Test suite overview"
+    - "JSDoc comments for ResourceManager class"
+    - "Threshold explanations in test files"
+
+  evidence_documentation:
+    - "test/core/EVIDENCE.md - Threshold documentation"
+    - "test/core/THRESHOLDS.md - Verified values from research"
+
+  failure_documentation:
+    - "test/core/FAILURES.md - Failure scenarios and recovery"
+
+continuous_integration:
+  test_triggers:
+    - "On every push to main branch"
+    - "On every pull request"
+
+  required_checks:
+    - "Unit tests pass (>= 80% coverage)"
+    - "Integration tests pass"
+    - "TypeScript typecheck passes (0 errors)"
+    - "ESLint passes (no warnings)"
+
+  blocking_conditions:
+    - "Unit test failures"
+    - "Coverage < 80%"
+    - "TypeScript errors"
+    - "Integration test failures"
+
+---
+# TEST SPECIFICATION COMPLETE
+#
+# All test requirements map to component-spec.yaml methods
+# All thresholds verified in research-findings.md
+# Coverage requirements: >= 80% overall, 95% critical paths
+# Ready for validation

@@ -1,0 +1,309 @@
+{
+  "641d3b73": {
+    "file_path": "/Users/umasankr/Projects/pinglearn-PWA/.claude/orchestration/demonstration.ts",
+    "last_updated": "2026-01-04T20:08:59.378355",
+    "violation_count": 12,
+    "violations": [
+      {
+        "type": "dry_violation",
+        "severity": "MEDIUM",
+        "pattern": "similar_functions"
+      },
+      {
+        "type": "dry_violation",
+        "severity": "MEDIUM",
+        "pattern": "similar_functions"
+      },
+      {
+        "type": "dry_violation",
+        "severity": "MEDIUM",
+        "pattern": "similar_functions"
+      },
+      {
+        "type": "dry_violation",
+        "severity": "MEDIUM",
+        "pattern": "similar_functions"
+      },
+      {
+        "type": "dry_violation",
+        "severity": "MEDIUM",
+        "pattern": "similar_functions"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "MEDIUM",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "MEDIUM",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "MEDIUM",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "MEDIUM",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      }
+    ]
+  },
+  "8dd32d69": {
+    "file_path": "/Users/umasankr/Projects/pinglearn-PWA/.claude/orchestration/HYPOTHESIS-CONFIRMED.md",
+    "last_updated": "2026-01-04T20:10:05.654209",
+    "violation_count": 2,
+    "violations": [
+      {
+        "type": "repeated_lines",
+        "severity": "MEDIUM",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "MEDIUM",
+        "pattern": "unknown"
+      }
+    ]
+  },
+  "ade45eec": {
+    "file_path": "/Users/umasankr/Projects/pinglearn-PWA/.claude/orchestration/docs/experiments/claude-agent-sdk-deterministic-orchestration-breakthrough.md",
+    "last_updated": "2026-01-04T20:23:35.968052",
+    "violation_count": 2,
+    "violations": [
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      }
+    ]
+  },
+  "759b588c": {
+    "file_path": "/Users/umasankr/Projects/pinglearn-PWA/.claude/docs/experiments/claude-agent-sdk-deterministic-orchestration-breakthrough.md",
+    "last_updated": "2026-01-04T20:25:03.447726",
+    "violation_count": 2,
+    "violations": [
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      }
+    ]
+  },
+  "b719c98a": {
+    "file_path": "/Users/umasankr/Projects/pinglearn-PWA/.claude/orchestration/docs/planning/SMART_ORCHESTRATOR_EXECUTE_INTEGRATION_PLAN.md",
+    "last_updated": "2026-01-04T21:50:41.526803",
+    "violation_count": 0,
+    "violations": []
+  },
+  "eba6f2ad": {
+    "file_path": "/Users/umasankr/Projects/pinglearn-PWA/.claude/orchestration/docs/planning/AUTONOMOUS_ENGINEERING_PLATFORM_ANALYSIS.md",
+    "last_updated": "2026-01-04T20:58:34.181078",
+    "violation_count": 4,
+    "violations": [
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      }
+    ]
+  },
+  "63a6cf6e": {
+    "file_path": "/Users/umasankr/Projects/pinglearn-PWA/docs/research/DETERMINISTIC_SOFTWARE_DEVELOPMENT.md",
+    "last_updated": "2026-01-04T21:37:04.422114",
+    "violation_count": 0,
+    "violations": []
+  },
+  "ba2e6028": {
+    "file_path": "/Users/umasankr/Projects/pinglearn-PWA/docs/research/CLAUDE_AGENT_SDK_DETERMINISTIC_PATTERNS.md",
+    "last_updated": "2026-01-04T21:38:02.808234",
+    "violation_count": 10,
+    "violations": [
+      {
+        "type": "repeated_lines",
+        "severity": "MEDIUM",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "MEDIUM",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "MEDIUM",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "MEDIUM",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      }
+    ]
+  },
+  "6282b20e": {
+    "file_path": "/Users/umasankr/Projects/pinglearn-PWA/.claude/orchestration/docs/AI-PLATFORMS-CONTEXT-MANAGEMENT-ANALYSIS.md",
+    "last_updated": "2026-01-04T21:38:34.698690",
+    "violation_count": 5,
+    "violations": [
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      }
+    ]
+  },
+  "0e6accdf": {
+    "file_path": "/Users/umasankr/Projects/pinglearn-PWA/.claude/orchestration/ENGINEERING_PROCESS_INTELLIGENCE.md",
+    "last_updated": "2026-01-04T21:38:41.206638",
+    "violation_count": 4,
+    "violations": [
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      }
+    ]
+  },
+  "b39add89": {
+    "file_path": "/Users/umasankr/Projects/pinglearn-PWA/.claude/orchestration/docs/RESEARCH-SUMMARY.md",
+    "last_updated": "2026-01-04T21:39:28.138504",
+    "violation_count": 0,
+    "violations": []
+  },
+  "9e1c2aad": {
+    "file_path": "/Users/umasankr/Projects/pinglearn-PWA/.claude/orchestration/RESEARCH_SUMMARY.md",
+    "last_updated": "2026-01-04T21:39:51.827012",
+    "violation_count": 0,
+    "violations": []
+  },
+  "19d8a18b": {
+    "file_path": "/Users/umasankr/Projects/pinglearn-PWA/.claude/docs/research/COMPREHENSIVE_DETERMINISTIC_ENGINEERING_RESEARCH_2026.md",
+    "last_updated": "2026-01-04T21:45:31.822831",
+    "violation_count": 3,
+    "violations": [
+      {
+        "type": "dry_violation",
+        "severity": "MEDIUM",
+        "pattern": "similar_functions"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "HIGH",
+        "pattern": "unknown"
+      },
+      {
+        "type": "repeated_lines",
+        "severity": "MEDIUM",
+        "pattern": "unknown"
+      }
+    ]
+  }
+}

@@ -1,0 +1,62 @@
+# Research Specification: WaveOrchestrator
+# Phase 2 - Advanced Features
+
+metadata:
+  component_name: "WaveOrchestrator"
+  phase: "Phase 2 - Advanced Features"
+  version: "1.0.0"
+  status: "research"
+  created: "2026-01-05"
+
+description: |
+  WaveOrchestrator coordinates wave-based execution of agent tasks with:
+  - Sequential/parallel wave execution
+  - Dependency management between tasks
+  - Resource limit enforcement via ResourceManager
+
+research_questions:
+  - question_id: "RQ-001"
+    question: "What is wave-based execution pattern?"
+    priority: "critical"
+    success_criteria: "Verified from existing wave execution tests"
+    assigned_to: "Codebase analysis"
+
+  - question_id: "RQ-002"
+    question: "How do we manage dependencies between waves?"
+    priority: "critical"
+    success_criteria: "Verified from integration plan"
+    assigned_to: "Codebase analysis"
+
+  - question_id: "RQ-003"
+    question: "What is the maximum wave size (concurrent tasks)?"
+    priority: "critical"
+    success_criteria: "Verified from ResourceManager (max 3 agents)"
+    assigned_to: "Codebase analysis"
+
+evidence_sources:
+  - "test/core/integration/wave-execution.test.ts"
+  - ".claude/orchestration/docs/planning/SMART_ORCHESTRATOR_EXECUTE_INTEGRATION_PLAN.md"
+  - "rad-engineer/src/core/ResourceManager.ts"
+
+---
+
+## Quick Research Findings
+
+From codebase analysis:
+
+**CLAIM-001**: Wave execution pattern executes tasks in batches of maxConcurrent agents
+- Source: `test/core/integration/wave-execution.test.ts`
+- Verification: Test shows 10 tasks executed in waves of 2
+
+**CLAIM-002**: Wave size determined by ResourceManager.maxConcurrent
+- Source: `rad-engineer/src/core/ResourceManager.ts`
+- Verification: ResourceManager enforces max 2-3 concurrent agents
+
+**CLAIM-003**: Waves execute sequentially, tasks within wave execute in parallel
+- Source: Wave execution test pattern
+- Verification: Test verifies max 2 agents active at once
+
+## Next Steps
+- Create component-spec.yaml
+- Create test-spec.yaml
+- Validate and implement

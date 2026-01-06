@@ -1,0 +1,733 @@
+# Test Specification: Phase 0 SDK Integration
+# Based on verified research evidence from 2026-01-05
+# Component: Smart Orchestrator SDK Integration PoC
+
+metadata:
+  component: "Phase 0 SDK Integration"
+  version: "1.0.0"
+  created: "2026-01-05"
+  evidence_sources:
+    - "claude/orchestration/specs/phase-0-poc/sdk-integration/evidence/research-findings.md"
+    - "claude/orchestration/docs/planning/SMART_ORCHESTRATOR_EXECUTE_INTEGRATION_PLAN.md"
+  verified_thresholds:
+    kernel_task_cpu: 50        # percent - crash threshold verified
+    memory_pressure: 80         # percent - crash threshold verified
+    process_count: 400          # count - crash threshold verified
+    max_concurrent_agents: 3    # count - verified safe limit
+
+test_requirements:
+  overall_coverage: 80         # percent minimum
+  unit_test_count: 15          # minimum for core SDK methods
+  integration_test_count: 8    # minimum for SDK + monitoring integration
+  e2e_test_count: 5            # minimum for full agent lifecycle
+
+unit_tests:
+  initSDK:
+    description: "Test Claude Agent SDK initialization"
+    file: ".claude/orchestration/sdk/__tests__/initSDK.test.ts"
+    test_cases:
+      - name: "initializes with valid API key"
+        input:
+          apiKey: "${ANTHROPIC_API_KEY}"
+        expected:
+          success: true
+          clientInitialized: true
+        assertions:
+          - "client is not null"
+          - "client.hasCapability('streaming') === true"
+          - "client.hasCapability('toolExecution') === true"
+
+      - name: "rejects invalid API key"
+        input:
+          apiKey: "invalid-key"
+        expected:
+          success: false
+          error: "AuthenticationError"
+        assertions:
+          - "throws error with message containing 'authentication'"
+
+      - name: "configures default hooks"
+        input:
+          hooks:
+            on_tool_start: "function"
+            on_tool_end: "function"
+        expected:
+          hooksRegistered: true
+        assertions:
+          - "hooks.on_tool_start is defined"
+          - "hooks.on_tool_end is defined"
+
+    coverage_requirements:
+      branches: 80
+      functions: 85
+      lines: 85
+
+  testAgent:
+    description: "Test single agent spawning and execution"
+    file: ".claude/orchestration/sdk/__tests__/testAgent.test.ts"
+    test_cases:
+      - name: "spawns agent with minimal prompt"
+        input:
+          prompt: "What is 2 + 2?"
+          model: "claude-3-5-sonnet-20241022"
+        expected:
+          success: true
+          response: "string"
+          duration: "<30000ms"
+        assertions:
+          - "response is not empty"
+          - "response.length > 0"
+          - "executionTime < 30000"
+
+      - name: "spawns agent with tool access"
+        input:
+          prompt: "Read package.json"
+          tools: ["Read"]
+        expected:
+          success: true
+          toolUsed: "Read"
+          toolResult: "object"
+        assertions:
+          - "toolExecutionLogs contains 'Read'"
+          - "toolResult is defined"
+
+      - name: "spawns agent with streaming enabled"
+        input:
+          prompt: "Count to 10"
+          stream: true
+        expected:
+          success: true
+          chunksReceived: ">1"
+        assertions:
+          - "streamChunks.length > 1"
+          - "lastChunk contains '10'"
+
+      - name: "handles agent timeout"
+        input:
+          prompt: "Wait for 5 minutes"
+          timeout: 5000
+        expected:
+          success: false
+          error: "TimeoutError"
+        assertions:
+          - "throws TimeoutError"
+          - "executionTime >= timeout"
+
+    coverage_requirements:
+      branches: 85
+      functions: 90
+      lines: 90
+
+  measureBaseline:
+    description: "Test baseline measurement collection"
+    file: ".claude/orchestration/sdk/__tests__/measureBaseline.test.ts"
+    test_cases:
+      - name: "measures token usage"
+        input:
+          agentId: "test-agent-1"
+          promptTokens: 100
+          completionTokens: 200
+        expected:
+          success: true
+          metricsRecorded: true
+        assertions:
+          - "metrics.promptTokens === 100"
+          - "metrics.completionTokens === 200"
+          - "metrics.totalTokens === 300"
+
+      - name: "tracks agent success rate"
+        input:
+          attempts: 10
+          successes: 8
+          failures: 2
+        expected:
+          successRate: 0.8
+        assertions:
+          - "metrics.successRate === 0.8"
+          - "metrics.failures === 2"
+
+      - name: "categorizes failure reasons"
+        input:
+          failures:
+            - reason: "contextOverflow"
+            - reason: "typeErrors"
+            - reason: "testFailures"
+        expected:
+          categories:
+            contextOverflow: 1
+            typeErrors: 1
+            testFailures: 1
+        assertions:
+          - "metrics.failures.contextOverflow === 1"
+          - "metrics.failures.typeErrors === 1"
+          - "metrics.failures.testFailures === 1"
+
+    coverage_requirements:
+      branches: 80
+      functions: 85
+      lines: 85
+
+  ResourceMonitor:
+    description: "Test system resource monitoring"
+    file: ".claude/orchestration/sdk/__tests__/ResourceMonitor.test.ts"
+    test_cases:
+      - name: "monitors kernel_task CPU"
+        mock:
+          psutil:
+            cpu_percent: 45
+            process_iter:
+              - name: "kernel_task"
+                cpu_percent: 48
+        expected:
+          kernelTaskCpu: 48
+          canSpawnAgent: true
+        assertions:
+          - "metrics.kernel_task_cpu === 48"
+          - "metrics.kernel_task_cpu < 50"
+
+      - name: "monitors memory pressure"
+        mock:
+          psutil:
+            virtual_memory:
+              percent: 75
+              available: 8589934592
+        expected:
+          memoryPressure: 75
+          canSpawnAgent: true
+        assertions:
+          - "metrics.memory_pressure === 75"
+          - "metrics.memory_pressure < 80"
+
+      - name: "counts system processes"
+        mock:
+          psutil:
+            process_iter: "generate 350 processes"
+        expected:
+          processCount: 350
+          canSpawnAgent: true
+        assertions:
+          - "metrics.process_count === 350"
+          - "metrics.process_count < 400"
+
+      - name: "blocks agent spawn when thresholds exceeded"
+        mock:
+          kernel_task_cpu: 52
+          memory_pressure: 85
+          process_count: 420
+        expected:
+          canSpawnAgent: false
+          reason: "Thresholds exceeded"
+        assertions:
+          - "metrics.can_spawn_agent === false"
+          - "metrics.kernel_task_cpu > 50"
+          - "metrics.memory_pressure > 80"
+          - "metrics.process_count > 400"
+
+    coverage_requirements:
+      branches: 90
+      functions: 90
+      lines: 90
+
+integration_tests:
+  sdk_with_monitoring:
+    description: "Test SDK integration with resource monitoring"
+    file: ".claude/orchestration/sdk/__tests__/integration/sdk-monitoring.integration.test.ts"
+    test_cases:
+      - name: "spawns agent when resources available"
+        setup:
+          mockResources:
+            kernel_task_cpu: 30
+            memory_pressure: 60
+            process_count: 250
+        steps:
+          - "check system resources"
+          - "verify can_spawn_agent === true"
+          - "spawn test agent"
+          - "verify agent response received"
+        expected:
+          agentSpawned: true
+          responseReceived: true
+          resourcesStable: true
+        assertions:
+          - "agent.executionTime < 30000"
+          - "postSpawnResources.kernel_task_cpu < 50"
+          - "postSpawnResources.memory_pressure < 80"
+
+      - name: "blocks agent spawn when resources critical"
+        setup:
+          mockResources:
+            kernel_task_cpu: 55
+            memory_pressure: 85
+            process_count: 450
+        steps:
+          - "check system resources"
+          - "verify can_spawn_agent === false"
+          - "attempt agent spawn"
+          - "verify spawn blocked"
+        expected:
+          agentSpawned: false
+          blockedReason: "Resource thresholds exceeded"
+        assertions:
+          - "agentSpawned === false"
+          - "error.message contains 'thresholds'"
+
+      - name: "measures resource impact of single agent"
+        setup:
+          mockResources:
+            kernel_task_cpu: 30
+            memory_pressure: 60
+            process_count: 250
+        steps:
+          - "measure baseline resources"
+          - "spawn single agent"
+          - "measure resources during execution"
+          - "measure resources after completion"
+        expected:
+          baselineMeasured: true
+          duringExecutionMeasured: true
+          postExecutionMeasured: true
+          resourceDelta: "recorded"
+        assertions:
+          - "metrics.baseline.kernel_task_cpu is defined"
+          - "metrics.during.kernel_task_cpu is defined"
+          - "metrics.post.kernel_task_cpu is defined"
+          - "metrics.resourceDelta.kernel_task_cpu >= 0"
+
+    coverage_requirements:
+      branches: 85
+      functions: 85
+      lines: 85
+
+  multiple_agents:
+    description: "Test spawning multiple agents in waves"
+    file: ".claude/orchestration/sdk/__tests__/integration/multiple-agents.integration.test.ts"
+    test_cases:
+      - name: "spawns 2 agents concurrently (within limits)"
+        setup:
+          maxConcurrent: 2
+          mockResources:
+            kernel_task_cpu: 30
+            memory_pressure: 60
+        steps:
+          - "spawn agent 1"
+          - "spawn agent 2"
+          - "wait for both to complete"
+          - "measure resources"
+        expected:
+          bothAgentsSucceeded: true
+          resourcesWithinThresholds: true
+        assertions:
+          - "agent1.status === 'completed'"
+          - "agent2.status === 'completed'"
+          - "maxResources.kernel_task_cpu < 50"
+          - "maxResources.memory_pressure < 80"
+
+      - name: "spawns 3 agents in sequence (safe wave)"
+        setup:
+          waveSize: 3
+          execution: "sequential"
+        steps:
+          - "spawn agent 1, wait for completion"
+          - "spawn agent 2, wait for completion"
+          - "spawn agent 3, wait for completion"
+          - "measure cumulative resources"
+        expected:
+          allAgentsSucceeded: true
+          cumulativeTime: "<90s"
+        assertions:
+          - "completedAgents.length === 3"
+          - "totalExecutionTime < 90000"
+
+      - name: "rejects 4+ concurrent agents (exceeds limit)"
+        setup:
+          attemptCount: 4
+          expectedLimit: 3
+        steps:
+          - "attempt to spawn 4 agents concurrently"
+          - "verify only 3 spawned"
+          - "verify 4th blocked"
+        expected:
+          spawnedCount: 3
+          blockedCount: 1
+        assertions:
+          - "activeAgents.length === 3"
+          - "blockedAgents.length === 1"
+          - "blockedAgents[0].reason contains 'limit'"
+
+    coverage_requirements:
+      branches: 85
+      functions: 85
+      lines: 85
+
+  baseline_comparison:
+    description: "Test baseline measurement and comparison"
+    file: ".claude/orchestration/sdk/__tests__/integration/baseline-comparison.integration.test.ts"
+    test_cases:
+      - name: "records 5 waves of baseline measurements"
+        setup:
+          waves: 5
+          agentsPerWave: 2
+          tasks: "simple math questions"
+        steps:
+          - "execute 5 waves"
+          - "record metrics for each wave"
+          - "calculate baseline statistics"
+        expected:
+          wavesCompleted: 5
+          metricsRecorded: true
+          statisticsCalculated: true
+        assertions:
+          - "baseline.waves.length === 5"
+          - "baseline.averageTokenUsage is defined"
+          - "baseline.successRate is defined"
+
+      - name: "compares pre and post implementation metrics"
+        setup:
+          baselineData: "from Phase 0 Week 3"
+          implementationData: "from current test"
+        steps:
+          - "load baseline metrics"
+          - "execute identical wave pattern"
+          - "record implementation metrics"
+          - "run paired t-test"
+        expected:
+          comparisonComplete: true
+          statisticalSignificance: "calculated"
+        assertions:
+          - "comparison.pValue is defined"
+          - "comparison.improvement is defined"
+
+    coverage_requirements:
+      branches: 80
+      functions: 85
+      lines: 85
+
+chaos_tests:
+  description: "Test system resilience under stress conditions"
+  file: ".claude/orchestration/sdk/__tests__/chaos/chaos.test.ts"
+
+  test_cases:
+    - name: "agent timeout during execution"
+      setup:
+        agentTask: "long-running task"
+        timeout: 5000
+      chaos:
+        type: "timeout"
+        inject: "agent hangs for 10s"
+      expected:
+        timeoutDetected: true
+        agentTerminated: true
+        systemStable: true
+      assertions:
+        - "agent.status === 'timeout'"
+        - "systemResources.kernel_task_cpu < 50"
+        - "noOtherAgentsAffected === true"
+
+    - name: "context overflow during agent execution"
+      setup:
+        agentTask: "task with large context"
+        contextLimit: "80%"
+      chaos:
+        type: "context_overflow"
+        inject: "context exceeds 80%"
+      expected:
+        overflowDetected: true
+        autoCompactTriggered: true
+        retryAttempted: true
+      assertions:
+        - "contextUsage > 80"
+        - "autoCompactCalled === true"
+        - "retryCount >= 1"
+
+    - name: "API rate limit hit"
+      setup:
+        agentsPerWave: 5
+      chaos:
+        type: "rate_limit"
+        inject: "429 status from API"
+      expected:
+        rateLimitDetected: true
+        backoffApplied: true
+        queueingAttempted: true
+      assertions:
+        - "rateLimitErrors > 0"
+        - "backoffTime >= 5000"
+        - "queuedRequests.length > 0"
+
+    - name: "resource spike during agent execution"
+      setup:
+        normalResources:
+          kernel_task_cpu: 30
+          memory_pressure: 60
+      chaos:
+        type: "resource_spike"
+        inject: "kernel_task_cpu spikes to 55%"
+      expected:
+        spikeDetected: true
+        agentQueuePaused: true
+        spikeRecovery: true
+      assertions:
+        - "maxResources.kernel_task_cpu > 50"
+        - "queuePaused === true"
+        - "recoveryResources.kernel_task_cpu < 50"
+
+coverage_requirements:
+  overall:
+    minimum: 80
+    target: 85
+
+  by_component:
+    initSDK:
+      statements: 85
+      branches: 80
+      functions: 85
+      lines: 85
+
+    testAgent:
+      statements: 90
+      branches: 85
+      functions: 90
+      lines: 90
+
+    measureBaseline:
+      statements: 85
+      branches: 80
+      functions: 85
+      lines: 85
+
+    ResourceMonitor:
+      statements: 90
+      branches: 90
+      functions: 90
+      lines: 90
+
+  critical_paths:
+    agent_lifecycle: 100
+    resource_monitoring: 95
+    error_handling: 90
+
+verification_commands:
+  pre_implementation:
+    - description: "Verify Claude Agent SDK is installable"
+      command: "pip show anthropic || pip install anthropic"
+      expected_output: "anthropic package installed"
+
+    - description: "Verify psutil is available for monitoring"
+      command: "python3 -c 'import psutil; print(psutil.__version__)'"
+      expected_output: "psutil version number"
+
+    - description: "Verify existing monitoring script works"
+      command: "bash .claude/hooks/check-system-resources.sh; echo $?"
+      expected_output: "exit code 0 (resources OK) or 1 (thresholds exceeded)"
+
+  unit_tests:
+    - description: "Run all unit tests with coverage"
+      command: "cd /Users/umasankr/Projects/pinglearn-PWA/app && bun test .claude/orchestration/sdk/__tests__/*.test.ts --coverage"
+      expected_output: "All tests pass, coverage >= 80%"
+
+    - description: "Run initSDK tests"
+      command: "bun test .claude/orchestration/sdk/__tests__/initSDK.test.ts"
+      expected_output: "3 test cases pass"
+
+    - description: "Run testAgent tests"
+      command: "bun test .claude/orchestration/sdk/__tests__/testAgent.test.ts"
+      expected_output: "4 test cases pass"
+
+    - description: "Run measureBaseline tests"
+      command: "bun test .claude/orchestration/sdk/__tests__/measureBaseline.test.ts"
+      expected_output: "3 test cases pass"
+
+    - description: "Run ResourceMonitor tests"
+      command: "bun test .claude/orchestration/sdk/__tests__/ResourceMonitor.test.ts"
+      expected_output: "4 test cases pass"
+
+  integration_tests:
+    - description: "Run SDK + monitoring integration tests"
+      command: "bun test .claude/orchestration/sdk/__tests__/integration/sdk-monitoring.integration.test.ts"
+      expected_output: "3 test cases pass"
+
+    - description: "Run multiple agents integration tests"
+      command: "bun test .claude/orchestration/sdk/__tests__/integration/multiple-agents.integration.test.ts"
+      expected_output: "3 test cases pass"
+
+    - description: "Run baseline comparison tests"
+      command: "bun test .claude/orchestration/sdk/__tests__/integration/baseline-comparison.integration.test.ts"
+      expected_output: "2 test cases pass"
+
+  chaos_tests:
+    - description: "Run chaos engineering tests"
+      command: "bun test .claude/orchestration/sdk/__tests__/chaos/chaos.test.ts"
+      expected_output: "4 chaos tests pass, system recovers"
+
+  evidence_collection:
+    - description: "Collect CPU usage during test"
+      command: "ps -A -o %cpu,comm | sort -nr | head -20"
+      frequency: "every 10s during test"
+      output_file: "test-results/evidence/cpu-usage.log"
+
+    - description: "Collect memory pressure during test"
+      command: "vm_stat | head -10"
+      frequency: "every 10s during test"
+      output_file: "test-results/evidence/memory-pressure.log"
+
+    - description: "Count processes during test"
+      command: "ps -A | wc -l"
+      frequency: "every 10s during test"
+      output_file: "test-results/evidence/process-count.log"
+
+  coverage_verification:
+    - description: "Check overall coverage meets 80% threshold"
+      command: "bun test --coverage | grep -E '(Statements|Branches|Functions|Lines)'"
+      expected_output: "All metrics >= 80%"
+
+    - description: "Check critical paths have 95%+ coverage"
+      command: "bun test --coverage | grep -A5 'critical_paths'"
+      expected_output: "agent_lifecycle >= 95%, resource_monitoring >= 95%"
+
+success_criteria:
+  phase_0_week_1_2:
+    - description: "Can spawn 1 agent and receive response"
+      verification: "bun test .claude/orchestration/sdk/__tests__/testAgent.test.ts"
+      expected: "agent spawn test passes"
+
+    - description: "Tool execution works (Read, Write, Edit, Bash)"
+      verification: "bun test .claude/orchestration/sdk/__tests__/testAgent.test.ts -t 'spawns agent with tool access'"
+      expected: "tool execution test passes"
+
+    - description: "Resource monitoring detects thresholds"
+      verification: "bun test .claude/orchestration/sdk/__tests__/ResourceMonitor.test.ts -t 'blocks agent spawn when thresholds exceeded'"
+      expected: "threshold blocking test passes"
+
+    - description: "Test coverage >= 80%"
+      verification: "bun test --coverage | tail -5"
+      expected: "All lines >= 80%"
+
+  evidence_requirements:
+    - description: "Document 10 test task outcomes"
+      format: "test-results/evidence/test-outcomes.json"
+      fields:
+        - taskId: "string"
+        - success: "boolean"
+        - duration: "number (ms)"
+        - promptTokens: "number"
+        - completionTokens: "number"
+        - error: "string | null"
+
+    - description: "Document system resources for each test"
+      format: "test-results/evidence/system-resources.json"
+      fields:
+        - timestamp: "ISO 8601"
+        - kernel_task_cpu: "number"
+        - memory_pressure: "number"
+        - process_count: "number"
+
+    - description: "Document agent failures with categories"
+      format: "test-results/evidence/failure-categories.json"
+      categories:
+        - contextOverflow
+        - typeErrors
+        - testFailures
+        - timeouts
+
+  phase_gate_criteria:
+    go:
+      - "Actual Claude Agent SDK integration working (not simulation)"
+      - "Can spawn 1 agent and receive response"
+      - "Tool execution works (Read, Write, Edit, Bash)"
+      - "Resource monitoring prevents crashes"
+      - "Test coverage >= 80%"
+      - "10 test tasks completed with documented outcomes"
+
+    no_go:
+      - "SDK integration still simulated"
+      - "Cannot spawn agent or receive response"
+      - "Resource monitoring not functional"
+      - "Test coverage < 80%"
+      - "System crashes during testing"
+      - "No documented evidence"
+
+evidence_collection_frequency:
+  during_tests:
+    cpu_monitoring: "every 10 seconds"
+    memory_monitoring: "every 10 seconds"
+    process_counting: "every 10 seconds"
+    agent_status: "every 5 seconds"
+
+  post_tests:
+    aggregate_metrics: "after test suite completes"
+    generate_report: "within 1 minute of test completion"
+    update_baseline: "if all tests pass"
+
+test_data_requirements:
+  fixtures:
+    - name: "valid_api_key"
+      source: "process.env.ANTHROPIC_API_KEY"
+      required: true
+
+    - name: "test_agent_tasks"
+      file: ".claude/orchestration/sdk/__fixtures__/test-tasks.json"
+      required: true
+      structure:
+        - taskId: "string"
+        - prompt: "string"
+        - expectedResponseType: "string"
+        - timeout: "number"
+
+    - name: "mock_resource_data"
+      file: ".claude/orchestration/sdk/__fixtures__/mock-resources.json"
+      required: true
+      structure:
+        - kernel_task_cpu: "number"
+        - memory_pressure: "number"
+        - process_count: "number"
+        - timestamp: "ISO 8601"
+
+  test_environments:
+    local:
+      description: "Local development environment"
+      requirements:
+        - Node.js >= 18
+        - Bun >= 1.0
+        - Python >= 3.11
+        - psutil installed
+
+    ci:
+      description: "Continuous integration environment"
+      requirements:
+        - All local requirements
+        - Mock API responses (no real API calls)
+        - Resource monitoring mocks
+
+documentation_requirements:
+  test_documentation:
+    - "README.md in test directory explaining test structure"
+    - "Each test file has JSDoc comments describing purpose"
+    - "Complex assertions have explanatory comments"
+
+  evidence_documentation:
+    - "test-results/evidence/README.md explaining evidence format"
+    - "test-results/evidence/schema.json documenting JSON schemas"
+    - "test-results/evidence/SUMMARY.md summarizing findings"
+
+  failure_documentation:
+    - "test-results/failures/README.md explaining failure categorization"
+    - "Each failure has detailed log in test-results/failures/"
+
+continuous_integration:
+  test_triggers:
+    - "Every push to main branch"
+    - "Every pull request"
+    - "Manual trigger via CI workflow"
+
+  required_checks:
+    - "Unit tests pass"
+    - "Integration tests pass"
+    - "Coverage >= 80%"
+    - "TypeScript compilation succeeds"
+    - "Linting passes"
+
+  blocking_conditions:
+    - "Any test fails"
+    - "Coverage drops below 80%"
+    - "TypeScript errors present"
+    - "Resource thresholds exceeded during tests"

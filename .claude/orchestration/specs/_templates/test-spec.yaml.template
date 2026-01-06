@@ -1,0 +1,320 @@
+# Test Specification Template: [Component Name]
+# Phase [X] - [Phase Name]
+#
+# INSTRUCTIONS:
+# 1. Copy this template to: specs/phase-[X]-[phase-name]/[component-name]/test-spec.yaml
+# 2. Replace all [placeholders] with actual values
+# 3. All test requirements MUST map to component-spec.yaml methods
+# 4. All thresholds MUST be verified numbers from research-findings.md
+# 5. Coverage requirement: ≥80% overall
+
+metadata:
+  component: "[Component Name]"
+  version: "1.0.0"
+  created: "[YYYY-MM-DD]"
+  evidence_sources:
+    - "specs/phase-[X]-[phase-name]/[component-name]/evidence/research-findings.md"
+    - "specs/phase-[X]-[phase-name]/[component-name]/component-spec.yaml"
+  verified_thresholds:
+    [threshold_name_1]: [value]     # from research-findings.md
+    [threshold_name_2]: [value]     # from research-findings.md
+    # ... repeat for all verified thresholds
+
+test_requirements:
+  overall_coverage: 80              # percent minimum
+  unit_test_count: [N]              # minimum for core methods
+  integration_test_count: [N]       # minimum for integrations
+  e2e_test_count: [N]               # minimum for full workflows
+
+unit_tests:
+  [method_name_1]:
+    description: "[Test description for this method]"
+    file: "[path/to/test/file.test.ts]"
+    test_cases:
+      - name: "[Test case name 1]"
+        input:
+          [param_name]: "[value]"
+        expected:
+          [result_field]: "[expected value]"
+        assertions:
+          - "[assertion description, e.g., 'result.success === true']"
+          - "[additional assertion]"
+
+      - name: "[Test case name 2]"
+        input:
+          [param_name]: "[value]"
+        expected:
+          [result_field]: "[expected value]"
+        assertions:
+          - "[assertion description]"
+
+      # ... repeat for all test cases (3+ per method)
+
+    coverage_requirements:
+      branches: [80]
+      functions: [85]
+      lines: [85]
+
+  [method_name_2]:
+    # ... repeat structure for each method
+
+  # ... repeat for all methods in component-spec.yaml
+
+integration_tests:
+  [integration_scenario_1]:
+    description: "[Test integration between components]"
+    file: "[path/to/integration/test.test.ts]"
+    test_cases:
+      - name: "[Test case name]"
+        setup:
+          [mock_name]:
+            [param]: "[value]"
+        steps:
+          - "[step 1]"
+          - "[step 2]"
+        expected:
+          [result]: "[expected outcome]"
+        assertions:
+          - "[assertion 1]"
+          - "[assertion 2]"
+
+      # ... repeat for all test cases
+
+    coverage_requirements:
+      branches: [85]
+      functions: [85]
+      lines: [85]
+
+  [integration_scenario_2]:
+    # ... repeat structure for each integration scenario
+
+  # ... repeat for all integration scenarios (3+ total)
+
+chaos_tests:
+  description: "[Test system resilience under stress]"
+  file: "[path/to/chaos/test.test.ts]"
+
+  test_cases:
+    - name: "[chaos scenario 1, e.g., 'agent timeout']"
+      setup:
+        [param]: "[value]"
+      chaos:
+        type: "[timeout | context_overflow | rate_limit | resource_spike]"
+        inject: "[what failure to inject]"
+      expected:
+        [outcome]: "[expected system behavior]"
+      assertions:
+        - "[assertion 1]"
+        - "[assertion 2]"
+
+    # ... repeat for all chaos scenarios (4+ recommended)
+
+coverage_requirements:
+  overall:
+    minimum: 80
+    target: 85
+
+  by_component:
+    [method_name_1]:
+      statements: [85]
+      branches: [80]
+      functions: [85]
+      lines: [85]
+
+    [method_name_2]:
+      # ... repeat for each method
+
+  critical_paths:
+    [critical_path_1]: [95]    # e.g., agent_lifecycle
+    [critical_path_2]: [95]    # e.g., resource_monitoring
+
+verification_commands:
+  pre_implementation:
+    - description: "[Verify prerequisite 1]"
+      command: "[command to run]"
+      expected_output: "[what to expect]"
+
+    # ... repeat for all pre-implementation checks
+
+  unit_tests:
+    - description: "[Run all unit tests with coverage]"
+      command: "[command to run]"
+      expected_output: "[All tests pass, coverage >= 80%]"
+
+    - description: "[Run specific test suite]"
+      command: "[command to run]"
+      expected_output: "[specific test count passes]"
+
+    # ... repeat for all unit test suites
+
+  integration_tests:
+    - description: "[Run integration test suite]"
+      command: "[command to run]"
+      expected_output: "[test count passes]"
+
+    # ... repeat for all integration test suites
+
+  chaos_tests:
+    - description: "[Run chaos engineering tests]"
+      command: "[command to run]"
+      expected_output: "[chaos tests pass, system recovers]"
+
+  evidence_collection:
+    - description: "[Collect metric during test]"
+      command: "[command to run]"
+      frequency: "[how often to collect]"
+      output_file: "[where to save results]"
+
+    # ... repeat for all evidence collection commands
+
+  coverage_verification:
+    - description: "[Verify overall coverage]"
+      command: "[command to run]"
+      expected_output: "[All metrics >= 80%]"
+
+    # ... repeat for coverage checks
+
+success_criteria:
+  phase_[x]_week_[n]:
+    - description: "[Measurable success criterion 1]"
+      verification: "[test command]"
+      expected: "[what counts as pass]"
+
+    - description: "[Measurable success criterion 2]"
+      verification: "[test command]"
+      expected: "[what counts as pass]"
+
+    # ... repeat for all success criteria (must match component-spec.yaml)
+
+  evidence_requirements:
+    - description: "[What evidence to collect]"
+      format: "[file format]"
+      fields:
+        - [field_name]: "[type]"
+        - [field_name]: "[type]"
+
+    # ... repeat for all evidence requirements
+
+  phase_gate_criteria:
+    go:
+      - "[Criterion 1 from component-spec.yaml]"
+      - "[Criterion 2 from component-spec.yaml]"
+      - "[Criterion 3 from component-spec.yaml]"
+      # ... all critical criteria from component-spec
+
+    no_go:
+      - "[Criterion 1 failure condition]"
+      - "[Criterion 2 failure condition]"
+      # ... all failure conditions
+
+evidence_collection_frequency:
+  during_tests:
+    [metric_1]: "[frequency, e.g., 'every 10 seconds']"
+    [metric_2]: "[frequency]"
+
+  post_tests:
+    aggregate_metrics: "[when to aggregate]"
+    generate_report: "[when to generate report]"
+
+test_data_requirements:
+  fixtures:
+    - name: "[fixture name]"
+      source: "[where fixture comes from]"
+      required: [true | false]
+      structure:
+        - [field_name]: "[type]"
+        - [field_name]: "[type]"
+
+    # ... repeat for all test fixtures
+
+  test_environments:
+    local:
+      description: "[Local dev environment]"
+      requirements:
+        - "[requirement 1]"
+        - "[requirement 2]"
+
+    ci:
+      description: "[CI environment]"
+      requirements:
+        - "[requirement 1]"
+        - "[requirement 2]"
+
+documentation_requirements:
+  test_documentation:
+    - "[README.md in test directory]"
+    - "[JSDoc comments for complex tests]"
+    - "[Assertion explanations]"
+
+  evidence_documentation:
+    - "[Evidence format README]"
+    - "[Schema documentation]"
+    - "[Summary documentation]"
+
+  failure_documentation:
+    - "[Failure categorization README]"
+    - "[Detailed failure logs]"
+
+continuous_integration:
+  test_triggers:
+    - "[When tests run automatically 1]"
+    - "[When tests run automatically 2]"
+
+  required_checks:
+    - "[Required CI check 1]"
+    - "[Required CI check 2]"
+
+  blocking_conditions:
+    - "[Condition that blocks merge 1]"
+    - "[Condition that blocks merge 2]"
+
+---
+# TEMPLATE USAGE GUIDE
+#
+# 1. Setup:
+#    cp test-spec.yaml.template specs/phase-[X]/[phase-name]/[component]/test-spec.yaml
+#    Edit placeholders: [Component Name], [Phase X], etc.
+#
+# 2. Required Sections:
+#    ✓ metadata (component, evidence sources, verified thresholds)
+#    ✓ test_requirements (coverage targets, test counts)
+#    ✓ unit_tests (all methods from component-spec.yaml)
+#    ✓ integration_tests (integration scenarios)
+#    ✓ chaos_tests (failure scenarios)
+#    ✓ coverage_requirements (overall, by component, critical paths)
+#    ✓ verification_commands (all test commands)
+#    ✓ success_criteria (must match component-spec.yaml)
+#    ✓ evidence_requirements (what to collect during tests)
+#
+# 3. Test Requirements:
+#    - Every method in component-spec.yaml must have unit tests
+#    - 3+ test cases per method (happy path, error path, edge case)
+#    - All integration points must have integration tests
+#    - 4+ chaos tests (timeout, overflow, rate limit, spike)
+#    - Coverage ≥80% overall, 95% on critical paths
+#
+# 4. Thresholds:
+#    - All thresholds MUST be verified numbers from research-findings.md
+#    - No guessing or estimating thresholds
+#    - Reference claim IDs from research findings
+#
+# 5. Success Criteria:
+#    - Must match component-spec.yaml success criteria exactly
+#    - Each criterion must have verification command
+#    - Each criterion must have expected output (PASS/FAIL)
+#    - Evidence requirements specify what to collect
+#
+# 6. Verification Commands:
+#    - Pre-implementation: verify dependencies installed
+#    - Unit tests: run each test suite
+#    - Integration tests: run each integration suite
+#    - Chaos tests: run chaos scenarios
+#    - Evidence collection: collect metrics during tests
+#    - Coverage verification: verify ≥80% coverage
+#
+# 7. After Test Spec:
+#    Validate alignment with component-spec.yaml:
+#    - All test requirements map to component methods
+#    - All success criteria match component-spec.yaml
+#    - All thresholds trace to research-findings.md
+#    - Create VALIDATION_SUMMARY.md documenting alignment

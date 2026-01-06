@@ -1,0 +1,196 @@
+# Research Specification: Baseline Measurement
+# Phase 0 - Prerequisites & Foundation
+#
+# INSTRUCTIONS:
+# 1. This spec defines research requirements for Baseline Measurement component
+# 2. Execute 2 parallel research agents to gather evidence
+# 3. All claims MUST have verified sources (no "I think", "probably", etc.)
+# 4. After research, create component-spec.yaml and test-spec.yaml
+
+metadata:
+  component_name: "BaselineMeasurement"
+  phase: "Phase 0 - Prerequisites & Foundation"
+  version: "1.0.0"
+  status: "research"
+  created: "2026-01-05"
+  researchers:
+    - "Research Agent #1 (Metrics & Tracking)"
+    - "Research Agent #2 (Performance & Persistence)"
+
+research_questions:
+  # Define 3-5 key questions that research must answer
+  # Each question must be answerable with verified evidence
+
+  - question_id: "RQ-001"
+    question: "What metrics must be tracked to establish baseline performance for agent orchestration?"
+    priority: "critical"
+    success_criteria: "Verified list of metrics from orchestration best practices or documentation"
+    assigned_to: "Research Agent #1"
+
+  - question_id: "RQ-002"
+    question: "How do we extract token usage and timing data from Claude Agent SDK responses?"
+    priority: "critical"
+    success_criteria: "Verified against Agent SDK documentation or context7"
+    assigned_to: "Research Agent #1"
+
+  - question_id: "RQ-003"
+    question: "What are the acceptable performance thresholds for agent execution (token limits, timeout, success rate)?"
+    priority: "critical"
+    success_criteria: "Numerical values from reliable sources or system measurements"
+    assigned_to: "Research Agent #2"
+
+  - question_id: "RQ-004"
+    question: "What data persistence mechanisms are available for storing baseline metrics?"
+    priority: "high"
+    success_criteria: "Verified against existing codebase and Node.js/TypeScript documentation"
+    assigned_to: "Research Agent #2"
+
+  - question_id: "RQ-005"
+    question: "How do we calculate and aggregate metrics (averages, percentiles, rates) from raw data?"
+    priority: "high"
+    success_criteria: "Verified statistical methods or library documentation"
+    assigned_to: "Research Agent #2"
+
+research_streams:
+  # Define parallel research streams (max 2-3 agents)
+
+  stream_1:
+    agent_type: "research"
+    focus: "Agent SDK capabilities for metrics extraction"
+    questions:
+      - "RQ-001"
+      - "RQ-002"
+    evidence_sources:
+      - "context7 MCP (primary) - query @anthropic-ai/sdk"
+      - "Agent SDK documentation"
+      - "Claude API documentation"
+      - "Existing SDK Integration code (rad-engineer/src/sdk/)"
+    deliverable: "evidence/baseline-measurement-capabilities.md"
+
+  stream_2:
+    agent_type: "research"
+    focus: "Performance thresholds and persistence mechanisms"
+    questions:
+      - "RQ-003"
+      - "RQ-004"
+      - "RQ-005"
+    evidence_sources:
+      - "System measurements and existing codebase analysis"
+      - "Node.js/TypeScript documentation (via context7)"
+      - "Existing ResourceMonitor implementation"
+      - "Best practices for telemetry and metrics"
+    deliverable: "evidence/baseline-measurement-constraints.md"
+
+evidence_requirements:
+  # Every claim must have one of these verification types
+
+  verification_types:
+    - type: "primary_source"
+      description: "Official documentation or API reference"
+      confidence: "high"
+      required_for: "all capability claims"
+
+    - type: "context7"
+      description: "Query via context7 MCP for library docs"
+      confidence: "high"
+      required_for: "all API usage claims"
+
+    - type: "measurement"
+      description: "Actual system measurement or benchmark"
+      confidence: "high"
+      required_for: "all performance claims"
+
+    - type: "codebase_analysis"
+      description: "Verified against existing code"
+      confidence: "medium"
+      required_for: "integration point claims"
+
+  claim_format: |
+    For each claim, use this format:
+    ```yaml
+    claims:
+      - id: "CLAIM-001"
+        statement: "[Specific verifiable claim]"
+        evidence_type: "[primary_source|context7|measurement|codebase_analysis]"
+        source: "[URL or file path]"
+        verification_method: "[How to verify this claim]"
+        confidence: "[high|medium|low]"
+        required_for: "[component method or feature]"
+    ```
+
+prohibited_patterns:
+  # NEVER use these patterns in research findings
+
+  - pattern: "I think..."
+    reason: "Speculation, not evidence"
+    correction: "Find primary source or mark as unknown"
+
+  - pattern: "It should work..."
+    reason: "Unverified assumption"
+    correction: "Test and document actual result"
+
+  - pattern: "Probably..."
+    reason: "Uncertainty without evidence"
+    correction: "Verify or state 'unknown'"
+
+  - pattern: "We can assume..."
+    reason: "Assumptions lead to implementation gaps"
+    correction: "Document as assumption, not claim"
+
+output_format:
+  research_findings:
+    file: "evidence/research-findings.md"
+    required_sections:
+      - "## Evidence Summary"
+      - "## Verified Claims (table format)"
+      - "## Code Evidence (examples)"
+      - "## References (all sources)"
+      - "## Next Steps (link to component-spec.yaml)"
+
+  claim_table_format: |
+    | Claim ID | Capability | Status | Evidence Source | Verified By |
+    | --- | --- | --- | --- | --- |
+    | CLAIM-001 | [capability] | ✅/❌ | [source] | [Agent] |
+
+validation_criteria:
+  research_complete_when:
+    - "All research questions have answers with verified sources"
+    - "All claims map to evidence IDs"
+    - "Code examples provided for API usage"
+    - "References section complete with URLs"
+    - "No prohibited patterns present"
+    - "Ready to generate component-spec.yaml"
+
+next_steps:
+  after_research:
+    - step: "Create component-spec.yaml"
+      uses: "research-findings.md"
+      evidence_required: "All claims have evidence IDs"
+
+    - step: "Create test-spec.yaml"
+      uses: "component-spec.yaml"
+      thresholds_from: "research-findings.md verified numbers"
+
+    - step: "Validate specs"
+      check: "All test requirements map to component methods"
+      evidence_check: "All evidence IDs trace to research-findings.md"
+
+---
+# RESEARCH EXECUTION PLAN
+#
+# Research Agent #1 (Metrics & Tracking):
+# - Query context7 for Claude Agent SDK documentation
+# - Research token usage extraction from API responses
+# - Research timing/performance metrics collection
+# - Analyze existing SDKIntegration code for integration points
+#
+# Research Agent #2 (Performance & Persistence):
+# - Analyze existing ResourceMonitor implementation
+# - Research performance thresholds and best practices
+# - Research data persistence options (file system, databases)
+# - Research metrics aggregation methods
+#
+# Both agents return:
+# - Structured findings with verified claims
+# - Code examples for API usage
+# - References to all sources

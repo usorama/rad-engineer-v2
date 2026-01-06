@@ -1,0 +1,357 @@
+# Test Specification: ResponseParser
+# Phase 1 - Core Orchestrator
+
+metadata:
+  component: "ResponseParser"
+  version: "1.0.0"
+  created: "2026-01-05"
+  evidence_sources:
+    - "specs/phase-1-core-orchestrator/response-parser/evidence/research-findings.md"
+  verified_thresholds:
+    summary_max_length: 500       # from CLAIM-005
+    required_fields_count: 6      # from CLAIM-001
+
+test_requirements:
+  overall_coverage: 80
+  unit_test_count: 12
+  integration_test_count: 2
+
+unit_tests:
+  parse:
+    description: "Test response parsing"
+    file: "test/core/ResponseParser.test.ts"
+    test_cases:
+      - name: "Parse valid JSON response successfully"
+        input:
+          response: '{"success":true,"filesModified":["a.ts"],"testsWritten":["a.test.ts"],"summary":"Done","errors":[],"nextSteps":[]}'
+        expected:
+          success: true
+          hasData: true
+        assertions:
+          - "parsed.data.success === true"
+          - "parsed.data.filesModified[0] === 'a.ts'"
+
+      - name: "Reject malformed JSON response"
+        input:
+          response: "This is not JSON"
+        expected:
+          success: false
+          error: "MALFORMED_JSON"
+        assertions:
+          - "parsed.success === false"
+          - "parsed.error includes 'Malformed JSON'"
+
+      - name: "Reject response with missing field"
+        input:
+          response: '{"success":true,"filesModified":[]}'
+        expected:
+          success: false
+          error: "MISSING_REQUIRED_FIELD"
+        assertions:
+          - "parsed.success === false"
+          - "parsed.error includes 'testsWritten'"
+
+      - name: "Reject response with wrong field type"
+        input:
+          response: '{"success":"true","filesModified":[],"testsWritten":[],"summary":"Done","errors":[],"nextSteps":[]}'
+        expected:
+          success: false
+          error: "TYPE_MISMATCH"
+        assertions:
+          - "parsed.success === false"
+          - "parsed.error includes 'boolean'"
+
+    coverage_requirements:
+      branches: 85
+      functions: 90
+      lines: 90
+
+  validateStructure:
+    description: "Test structure validation"
+    file: "test/core/ResponseParser.test.ts"
+    test_cases:
+      - name: "Accept response with all 6 fields"
+        input:
+          response: {success:true,filesModified:[],testsWritten:[],summary:"Done",errors:[],nextSteps:[]}
+        expected:
+          valid: true
+        assertions:
+          - "validation.valid === true"
+          - "validation.errors.length === 0"
+
+      - name: "Reject response missing success field"
+        input:
+          response: {filesModified:[],testsWritten:[],summary:"Done",errors:[],nextSteps:[]}
+        expected:
+          valid: false
+          error: "Missing required field: success"
+        assertions:
+          - "validation.valid === false"
+
+      - name: "Reject response with summary > 500 chars"
+        input:
+          summary: "a".repeat(501)
+        expected:
+          valid: false
+          error: "summary must be <= 500 characters"
+        assertions:
+          - "validation.valid === false"
+
+      - name: "Check all field types"
+        input:
+          response: {success:true,filesModified:[],testsWritten:[],summary:"Done",errors:[],nextSteps:[]}
+        expected:
+          valid: true
+          types: {success:'boolean',filesModified:'array',testsWritten:'array',summary:'string',errors:'array',nextSteps:'array'}
+        assertions:
+          - "All type checks pass"
+
+    coverage_requirements:
+      branches: 85
+      functions: 90
+      lines: 90
+
+  extractFiles:
+    description: "Test file extraction"
+    file: "test/core/ResponseParser.test.ts"
+    test_cases:
+      - name: "Extract filesModified from response"
+        input:
+          response: {filesModified:["a.ts","b.ts"]}
+        expected:
+          files: ["a.ts","b.ts"]
+        assertions:
+          - "extracted[0] === 'a.ts'"
+          - "extracted[1] === 'b.ts'"
+
+    coverage_requirements:
+      branches: 80
+      functions: 85
+      lines: 85
+
+  extractTests:
+    description: "Test extraction"
+    file: "test/core/ResponseParser.test.ts"
+    test_cases:
+      - name: "Extract testsWritten from response"
+        input:
+          response: {testsWritten:["a.test.ts","b.test.ts"]}
+        expected:
+          tests: ["a.test.ts","b.test.ts"]
+        assertions:
+          - "extracted[0] === 'a.test.ts'"
+
+    coverage_requirements:
+      branches: 80
+      functions: 85
+      lines: 85
+
+  extractErrors:
+    description: "Test error extraction"
+    file: "test/core/ResponseParser.test.ts"
+    test_cases:
+      - name: "Extract errors from response"
+        input:
+          response: {errors:["Error 1","Error 2"]}
+        expected:
+          errors: ["Error 1","Error 2"]
+        assertions:
+          - "extracted[0] === 'Error 1'"
+
+    coverage_requirements:
+      branches: 80
+      functions: 85
+      lines: 85
+
+  isSuccess:
+    description: "Test success check"
+    file: "test/core/ResponseParser.test.ts"
+    test_cases:
+      - name: "Return true when success field is true"
+        input:
+          response: {success:true}
+        expected:
+          isSuccess: true
+        assertions:
+          - "isSuccess === true"
+
+      - name: "Return false when success field is false"
+        input:
+          response: {success:false}
+        expected:
+          isSuccess: false
+        assertions:
+          - "isSuccess === false"
+
+    coverage_requirements:
+      branches: 80
+      functions: 85
+      lines: 85
+
+integration_tests:
+  sdk_integration:
+    description: "Test SDKIntegration integration"
+    file: "test/core/integration/response-parser-sdk.test.ts"
+    test_cases:
+      - name: "SDKIntegration parses agent response"
+        setup:
+          sdk: "SDKIntegration instance"
+          parser: "ResponseParser instance"
+        steps:
+          - "Execute agent via SDK"
+          - "Get raw response"
+          - "Parse via ResponseParser"
+        expected:
+          parsed: true
+          hasAgentResponse: true
+        assertions:
+          - "ResponseParser.parse() called"
+
+      - name: "SDKIntegration throws on parse failure"
+        setup:
+          sdk: "SDKIntegration instance"
+          parser: "ResponseParser instance"
+        steps:
+          - "Agent returns malformed response"
+          - "ResponseParser.parse() fails"
+        expected:
+          throws: "ResponseParseError"
+        assertions:
+          - "Parse error propagates"
+
+    coverage_requirements:
+      branches: 85
+      functions: 85
+      lines: 85
+
+  prompt_validator_integration:
+    description: "Test PromptValidator integration"
+    file: "test/core/integration/response-parser-prompt.test.ts"
+    test_cases:
+      - name: "PromptValidator and ResponseParser enforce format"
+        setup:
+          validator: "PromptValidator instance"
+          parser: "ResponseParser instance"
+        steps:
+          - "Validate prompt with PromptValidator"
+          - "Execute agent with valid prompt"
+          - "Parse response with ResponseParser"
+        expected:
+          inputValid: true
+          outputValid: true
+        assertions:
+          - "Both validators enforce structured format"
+
+    coverage_requirements:
+      branches: 80
+      functions: 80
+      lines: 80
+
+chaos_tests:
+  description: "Test edge cases and malformed inputs"
+  file: "test/core/chaos/response-parser-chaos.test.ts"
+
+  test_cases:
+    - name: "Handle extremely long response"
+      setup:
+        response: '{"summary":"' + 'a'.repeat(10000) + '"}'
+      chaos:
+        type: "input_extreme"
+      expected:
+        handlesGracefully: true
+      assertions:
+        - "Summary length validated"
+
+    - name: "Handle response with null bytes"
+      setup:
+        response: '{"success":tru\x00e}'
+      chaos:
+        type: "input_malformed"
+      expected:
+        parseError: true
+      assertions:
+        - "Malformed JSON detected"
+
+    - name: "Handle response with unicode"
+      setup:
+        response: '{"summary":"测试测试","success":true}'
+      chaos:
+        type: "unicode"
+      expected:
+        handlesUnicode: true
+      assertions:
+        - "Unicode parsed correctly"
+
+    - name: "Handle empty object"
+      setup:
+        response: '{}'
+      chaos:
+        type: "missing_fields"
+      expected:
+        validationError: true
+      assertions:
+        - "All 6 missing fields detected"
+
+coverage_requirements:
+  overall:
+    minimum: 80
+    target: 85
+
+  by_component:
+    parse:
+      statements: 85
+      branches: 85
+      functions: 90
+      lines: 90
+
+    validateStructure:
+      statements: 85
+      branches: 85
+      functions: 90
+      lines: 90
+
+    extractors:
+      statements: 80
+      branches: 80
+      functions: 85
+      lines: 85
+
+  critical_paths:
+    json_parsing: 95
+    structure_validation: 90
+
+verification_commands:
+  unit_tests:
+    - description: "Run ResponseParser unit tests"
+      command: "cd rad-engineer && bun test test/core/ResponseParser.test.ts"
+
+  integration_tests:
+    - description: "Run SDK integration tests"
+      command: "cd rad-engineer && bun test test/core/integration/response-parser-sdk.test.ts"
+
+  chaos_tests:
+    - description: "Run chaos tests"
+      command: "cd rad-engineer && bun test test/core/chaos/response-parser-chaos.test.ts"
+
+success_criteria:
+  phase_1_week_1:
+    - description: "Parse valid JSON responses"
+      verification: "cd rad-engineer && bun test test/core/ResponseParser.test.ts --grep 'valid'"
+      expected: "Valid responses parsed successfully"
+
+    - description: "Reject malformed JSON"
+      verification: "cd rad-engineer && bun test test/core/ResponseParser.test.ts --grep 'malformed'"
+      expected: "Malformed responses rejected"
+
+  phase_1_week_2:
+    - description: "Detect missing fields"
+      verification: "cd rad-engineer && bun test test/core/ResponseParser.test.ts --grep 'missing'"
+      expected: "All missing fields detected"
+
+    - description: "Enforce summary length"
+      verification: "cd rad-engineer && bun test test/core/ResponseParser.test.ts --grep 'summary'"
+      expected: "Summaries > 500 chars rejected"
+
+---
+
+**Test Specification Complete**

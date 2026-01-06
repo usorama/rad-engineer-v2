@@ -1,0 +1,839 @@
+{
+  "ed5baa0b": {
+    "timestamp": "2026-01-04T20:07:43.482728",
+    "action": "Bash",
+    "reliability_score": 0.8333333333333334,
+    "overall_status": "RELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.0,
+    "uncertainty_score": 0.5
+  },
+  "0133e571": {
+    "timestamp": "2026-01-04T20:07:57.458730",
+    "action": "Bash",
+    "reliability_score": 0.7000000000000001,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.4,
+    "propagation_score": 0.0,
+    "uncertainty_score": 0.5
+  },
+  "0b3f3202": {
+    "timestamp": "2026-01-04T20:09:08.678764",
+    "action": "Bash",
+    "reliability_score": 0.8333333333333334,
+    "overall_status": "RELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.0,
+    "uncertainty_score": 0.5
+  },
+  "6e698a4c": {
+    "timestamp": "2026-01-04T20:23:41.966061",
+    "action": "Bash",
+    "reliability_score": 0.8333333333333334,
+    "overall_status": "RELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.0,
+    "uncertainty_score": 0.5
+  },
+  "cdd75c67": {
+    "timestamp": "2026-01-04T20:26:29.908814",
+    "action": "Bash",
+    "reliability_score": 0.7999999999999999,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.1,
+    "uncertainty_score": 0.5
+  },
+  "80d96d82": {
+    "timestamp": "2026-01-04T20:26:35.383515",
+    "action": "Bash",
+    "reliability_score": 0.7666666666666666,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.2,
+    "uncertainty_score": 0.5
+  },
+  "60f18058": {
+    "timestamp": "2026-01-04T20:26:39.003379",
+    "action": "Read",
+    "reliability_score": 0.7666666666666666,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.2,
+    "uncertainty_score": 0.5
+  },
+  "31f0e31a": {
+    "timestamp": "2026-01-04T20:26:43.063446",
+    "action": "Read",
+    "reliability_score": 0.7666666666666666,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.2,
+    "uncertainty_score": 0.5
+  },
+  "cb21e197": {
+    "timestamp": "2026-01-04T20:26:48.166131",
+    "action": "Read",
+    "reliability_score": 0.7666666666666666,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.2,
+    "uncertainty_score": 0.5
+  },
+  "58eb5d73": {
+    "timestamp": "2026-01-04T20:55:33.488815",
+    "action": "Read",
+    "reliability_score": 0.7666666666666666,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.2,
+    "uncertainty_score": 0.5
+  },
+  "3642c39f": {
+    "timestamp": "2026-01-04T20:55:47.212881",
+    "action": "Bash",
+    "reliability_score": 0.7333333333333334,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.3,
+    "uncertainty_score": 0.5
+  },
+  "4e4523a8": {
+    "timestamp": "2026-01-04T20:55:50.584475",
+    "action": "Read",
+    "reliability_score": 0.7333333333333334,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.3,
+    "uncertainty_score": 0.5
+  },
+  "116361ee": {
+    "timestamp": "2026-01-04T20:55:55.385937",
+    "action": "Bash",
+    "reliability_score": 0.7333333333333334,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.3,
+    "uncertainty_score": 0.5
+  },
+  "6670289d": {
+    "timestamp": "2026-01-04T20:55:59.612920",
+    "action": "Bash",
+    "reliability_score": 0.7333333333333334,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.3,
+    "uncertainty_score": 0.5
+  },
+  "c097786b": {
+    "timestamp": "2026-01-04T20:56:07.399181",
+    "action": "Bash",
+    "reliability_score": 0.7333333333333334,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.3,
+    "uncertainty_score": 0.5
+  },
+  "83f10742": {
+    "timestamp": "2026-01-04T20:56:11.249699",
+    "action": "Bash",
+    "reliability_score": 0.7333333333333334,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.3,
+    "uncertainty_score": 0.5
+  },
+  "9575926e": {
+    "timestamp": "2026-01-04T20:56:14.951542",
+    "action": "Bash",
+    "reliability_score": 0.7333333333333334,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.3,
+    "uncertainty_score": 0.5
+  },
+  "b6206414": {
+    "timestamp": "2026-01-04T20:56:20.504112",
+    "action": "Bash",
+    "reliability_score": 0.7000000000000001,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.4,
+    "uncertainty_score": 0.5
+  },
+  "6bbff44b": {
+    "timestamp": "2026-01-04T20:56:28.929709",
+    "action": "Bash",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "76aeec42": {
+    "timestamp": "2026-01-04T20:56:37.102315",
+    "action": "Bash",
+    "reliability_score": 0.5333333333333333,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8999999999999999,
+    "uncertainty_score": 0.5
+  },
+  "43a3ddaa": {
+    "timestamp": "2026-01-04T20:56:40.620205",
+    "action": "Read",
+    "reliability_score": 0.5333333333333333,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8999999999999999,
+    "uncertainty_score": 0.5
+  },
+  "d1187304": {
+    "timestamp": "2026-01-04T20:59:32.390618",
+    "action": "Bash",
+    "reliability_score": 0.5333333333333333,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8999999999999999,
+    "uncertainty_score": 0.5
+  },
+  "dcd90d8e": {
+    "timestamp": "2026-01-04T20:59:36.639079",
+    "action": "Bash",
+    "reliability_score": 0.5333333333333333,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8999999999999999,
+    "uncertainty_score": 0.5
+  },
+  "071a6c4a": {
+    "timestamp": "2026-01-04T20:59:41.129290",
+    "action": "Bash",
+    "reliability_score": 0.5333333333333333,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8999999999999999,
+    "uncertainty_score": 0.5
+  },
+  "3b0b02d0": {
+    "timestamp": "2026-01-04T20:59:46.055549",
+    "action": "Bash",
+    "reliability_score": 0.5333333333333333,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8999999999999999,
+    "uncertainty_score": 0.5
+  },
+  "56bdfd88": {
+    "timestamp": "2026-01-04T21:00:55.328846",
+    "action": "Read",
+    "reliability_score": 0.5333333333333333,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8999999999999999,
+    "uncertainty_score": 0.5
+  },
+  "93dfa4af": {
+    "timestamp": "2026-01-04T21:01:02.284804",
+    "action": "Read",
+    "reliability_score": 0.5333333333333333,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8999999999999999,
+    "uncertainty_score": 0.5
+  },
+  "1835750c": {
+    "timestamp": "2026-01-04T21:01:08.211273",
+    "action": "Read",
+    "reliability_score": 0.5333333333333333,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8999999999999999,
+    "uncertainty_score": 0.5
+  },
+  "8caad2ba": {
+    "timestamp": "2026-01-04T21:01:12.949345",
+    "action": "Read",
+    "reliability_score": 0.5333333333333333,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8999999999999999,
+    "uncertainty_score": 0.5
+  },
+  "8c49eec7": {
+    "timestamp": "2026-01-04T21:01:17.233601",
+    "action": "Glob",
+    "reliability_score": 0.5333333333333333,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8999999999999999,
+    "uncertainty_score": 0.5
+  },
+  "24525470": {
+    "timestamp": "2026-01-04T21:01:26.512305",
+    "action": "Read",
+    "reliability_score": 0.5333333333333333,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8999999999999999,
+    "uncertainty_score": 0.5
+  },
+  "ef3d1bca": {
+    "timestamp": "2026-01-04T21:01:35.919423",
+    "action": "Read",
+    "reliability_score": 0.5333333333333333,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8999999999999999,
+    "uncertainty_score": 0.5
+  },
+  "aedf0f49": {
+    "timestamp": "2026-01-04T21:18:18.327794",
+    "action": "Read",
+    "reliability_score": 0.6333333333333333,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "5ee68003": {
+    "timestamp": "2026-01-04T21:18:23.728260",
+    "action": "Grep",
+    "reliability_score": 0.6333333333333333,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "2d4b7709": {
+    "timestamp": "2026-01-04T21:18:28.452935",
+    "action": "Grep",
+    "reliability_score": 0.6333333333333333,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "75889b31": {
+    "timestamp": "2026-01-04T21:18:33.361443",
+    "action": "Grep",
+    "reliability_score": 0.6333333333333333,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "97e009e4": {
+    "timestamp": "2026-01-04T21:18:37.820939",
+    "action": "Grep",
+    "reliability_score": 0.6333333333333333,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "a86a7ff0": {
+    "timestamp": "2026-01-04T21:18:42.578154",
+    "action": "Grep",
+    "reliability_score": 0.6333333333333333,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "051f75ab": {
+    "timestamp": "2026-01-04T21:32:00.448034",
+    "action": "Task",
+    "reliability_score": 0.5666666666666668,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.2,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "b1c75344": {
+    "timestamp": "2026-01-04T21:32:10.826619",
+    "action": "Task",
+    "reliability_score": 0.6333333333333333,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "72f9ff90": {
+    "timestamp": "2026-01-04T21:32:17.814156",
+    "action": "WebFetch",
+    "reliability_score": 0.5666666666666668,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.2,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "6bfcffbc": {
+    "timestamp": "2026-01-04T21:32:31.860420",
+    "action": "Task",
+    "reliability_score": 0.6333333333333333,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "2e384a19": {
+    "timestamp": "2026-01-04T21:32:39.826000",
+    "action": "WebSearch",
+    "reliability_score": 0.6333333333333333,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "191e52b5": {
+    "timestamp": "2026-01-04T21:32:40.140539",
+    "action": "WebSearch",
+    "reliability_score": 0.6333333333333333,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "17562f04": {
+    "timestamp": "2026-01-04T21:32:42.988684",
+    "action": "Task",
+    "reliability_score": 0.4666666666666666,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.5,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.6
+  },
+  "bf7ebe61": {
+    "timestamp": "2026-01-04T21:32:44.510503",
+    "action": "WebSearch",
+    "reliability_score": 0.6333333333333333,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "48a0fb6a": {
+    "timestamp": "2026-01-04T21:32:44.989439",
+    "action": "WebSearch",
+    "reliability_score": 0.6333333333333333,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "b1784b5c": {
+    "timestamp": "2026-01-04T21:32:47.872500",
+    "action": "WebSearch",
+    "reliability_score": 0.6333333333333333,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "e34ad118": {
+    "timestamp": "2026-01-04T21:32:51.066649",
+    "action": "WebSearch",
+    "reliability_score": 0.6333333333333333,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "70aacb47": {
+    "timestamp": "2026-01-04T21:32:51.942053",
+    "action": "WebSearch",
+    "reliability_score": 0.6333333333333333,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "cda6ce33": {
+    "timestamp": "2026-01-04T21:33:01.184797",
+    "action": "WebSearch",
+    "reliability_score": 0.6333333333333333,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "5c861408": {
+    "timestamp": "2026-01-04T21:33:02.732157",
+    "action": "WebSearch",
+    "reliability_score": 0.6333333333333333,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "fa315547": {
+    "timestamp": "2026-01-04T21:33:05.390838",
+    "action": "WebSearch",
+    "reliability_score": 0.6333333333333333,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "dfd89dad": {
+    "timestamp": "2026-01-04T21:33:10.675758",
+    "action": "WebSearch",
+    "reliability_score": 0.6333333333333333,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "db28c547": {
+    "timestamp": "2026-01-04T21:33:12.667369",
+    "action": "WebFetch",
+    "reliability_score": 0.6333333333333333,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "f9d9930d": {
+    "timestamp": "2026-01-04T21:33:15.605170",
+    "action": "WebFetch",
+    "reliability_score": 0.5666666666666668,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.2,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "191a548c": {
+    "timestamp": "2026-01-04T21:33:16.835452",
+    "action": "WebSearch",
+    "reliability_score": 0.6333333333333333,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "97731f22": {
+    "timestamp": "2026-01-04T21:33:23.608647",
+    "action": "WebSearch",
+    "reliability_score": 0.6333333333333333,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "4744a89c": {
+    "timestamp": "2026-01-04T21:33:27.723322",
+    "action": "WebSearch",
+    "reliability_score": 0.6333333333333333,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "773aaba9": {
+    "timestamp": "2026-01-04T21:33:27.957412",
+    "action": "WebFetch",
+    "reliability_score": 0.5666666666666668,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.2,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "5c86c014": {
+    "timestamp": "2026-01-04T21:33:30.299418",
+    "action": "WebSearch",
+    "reliability_score": 0.6333333333333333,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.6,
+    "uncertainty_score": 0.5
+  },
+  "b1355a88": {
+    "timestamp": "2026-01-04T21:33:32.353619",
+    "action": "WebFetch",
+    "reliability_score": 0.6,
+    "overall_status": "CAUTION",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.7,
+    "uncertainty_score": 0.5
+  },
+  "66717a3c": {
+    "timestamp": "2026-01-04T21:33:37.463314",
+    "action": "WebFetch",
+    "reliability_score": 0.5333333333333333,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.2,
+    "propagation_score": 0.7,
+    "uncertainty_score": 0.5
+  },
+  "182b2546": {
+    "timestamp": "2026-01-04T21:33:37.722146",
+    "action": "WebFetch",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "f3117958": {
+    "timestamp": "2026-01-04T21:33:38.888503",
+    "action": "WebSearch",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "75411061": {
+    "timestamp": "2026-01-04T21:33:40.089843",
+    "action": "WebSearch",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "0665e6f5": {
+    "timestamp": "2026-01-04T21:33:41.247345",
+    "action": "WebSearch",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "429e053a": {
+    "timestamp": "2026-01-04T21:33:42.318988",
+    "action": "WebSearch",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "08d6928b": {
+    "timestamp": "2026-01-04T21:33:50.741032",
+    "action": "Glob",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "5e712933": {
+    "timestamp": "2026-01-04T21:33:53.100410",
+    "action": "WebSearch",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "8595f9cc": {
+    "timestamp": "2026-01-04T21:33:53.324201",
+    "action": "WebSearch",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "37f39cd4": {
+    "timestamp": "2026-01-04T21:34:02.747871",
+    "action": "WebSearch",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "b70eb78c": {
+    "timestamp": "2026-01-04T21:34:12.866875",
+    "action": "WebSearch",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "343a2c9c": {
+    "timestamp": "2026-01-04T21:34:14.309602",
+    "action": "WebSearch",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "a93cda20": {
+    "timestamp": "2026-01-04T21:34:16.854872",
+    "action": "WebSearch",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "a76f25f2": {
+    "timestamp": "2026-01-04T21:34:19.175105",
+    "action": "WebSearch",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "2aaa8909": {
+    "timestamp": "2026-01-04T21:34:25.568850",
+    "action": "WebSearch",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "15561855": {
+    "timestamp": "2026-01-04T21:34:30.315204",
+    "action": "WebSearch",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "f5eb8c61": {
+    "timestamp": "2026-01-04T21:34:30.700967",
+    "action": "WebSearch",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "b3066f3b": {
+    "timestamp": "2026-01-04T21:34:31.141550",
+    "action": "WebSearch",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "5bf1fef4": {
+    "timestamp": "2026-01-04T21:34:37.955328",
+    "action": "Bash",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "36278f3f": {
+    "timestamp": "2026-01-04T21:34:41.581349",
+    "action": "Bash",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "f3572388": {
+    "timestamp": "2026-01-04T21:34:50.400373",
+    "action": "WebSearch",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "fac1f88a": {
+    "timestamp": "2026-01-04T21:34:53.075911",
+    "action": "WebSearch",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "001acfdc": {
+    "timestamp": "2026-01-04T21:34:53.908546",
+    "action": "WebSearch",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "99b4990a": {
+    "timestamp": "2026-01-04T21:35:02.548833",
+    "action": "Bash",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "36b58d44": {
+    "timestamp": "2026-01-04T21:35:02.552549",
+    "action": "Bash",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "da879a12": {
+    "timestamp": "2026-01-04T21:35:05.632340",
+    "action": "Bash",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "f5e020bb": {
+    "timestamp": "2026-01-04T21:39:34.734858",
+    "action": "Bash",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "5ab90f56": {
+    "timestamp": "2026-01-04T21:41:30.300961",
+    "action": "Bash",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "58958133": {
+    "timestamp": "2026-01-04T21:41:35.719788",
+    "action": "Bash",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "c60bb733": {
+    "timestamp": "2026-01-04T21:47:38.148124",
+    "action": "Read",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  },
+  "0321bbc9": {
+    "timestamp": "2026-01-04T22:06:42.914841",
+    "action": "Bash",
+    "reliability_score": 0.5666666666666667,
+    "overall_status": "UNRELIABLE",
+    "hallucination_score": 0.0,
+    "propagation_score": 0.8,
+    "uncertainty_score": 0.5
+  }
+}

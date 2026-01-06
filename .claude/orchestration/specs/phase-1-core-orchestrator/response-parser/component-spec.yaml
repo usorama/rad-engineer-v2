@@ -1,0 +1,331 @@
+# Component Specification: ResponseParser
+# Phase 1 - Core Orchestrator
+#
+# All claims verified from research-findings.md
+
+metadata:
+  component_name: "ResponseParser"
+  phase: "Phase 1 - Core Orchestrator"
+  version: "1.0.0"
+  status: "specification"
+  created: "2026-01-05"
+  dependencies:
+    - "PromptValidator (for input validation before agent spawn)"
+
+description: |
+  ResponseParser extracts and validates structured data from agent responses.
+  Ensures responses conform to the required JSON format with 6 fields.
+
+interface:
+  class_name: "ResponseParser"
+  file_location: "rad-engineer/src/core/ResponseParser.ts"
+
+  methods:
+    - name: "parse"
+      signature: "parse(rawResponse: string): ParseResult<AgentResponse>"
+      description: "Parse and validate agent response JSON"
+      input:
+        - name: "rawResponse"
+          type: "string"
+          description: "Raw agent response string"
+      output:
+        type: "ParseResult<AgentResponse>"
+        description: "{ success: boolean, data?: AgentResponse, error?: string }"
+      failure_modes:
+        - error: "MALFORMED_JSON"
+          description: "Response is not valid JSON"
+          detection: "JSON.parse() throws SyntaxError"
+          recovery: "Return parse error with message"
+          timeout: "N/A"
+        - error: "MISSING_REQUIRED_FIELD"
+          description: "One of 6 required fields is missing"
+          detection: "Field presence check fails"
+          recovery: "Return validation error with missing field list"
+          timeout: "N/A"
+        - error: "TYPE_MISMATCH"
+          description: "Field has wrong type"
+          detection: "Type check fails"
+          recovery: "Return validation error with type requirement"
+          timeout: "N/A"
+      evidence_requirements:
+        - id: "EVIDENCE-001"
+          claim: "Response format: 6 required fields"
+          source: "research-findings.md#CLAIM-001"
+          verification_method: "CLAUDE.md lines 85-93"
+          required_for: "validateStructure()"
+        - id: "EVIDENCE-008"
+          claim: "JSON parsing via JSON.parse()"
+          source: "research-findings.md#CLAIM-008"
+          verification_method: "Node.js built-in"
+          required_for: "parse()"
+
+    - name: "validateStructure"
+      signature: "validateStructure(data: unknown): ValidationResult"
+      description: "Validate response has all 6 required fields with correct types"
+      input:
+        - name: "data"
+          type: "unknown"
+          description: "Parsed data to validate"
+      output:
+        type: "ValidationResult"
+        description: "{ valid: boolean, errors: string[] }"
+      failure_modes:
+        - error: "NOT_AN_OBJECT"
+          description: "Response is not an object"
+          detection: "typeof data !== 'object' || data === null"
+          recovery: "Return validation error"
+          timeout: "N/A"
+        - error: "MISSING_REQUIRED_FIELD"
+          description: "One of 6 fields missing"
+          detection: "Field not in object"
+          recovery: "Return validation error with field name"
+          timeout: "N/A"
+        - error: "TYPE_MISMATCH"
+          description: "Field has wrong type"
+          detection: "typeof check fails"
+          recovery: "Return validation error with expected type"
+          timeout: "N/A"
+        - error: "VALUE_TOO_LONG"
+          description: "Summary exceeds 500 characters"
+          detection: "summary.length > 500"
+          recovery: "Return validation error with length"
+          timeout: "N/A"
+      evidence_requirements:
+        - id: "EVIDENCE-002"
+          claim: "success field: boolean"
+          source: "research-findings.md#CLAIM-002"
+          required_for: "Type checking"
+        - id: "EVIDENCE-003"
+          claim: "filesModified: string array"
+          source: "research-findings.md#CLAIM-003"
+          required_for: "Type checking"
+        - id: "EVIDENCE-004"
+          claim: "testsWritten: string array"
+          source: "research-findings.md#CLAIM-004"
+          required_for: "Type checking"
+        - id: "EVIDENCE-005"
+          claim: "summary: string, max 500 chars"
+          source: "research-findings.md#CLAIM-005"
+          required_for: "Type and value checking"
+        - id: "EVIDENCE-006"
+          claim: "errors: string array"
+          source: "research-findings.md#CLAIM-006"
+          required_for: "Type checking"
+        - id: "EVIDENCE-007"
+          claim: "nextSteps: string array"
+          source: "research-findings.md#CLAIM-007"
+          required_for: "Type checking"
+
+    - name: "extractFiles"
+      signature: "extractFiles(response: AgentResponse): string[]"
+      description: "Extract list of modified files from response"
+      input:
+        - name: "response"
+          type: "AgentResponse"
+          description: "Validated agent response"
+      output:
+        type: "string[]"
+        description: "List of modified file paths"
+      failure_modes: []
+      evidence_requirements: []
+
+    - name: "extractTests"
+      signature: "extractTests(response: AgentResponse): string[]"
+      description: "Extract list of test files from response"
+      input:
+        - name: "response"
+          type: "AgentResponse"
+          description: "Validated agent response"
+      output:
+        type: "string[]"
+        description: "List of test file paths"
+      failure_modes: []
+      evidence_requirements: []
+
+    - name: "extractErrors"
+      signature: "extractErrors(response: AgentResponse): string[]"
+      description: "Extract list of errors from response"
+      input:
+        - name: "response"
+          type: "AgentResponse"
+          description: "Validated agent response"
+      output:
+        type: "string[]"
+        description: "List of error messages"
+      failure_modes: []
+      evidence_requirements: []
+
+    - name: "isSuccess"
+      signature: "isSuccess(response: AgentResponse): boolean"
+      description: "Check if response indicates success"
+      input:
+        - name: "response"
+          type: "AgentResponse"
+          description: "Validated agent response"
+      output:
+        type: "boolean"
+        description: "True if success field is true"
+      failure_modes: []
+      evidence_requirements: []
+
+integration_points:
+  - component: "SDKIntegration"
+    location: "rad-engineer/src/sdk/SDKIntegration.ts"
+    method: "executeAgent()"
+    integration_pattern: |
+      After agent execution:
+      1. Get raw response from agent
+      2. Call ResponseParser.parse(rawResponse)
+      3. If parse fails, throw ResponseParseError
+      4. If parse succeeds, return AgentResponse
+    evidence:
+      - id: "INTEGRATION-001"
+        claim: "SDKIntegration executes agents and returns responses"
+        source: "rad-engineer/src/sdk/SDKIntegration.ts"
+        verification_method: "Read SDKIntegration.ts to verify execution pattern"
+        required_for: "Agent response parsing"
+
+  - component: "PromptValidator"
+    location: "rad-engineer/src/core/PromptValidator.ts"
+    integration_pattern: |
+      Flow:
+      1. PromptValidator validates input prompt
+      2. Agent executes with valid prompt
+      3. ResponseParser validates output response
+    evidence:
+      - id: "INTEGRATION-002"
+        claim: "PromptValidator and ResponseParser enforce structured format"
+        source: "CLAUDE.md"
+        verification_method: "Both reference CLAUDE.md structured output requirements"
+        required_for: "End-to-end format enforcement"
+
+success_criteria:
+  - criterion: "Parse valid JSON response successfully"
+    measurement_method: |
+      ```bash
+      cd rad-engineer && bun test test/core/ResponseParser.test.ts --grep 'parse valid'
+      ```
+    threshold: "100% of valid responses parsed successfully"
+    evidence: "Test output shows parsed AgentResponse object"
+    status: "pending"
+    priority: "critical"
+
+  - criterion: "Reject malformed JSON responses"
+    measurement_method: |
+      ```bash
+      cd rad-engineer && bun test test/core/ResponseParser.test.ts --grep 'malformed'
+      ```
+    threshold: "100% of malformed responses rejected with error"
+    evidence: "Test output shows MALFORMED_JSON error"
+    status: "pending"
+    priority: "critical"
+
+  - criterion: "Detect missing required fields"
+    measurement_method: |
+      ```bash
+      cd rad-engineer && bun test test/core/ResponseParser.test.ts --grep 'missing'
+      ```
+    threshold: "100% of responses missing fields rejected"
+    evidence: "Test output shows MISSING_REQUIRED_FIELD error"
+    status: "pending"
+    priority: "critical"
+
+  - criterion: "Detect type mismatches"
+    measurement_method: |
+      ```bash
+      cd rad-engineer && bun test test/core/ResponseParser.test.ts --grep 'type'
+      ```
+    threshold: "100% of type mismatches detected"
+    evidence: "Test output shows TYPE_MISMATCH error"
+    status: "pending"
+    priority: "high"
+
+  - criterion: "Enforce summary length limit"
+    measurement_method: |
+      ```bash
+      cd rad-engineer && bun test test/core/ResponseParser.test.ts --grep 'summary'
+      ```
+    threshold: "100% of summaries > 500 chars rejected"
+    evidence: "Test output shows VALUE_TOO_LONG error"
+    status: "pending"
+    priority: "medium"
+
+constraints:
+  hard_constraints:
+    - constraint: "All 6 fields must be present"
+      reason: "CLAUDE.md requirement"
+      source: "CLAIM-001"
+    - constraint: "success must be boolean"
+      reason: "Type requirement"
+      source: "CLAIM-002"
+    - constraint: "filesModified must be string array"
+      reason: "Type requirement"
+      source: "CLAIM-003"
+    - constraint: "testsWritten must be string array"
+      reason: "Type requirement"
+      source: "CLAIM-004"
+    - constraint: "summary must be <= 500 characters"
+      reason: "CLAUDE.md requirement"
+      source: "CLAIM-005"
+    - constraint: "errors must be string array"
+      reason: "Type requirement"
+      source: "CLAIM-006"
+    - constraint: "nextSteps must be string array"
+      reason: "Type requirement"
+      source: "CLAIM-007"
+
+prohibitions:
+  - prohibition: "NEVER accept prose responses"
+    reason: "Must be structured JSON per CLAUDE.md"
+    source: "CLAIM-001"
+  - prohibition: "NEVER accept responses with missing fields"
+    reason: "All 6 fields are required"
+    source: "CLAIM-001"
+  - prohibition: "NEVER accept summary > 500 characters"
+    reason: "CLAUDE.md requirement"
+    source: "CLAIM-005"
+  - prohibition: "NEVER accept wrong field types"
+    reason: "Type safety requirement"
+    source: "CLAIM-002 through CLAIM-007"
+
+types:
+  AgentResponse:
+    success: boolean
+    filesModified: string[]
+    testsWritten: string[]
+    summary: string  // max 500 chars
+    errors: string[]
+    nextSteps: string[]
+
+  ParseResult<T>:
+    success: boolean
+    data?: T
+    error?: string
+
+  ValidationResult:
+    valid: boolean
+    errors: string[]
+
+test_coverage_requirements:
+  minimum_coverage: 80
+  target_coverage: 85
+  critical_path_coverage: 95
+
+  critical_paths:
+    - path: "JSON parsing"
+      reason: "Core functionality"
+      required_coverage: 95
+    - path: "Structure validation"
+      reason: "Ensures correct format"
+      required_coverage: 90
+    - path: "Type checking"
+      reason: "Type safety"
+      required_coverage: 90
+
+---
+
+**Specification Status**: ✅ Complete
+**Evidence Requirements**: 8
+**Integration Points**: 2
+**Success Criteria**: 5
+**Next Phase**: Test specification generation

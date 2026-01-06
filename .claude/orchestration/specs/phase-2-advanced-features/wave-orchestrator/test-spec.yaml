@@ -1,0 +1,70 @@
+# Test Specification: WaveOrchestrator
+# Phase 2 - Advanced Features
+
+metadata:
+  component: "WaveOrchestrator"
+  version: "1.0.0"
+  created: "2026-01-05"
+
+test_requirements:
+  overall_coverage: 80
+  unit_test_count: 10
+  integration_test_count: 2
+
+unit_tests:
+  calculateWaveSize:
+    description: "Test wave size calculation"
+    file: "test/advanced/WaveOrchestrator.test.ts"
+    test_cases:
+      - name: "Returns maxConcurrent from ResourceManager"
+        expected: { waveSize: 3 }
+      - name: "Respects custom waveSize option"
+        input: { waveSize: 5 }
+        expected: { waveSize: 5 }
+
+  splitIntoWaves:
+    description: "Test wave splitting"
+    file: "test/advanced/WaveOrchestrator.test.ts"
+    test_cases:
+      - name: "Splits 10 tasks into 5 waves of 2"
+        input: { tasks: 10, waveSize: 2 }
+        expected: { waveCount: 5 }
+      - name: "Handles remainder in last wave"
+        input: { tasks: 5, waveSize: 2 }
+        expected: { waveCount: 3, lastWaveSize: 1 }
+
+  executeWave:
+    description: "Test wave execution"
+    file: "test/advanced/WaveOrchestrator.test.ts"
+    test_cases:
+      - name: "Executes 10 tasks in waves of 2"
+        expected: { waves: 5, maxConcurrent: 2 }
+      - name: "Stops on first error when continueOnError=false"
+        expected: { stopsOnFirstError: true }
+      - name: "Continues on error when continueOnError=true"
+        expected: { continuesOnError: true }
+      - name: "Respects task dependencies"
+        expected: { dependenciesRespected: true }
+
+integration_tests:
+  resource_manager_integration:
+    description: "Test ResourceManager integration"
+    file: "test/advanced/integration/resource-manager.test.ts"
+    test_cases:
+      - name: "Checks canSpawnAgent before each task"
+        expected: { resourceCheck: true }
+      - name: "Waits when wave size reached"
+        expected: { waitsForSlot: true }
+
+chaos_tests:
+  description: "Test resilience"
+  file: "test/advanced/chaos/wave-chaos.test.ts"
+  test_cases:
+    - name: "Handle task timeout"
+    - name: "Handle agent crash mid-wave"
+    - name: "Handle resource exhaustion"
+
+success_criteria:
+  - criterion: "Execute tasks in waves"
+    verification: "bun test test/advanced/WaveOrchestrator.test.ts"
+    expected: "Tasks executed in waves, maxConcurrent respected"

@@ -1,0 +1,455 @@
+# Component Specification: PromptValidator
+# Phase 1 - Core Orchestrator
+#
+# All claims verified from research-findings.md
+# All failure modes have detection + recovery + timeout
+
+metadata:
+  component_name: "PromptValidator"
+  phase: "Phase 1 - Core Orchestrator"
+  version: "1.0.0"
+  status: "specification"
+  created: "2026-01-05"
+  dependencies:
+    - "ResourceManager (for resource checking before agent spawn)"
+
+description: |
+  PromptValidator validates and sanitizes agent prompts before execution to ensure:
+  1. Size constraints (≤500 characters, ≤125 tokens)
+  2. Required structure (task, files, output, rules)
+  3. Security (no prompt injection, no forbidden content)
+  4. Proper format (JSON output structure)
+
+interface:
+  class_name: "PromptValidator"
+  file_location: "rad-engineer/src/core/PromptValidator.ts"
+
+  methods:
+    - name: "validate"
+      signature: "async validate(prompt: string): Promise<ValidationResult>"
+      description: "Main validation entry point - runs all validation checks"
+      input:
+        - name: "prompt"
+          type: "string"
+          description: "Agent prompt to validate"
+      output:
+        type: "ValidationResult"
+        description: "{ valid: boolean, errors: string[], warnings: string[] }"
+      failure_modes:
+        - error: "PROMPT_TOO_LARGE"
+          description: "Prompt exceeds 500 characters"
+          detection: "Check prompt.length > 500"
+          recovery: "Return validation error with character count"
+          timeout: "N/A"
+        - error: "TASK_TOO_LONG"
+          description: "Task field exceeds 200 characters"
+          detection: "Parse task field, check length > 200"
+          recovery: "Return validation error with task length"
+          timeout: "N/A"
+        - error: "MISSING_REQUIRED_FIELD"
+          description: "One of the 4 required fields is missing"
+          detection: "Parse prompt, check for task/files/output/rules"
+          recovery: "Return validation error listing missing fields"
+          timeout: "N/A"
+        - error: "INJECTION_DETECTED"
+          description: "Prompt contains injection pattern"
+          detection: "Match against INJECTION_PATTERNS regex list"
+          recovery: "Return validation error with matched pattern"
+          timeout: "N/A"
+      evidence_requirements:
+        - id: "EVIDENCE-001"
+          claim: "Max prompt size is 500 characters"
+          source: "evidence/research-findings.md#CLAIM-001"
+          verification_method: "Verify from CLAUDE.md line 62"
+          required_for: "validateSize() method"
+        - id: "EVIDENCE-002"
+          claim: "Task field max is 200 characters"
+          source: "evidence/research-findings.md#CLAIM-002"
+          verification_method: "Verify from CLAUDE.md line 67"
+          required_for: "validateStructure() method"
+        - id: "EVIDENCE-005"
+          claim: "Prompt injection is #1 LLM threat"
+          source: "evidence/research-findings.md#CLAIM-005"
+          verification_method: "Verify from OWASP LLM01:2025"
+          required_for: "detectInjection() method"
+
+    - name: "validateSize"
+      signature: "validateSize(prompt: string): ValidationResult"
+      description: "Validates prompt size constraints (≤500 chars, ≤125 tokens)"
+      input:
+        - name: "prompt"
+          type: "string"
+          description: "Agent prompt to validate"
+      output:
+        type: "ValidationResult"
+        description: "{ valid: boolean, errors: string[] }"
+      failure_modes:
+        - error: "PROMPT_TOO_LARGE"
+          description: "Prompt exceeds 500 characters"
+          detection: "prompt.length > MAX_PROMPT_LENGTH (500)"
+          recovery: "Return error with actual character count"
+          timeout: "N/A"
+        - error: "TOO_MANY_TOKENS"
+          description: "Estimated token count exceeds 125"
+          detection: "estimateTokenCount(prompt) > 125"
+          recovery: "Return error with estimated token count"
+          timeout: "N/A"
+      evidence_requirements:
+        - id: "EVIDENCE-001"
+          claim: "Max 500 characters"
+          source: "evidence/research-findings.md#CLAIM-001"
+          verification_method: "Check CLAUDE.md line 62"
+          required_for: "Size validation"
+        - id: "EVIDENCE-008"
+          claim: "Token budget ~125 tokens"
+          source: "evidence/research-findings.md#CLAIM-008"
+          verification_method: "Check CLAUDE.md line 163"
+          required_for: "Token estimation"
+
+    - name: "validateStructure"
+      signature: "validateStructure(prompt: string): ValidationResult"
+      description: "Validates prompt has all required fields (task, files, output, rules)"
+      input:
+        - name: "prompt"
+          type: "string"
+          description: "Agent prompt to validate"
+      output:
+        type: "ValidationResult"
+        description: "{ valid: boolean, errors: string[] }"
+      failure_modes:
+        - error: "MISSING_TASK"
+          description: "Task field is missing"
+          detection: "Parse fails to find 'Task:' prefix"
+          recovery: "Return error indicating missing task"
+          timeout: "N/A"
+        - error: "TASK_TOO_LONG"
+          description: "Task field exceeds 200 characters"
+          detection: "Extract task content, check length > 200"
+          recovery: "Return error with task length"
+          timeout: "N/A"
+        - error: "MISSING_FILES"
+          description: "Files field is missing"
+          detection: "Parse fails to find 'Files:' prefix"
+          recovery: "Return error indicating missing files"
+          timeout: "N/A"
+        - error: "TOO_MANY_FILES"
+          description: "Files field has more than 5 files"
+          detection: "Parse files array, check length > 5"
+          recovery: "Return error with file count"
+          timeout: "N/A"
+        - error: "MISSING_OUTPUT"
+          description: "Output field is missing"
+          detection: "Parse fails to find 'Output:' prefix"
+          recovery: "Return error indicating missing output"
+          timeout: "N/A"
+        - error: "INVALID_OUTPUT_FORMAT"
+          description: "Output does not specify JSON"
+          detection: "Output field does not contain 'JSON'"
+          recovery: "Return error indicating JSON required"
+          timeout: "N/A"
+        - error: "MISSING_RULES"
+          description: "Rules field is missing"
+          detection: "Parse fails to find 'Rules:' prefix"
+          recovery: "Return error indicating missing rules"
+          timeout: "N/A"
+      evidence_requirements:
+        - id: "EVIDENCE-002"
+          claim: "Task max 200 chars"
+          source: "evidence/research-findings.md#CLAIM-002"
+          verification_method: "Check CLAUDE.md line 67"
+          required_for: "Task length validation"
+        - id: "EVIDENCE-003"
+          claim: "Files: 3-5 specific files"
+          source: "evidence/research-findings.md#CLAIM-003"
+          verification_method: "Check CLAUDE.md line 68"
+          required_for: "File count validation"
+        - id: "EVIDENCE-004"
+          claim: "Output must be JSON"
+          source: "evidence/research-findings.md#CLAIM-004"
+          verification_method: "Check CLAUDE.md line 69"
+          required_for: "Output format validation"
+        - id: "EVIDENCE-009"
+          claim: "Structured JSON output required"
+          source: "evidence/research-findings.md#CLAIM-009"
+          verification_method: "Check CLAUDE.md lines 81-94"
+          required_for: "Output structure validation"
+
+    - name: "validateNoForbiddenContent"
+      signature: "validateNoForbiddenContent(prompt: string): ValidationResult"
+      description: "Validates prompt contains no forbidden content patterns"
+      input:
+        - name: "prompt"
+          type: "string"
+          description: "Agent prompt to validate"
+      output:
+        type: "ValidationResult"
+        description: "{ valid: boolean, errors: string[] }"
+      failure_modes:
+        - error: "CONTAINS_CONVERSATION_HISTORY"
+          description: "Prompt contains conversation history"
+          detection: "Matches /conversation history/i pattern"
+          recovery: "Return error with matched pattern"
+          timeout: "N/A"
+        - error: "CONTAINS_CLAUDE_MD_RULES"
+          description: "Prompt includes CLAUDE.md rules"
+          detection: "Matches /CLAUDE\.md rules/i pattern"
+          recovery: "Return error with matched pattern"
+          timeout: "N/A"
+        - error: "CONTAINS_PREVIOUS_AGENT_OUTPUT"
+          description: "Prompt includes previous agent output"
+          detection: "Matches /previous agent/i pattern"
+          recovery: "Return error with matched pattern"
+          timeout: "N/A"
+      evidence_requirements:
+        - id: "EVIDENCE-006"
+          claim: "Forbidden: conversation history"
+          source: "evidence/research-findings.md#CLAIM-006"
+          verification_method: "Check CLAUDE.md line 75"
+          required_for: "Forbidden content check"
+        - id: "EVIDENCE-007"
+          claim: "Forbidden: CLAUDE.md rules"
+          source: "evidence/research-findings.md#CLAIM-007"
+          verification_method: "Check CLAUDE.md line 76"
+          required_for: "Forbidden content check"
+
+    - name: "detectInjection"
+      signature: "detectInjection(prompt: string): InjectionCheckResult"
+      description: "Detects prompt injection attempts using pattern matching"
+      input:
+        - name: "prompt"
+          type: "string"
+          description: "Agent prompt to check for injection"
+      output:
+        type: "InjectionCheckResult"
+        description: "{ hasInjection: boolean, pattern?: string, severity: 'low'|'medium'|'high' }"
+      failure_modes:
+        - error: "INJECTION_DETECTED"
+          description: "Prompt contains injection pattern"
+          detection: "Matches any INJECTION_PATTERNS regex"
+          recovery: "Return result with matched pattern and severity"
+          timeout: "N/A"
+      evidence_requirements:
+        - id: "EVIDENCE-005"
+          claim: "Prompt injection is #1 LLM threat"
+          source: "evidence/research-findings.md#CLAIM-005"
+          verification_method: "Verify from OWASP LLM01:2025"
+          required_for: "Injection detection"
+      implementation_notes: |
+        Must implement injection pattern list from OWASP:
+        - "Ignore previous instructions"
+        - "Forget everything above"
+        - Role impersonation attempts
+        - Delimiter attacks (```, """)
+        - Command injection patterns
+
+    - name: "sanitize"
+      signature: "sanitize(prompt: string): string"
+      description: "Sanitizes prompt content by escaping and redacting sensitive data"
+      input:
+        - name: "prompt"
+          type: "string"
+          description: "Agent prompt to sanitize"
+      output:
+        type: "string"
+        description: "Sanitized prompt string"
+      failure_modes:
+        - error: "SANITIZATION_FAILED"
+          description: "Error during sanitization"
+          detection: "Exception thrown during escape/redaction"
+          recovery: "Return original prompt with warning logged"
+          timeout: "5 seconds"
+      evidence_requirements:
+        - id: "EVIDENCE-005"
+          claim: "Prompt injection patterns must be blocked"
+          source: "evidence/research-findings.md#CLAIM-005"
+          verification_method: "Verify from OWASP LLM01:2025"
+          required_for: "Sanitization logic"
+      implementation_notes: |
+        Must implement:
+        1. Input escaping (backslash, backtick, dollar sign)
+        2. PII redaction (email, SSN, credit card, phone)
+        3. Special character filtering (control characters)
+
+    - name: "estimateTokenCount"
+      signature: "estimateTokenCount(charCount: number): number"
+      description: "Estimates token count from character count (~4 chars/token)"
+      input:
+        - name: "charCount"
+          type: "number"
+          description: "Character count to convert"
+      output:
+        type: "number"
+        description: "Estimated token count"
+      failure_modes:
+        - error: "INVALID_CHAR_COUNT"
+          description: "Character count is negative or not a number"
+          detection: "charCount < 0 or typeof charCount !== 'number'"
+          recovery: "Return 0 with warning logged"
+          timeout: "N/A"
+      evidence_requirements:
+        - id: "EVIDENCE-008"
+          claim: "Token budget ~125 tokens (500 chars)"
+          source: "evidence/research-findings.md#CLAIM-008"
+          verification_method: "Check CLAUDE.md line 163"
+          required_for: "Token estimation"
+      implementation_notes: |
+        Simple estimation: tokens = Math.ceil(charCount / 4)
+        This is a rough estimate, not exact tokenization
+
+integration_points:
+  - component: "SDKIntegration"
+    location: "rad-engineer/src/sdk/SDKIntegration.ts"
+    method: "spawnAgent()"
+    integration_pattern: |
+      Before spawning agent:
+      1. Call PromptValidator.validate(prompt)
+      2. If !valid, throw PromptValidationError
+      3. If valid, proceed with spawn
+    evidence:
+      - id: "INTEGRATION-001"
+        claim: "SDKIntegration spawns agents via Task tool"
+        source: "rad-engineer/src/sdk/SDKIntegration.ts"
+        verification_method: "Read SDKIntegration.ts to verify spawn pattern"
+        required_for: "Agent spawn flow"
+
+  - component: "ResourceManager"
+    location: "rad-engineer/src/core/ResourceManager.ts"
+    method: "canSpawnAgent()"
+    integration_pattern: |
+      Execution order:
+      1. PromptValidator.validate(prompt) - validate first
+      2. ResourceManager.canSpawnAgent() - check resources second
+      3. If both pass, spawn agent
+    evidence:
+      - id: "INTEGRATION-002"
+        claim: "ResourceManager enforces agent limits"
+        source: "rad-engineer/src/core/ResourceManager.ts"
+        verification_method: "Read ResourceManager.ts to verify canSpawnAgent()"
+        required_for: "Resource limit enforcement"
+
+success_criteria:
+  - criterion: "Reject prompts over 500 characters"
+    measurement_method: |
+      ```bash
+      cd rad-engineer && bun test test/core/PromptValidator.test.ts --grep 'size'
+      ```
+    threshold: "100% of oversized prompts rejected, error message includes character count"
+    evidence: "Test output shows 'PROMPT_TOO_LARGE' for 501+ char prompts"
+    status: "pending"
+    priority: "critical"
+
+  - criterion: "Reject prompts over 200 character task field"
+    measurement_method: |
+      ```bash
+      cd rad-engineer && bun test test/core/PromptValidator.test.ts --grep 'task'
+      ```
+    threshold: "100% of oversized task fields rejected, error includes task length"
+    evidence: "Test output shows 'TASK_TOO_LONG' for 201+ char tasks"
+    status: "pending"
+    priority: "critical"
+
+  - criterion: "Reject prompts missing required fields"
+    measurement_method: |
+      ```bash
+      cd rad-engineer && bun test test/core/PromptValidator.test.ts --grep 'required'
+      ```
+    threshold: "100% of prompts missing any required field rejected"
+    evidence: "Test output shows 'MISSING_REQUIRED_FIELD' for each missing field"
+    status: "pending"
+    priority: "critical"
+
+  - criterion: "Detect prompt injection attempts"
+    measurement_method: |
+      ```bash
+      cd rad-engineer && bun test test/core/PromptValidator.test.ts --grep 'injection'
+      ```
+    threshold: "100% of injection patterns detected and blocked"
+    evidence: "Test output shows 'INJECTION_DETECTED' with matched pattern"
+    status: "pending"
+    priority: "critical"
+
+  - criterion: "Block forbidden content patterns"
+    measurement_method: |
+      ```bash
+      cd rad-engineer && bun test test/core/PromptValidator.test.ts --grep 'forbidden'
+      ```
+    threshold: "100% of forbidden content patterns detected"
+    evidence: "Test output shows specific forbidden pattern error"
+    status: "pending"
+    priority: "high"
+
+  - criterion: "Sanitize PII data from prompts"
+    measurement_method: |
+      ```bash
+      cd rad-engineer && bun test test/core/PromptValidator.test.ts --grep 'sanitize'
+      ```
+    threshold: "100% of PII patterns redacted (email, SSN, CC, phone)"
+    evidence: "Test output shows '[EMAIL_REDACTED]' patterns"
+    status: "pending"
+    priority: "medium"
+
+constraints:
+  hard_constraints:
+    - constraint: "Max 500 characters total"
+      reason: "Token budget limit from CLAUDE.md"
+      source: "CLAIM-001"
+    - constraint: "Max 200 characters for task"
+      reason: "Task field size limit from CLAUDE.md"
+      source: "CLAIM-002"
+    - constraint: "Must have 4 required fields"
+      reason: "Prompt structure requirement"
+      source: "CLAIM-004, CLAIM-009"
+    - constraint: "Must detect prompt injection"
+      reason: "Security requirement (OWASP LLM01:2025)"
+      source: "CLAIM-005"
+
+  soft_constraints:
+    - constraint: "3-5 files preferred"
+      reason: "Optimal agent context size"
+      source: "CLAIM-003"
+      note: "Implementation accepts 1-5 for flexibility"
+    - constraint: "Token count estimation"
+      reason: "Early warning before size limit"
+      source: "CLAIM-008"
+      note: "Estimation only, not exact"
+
+prohibitions:
+  - prohibition: "NEVER allow prompts > 500 characters"
+    reason: "Exceeds token budget, causes context overflow"
+    source: "CLAIM-001, CLAIM-008"
+  - prohibition: "NEVER allow prompts without task field"
+    reason: "Task is required for agent execution"
+    source: "CLAIM-002"
+  - prohibition: "NEVER allow prompt injection patterns"
+    reason: "Security vulnerability (OWASP LLM01:2025)"
+    source: "CLAIM-005"
+  - prohibition: "NEVER allow conversation history in prompts"
+    reason: "Forbidden content, causes context bloat"
+    source: "CLAIM-006"
+  - prohibition: "NEVER allow CLAUDE.md rules in prompts"
+    reason: "Forbidden content, already in agent context"
+    source: "CLAIM-007"
+
+test_coverage_requirements:
+  minimum_coverage: 80
+  target_coverage: 85
+  critical_path_coverage: 95
+
+  critical_paths:
+    - path: "Injection detection"
+      reason: "Security critical"
+      required_coverage: 100
+    - path: "Size validation"
+      reason: "Prevents context overflow"
+      required_coverage: 95
+    - path: "Structure validation"
+      reason: "Ensures required fields"
+      required_coverage: 90
+
+---
+
+**Specification Status**: ✅ Complete
+**Evidence Requirements**: 12
+**Integration Points**: 2
+**Success Criteria**: 6
+**Next Phase**: Test specification generation

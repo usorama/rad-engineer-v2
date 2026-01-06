@@ -1,0 +1,175 @@
+# Research Specification Template: [Component Name]
+# Phase [X] - [Phase Name]
+#
+# INSTRUCTIONS:
+# 1. Copy this template to: specs/phase-[X]-[phase-name]/[component-name]/research-spec.yaml
+# 2. Replace all [placeholders] with actual values
+# 3. Execute 2 parallel research agents to gather evidence
+# 4. All claims MUST have verified sources (no "I think", "probably", etc.)
+# 5. After research, create component-spec.yaml and test-spec.yaml
+
+metadata:
+  component_name: "[ComponentName]"
+  phase: "Phase [X] - [Phase Name]"
+  version: "1.0.0"
+  status: "research"
+  created: "[YYYY-MM-DD]"
+  researchers:
+    - "Research Agent #1 (Role)"
+    - "Research Agent #2 (Role)"
+
+research_questions:
+  # Define 3-5 key questions that research must answer
+  # Each question must be answerable with verified evidence
+
+  - question_id: "RQ-001"
+    question: "[What capability/API/library do we need to verify exists?]"
+    priority: "critical"
+    success_criteria: "Verified against official documentation or context7"
+    assigned_to: "Research Agent #1"
+
+  - question_id: "RQ-002"
+    question: "[What are the performance thresholds/constraints?]"
+    priority: "critical"
+    success_criteria: "Numerical values from reliable sources or measurements"
+    assigned_to: "Research Agent #2"
+
+research_streams:
+  # Define parallel research streams (max 2-3 agents)
+
+  stream_1:
+    agent_type: "research"
+    focus: "[e.g., SDK capabilities, API documentation]"
+    questions:
+      - "RQ-001"
+    evidence_sources:
+      - "context7 (primary)"
+      - "Official documentation"
+      - "GitHub repository"
+    deliverable: "evidence/[component-name]-capabilities.md"
+
+  stream_2:
+    agent_type: "research"
+    focus: "[e.g., System constraints, performance limits]"
+    questions:
+      - "RQ-002"
+    evidence_sources:
+      - "System measurements"
+      - "Existing codebase analysis"
+      - "Documentation"
+    deliverable: "evidence/[component-name]-constraints.md"
+
+evidence_requirements:
+  # Every claim must have one of these verification types
+
+  verification_types:
+    - type: "primary_source"
+      description: "Official documentation or API reference"
+      confidence: "high"
+      required_for: "all capability claims"
+
+    - type: "context7"
+      description: "Query via context7 MCP for library docs"
+      confidence: "high"
+      required_for: "all API usage claims"
+
+    - type: "measurement"
+      description: "Actual system measurement or benchmark"
+      confidence: "high"
+      required_for: "all performance claims"
+
+    - type: "codebase_analysis"
+      description: "Verified against existing code"
+      confidence: "medium"
+      required_for: "integration point claims"
+
+  claim_format: |
+    For each claim, use this format:
+    ```yaml
+    claims:
+      - id: "CLAIM-001"
+        statement: "[Specific verifiable claim]"
+        evidence_type: "[primary_source|context7|measurement|codebase_analysis]"
+        source: "[URL or file path]"
+        verification_method: "[How to verify this claim]"
+        confidence: "[high|medium|low]"
+        required_for: "[component method or feature]"
+    ```
+
+prohibited_patterns:
+  # NEVER use these patterns in research findings
+
+  - pattern: "I think..."
+    reason: "Speculation, not evidence"
+    correction: "Find primary source or mark as unknown"
+
+  - pattern: "It should work..."
+    reason: "Unverified assumption"
+    correction: "Test and document actual result"
+
+  - pattern: "Probably..."
+    reason: "Uncertainty without evidence"
+    correction: "Verify or state 'unknown'"
+
+  - pattern: "We can assume..."
+    reason: "Assumptions lead to implementation gaps"
+    correction: "Document as assumption, not claim"
+
+output_format:
+  research_findings:
+    file: "evidence/research-findings.md"
+    required_sections:
+      - "## Evidence Summary"
+      - "## Verified Claims (table format)"
+      - "## Code Evidence (examples)"
+      - "## References (all sources)"
+      - "## Next Steps (link to component-spec.yaml)"
+
+  claim_table_format: |
+    | Claim ID | Capability | Status | Evidence Source | Verified By |
+    | --- | --- | --- | --- | --- |
+    | CLAIM-001 | [capability] | ✅/❌ | [source] | [Agent] |
+
+validation_criteria:
+  research_complete_when:
+    - "All research questions have answers with verified sources"
+    - "All claims map to evidence IDs"
+    - "Code examples provided for API usage"
+    - "References section complete with URLs"
+    - "No prohibited patterns present"
+    - "Ready to generate component-spec.yaml"
+
+next_steps:
+  after_research:
+    - step: "Create component-spec.yaml"
+      uses: "research-findings.md"
+      evidence_required: "All claims have evidence IDs"
+
+    - step: "Create test-spec.yaml"
+      uses: "component-spec.yaml"
+      thresholds_from: "research-findings.md verified numbers"
+
+    - step: "Validate specs"
+      check: "All test requirements map to component methods"
+      evidence_check: "All evidence IDs trace to research-findings.md"
+
+---
+# TEMPLATE USAGE GUIDE
+#
+# 1. Setup:
+#    cp research-spec.yaml.template specs/phase-[X]/[component]/research-spec.yaml
+#    Edit placeholders: [Component Name], [Phase X], etc.
+#
+# 2. Research (parallel agents):
+#    Agent 1: Answer questions from stream_1
+#    Agent 2: Answer questions from stream_2
+#    Both agents: Output to evidence/research-findings.md
+#
+# 3. Specification:
+#    Use research findings to create component-spec.yaml
+#    Use component spec to create test-spec.yaml
+#
+# 4. Validation:
+#    Check all evidence IDs trace back to research-findings.md
+#    Verify all test requirements map to component methods
+#    Confirm all thresholds are verified numbers

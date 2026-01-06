@@ -1,0 +1,85 @@
+# Component Specification: WaveOrchestrator
+# Phase 2 - Advanced Features
+
+metadata:
+  component_name: "WaveOrchestrator"
+  phase: "Phase 2 - Advanced Features"
+  version: "1.0.0"
+  status: "specification"
+  created: "2026-01-05"
+  dependencies:
+    - "ResourceManager"
+    - "PromptValidator"
+    - "ResponseParser"
+
+interface:
+  class_name: "WaveOrchestrator"
+  file_location: "rad-engineer/src/advanced/WaveOrchestrator.ts"
+
+  methods:
+    - name: "executeWave"
+      signature: "async executeWave(tasks: Task[], options?: WaveOptions): Promise<WaveResult>"
+      description: "Execute tasks in waves (batches) with resource limits"
+      input:
+        - name: "tasks"
+          type: "Task[]"
+          description: "Tasks to execute"
+        - name: "options"
+          type: "WaveOptions"
+          description: "{ waveSize?: number, continueOnError?: boolean }"
+      output:
+        type: "Promise<WaveResult>"
+      failure_modes:
+        - error: "WAVE_EXECUTION_FAILED"
+          detection: "Task execution fails"
+          recovery: "Continue or fail based on continueOnError"
+
+    - name: "calculateWaveSize"
+      signature: "async calculateWaveSize(): Promise<number>"
+      description: "Calculate optimal wave size from ResourceManager"
+      output: "number"  // maxConcurrent from ResourceManager
+
+    - name: "splitIntoWaves"
+      signature: "splitIntoWaves(tasks: Task[], waveSize: number): Task[][]"
+      description: "Split tasks into waves of waveSize each"
+      output: "Task[][]"  // Array of waves
+
+integration_points:
+  - ResourceManager: "Check canSpawnAgent() before each task"
+  - PromptValidator: "Validate prompts before task execution"
+  - ResponseParser: "Parse agent responses after execution"
+
+success_criteria:
+  - criterion: "Execute tasks in waves respecting maxConcurrent"
+    measurement_method: "bun test test/advanced/WaveOrchestrator.test.ts"
+    threshold: "Never exceeds maxConcurrent agents"
+    status: "pending"
+
+  - criterion: "Handle task failures gracefully"
+    measurement_method: "bun test test/advanced/WaveOrchestrator.test.ts --grep 'error'"
+    threshold: "continueOnError controls behavior"
+    status: "pending"
+
+types:
+  Task:
+    id: string
+    prompt: string
+    dependencies?: string[]  // Task IDs that must complete first
+
+  WaveOptions:
+    waveSize?: number  // Override default (default: from ResourceManager)
+    continueOnError?: boolean  // Continue on task failure (default: false)
+
+  WaveResult:
+    tasks: TaskResult[]
+    waves: WaveSummary[]
+
+  TaskResult:
+    id: string
+    success: boolean
+    error?: string
+
+  WaveSummary:
+    waveNumber: number
+    taskCount: number
+    successCount: number

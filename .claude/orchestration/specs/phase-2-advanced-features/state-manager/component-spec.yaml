@@ -1,0 +1,43 @@
+# Component Specification: StateManager
+# Phase 2 - Advanced Features
+
+metadata:
+  component_name: "StateManager"
+  phase: "Phase 2 - Advanced Features"
+  version: "1.0.0"
+  created: "2026-01-05"
+  dependencies:
+    - "WaveOrchestrator"
+
+interface:
+  class_name: "StateManager"
+  file_location: "rad-engineer/src/advanced/StateManager.ts"
+
+  methods:
+    - name: "saveCheckpoint"
+      signature: "async saveCheckpoint(name: string, state: WaveState): Promise<void>"
+      description: "Save wave execution state to disk"
+
+    - name: "loadCheckpoint"
+      signature: "async loadCheckpoint(name: string): Promise<WaveState | null>"
+      description: "Load wave execution state from disk"
+
+    - name: "compactState"
+      signature: "async compactState(): Promise<void>"
+      description: "Remove old checkpoints to save space"
+
+    - name: "listCheckpoints"
+      signature: "listCheckpoints(): string[]"
+      description: "List available checkpoint names"
+
+types:
+  WaveState:
+    waveNumber: number
+    completedTasks: string[]
+    failedTasks: string[]
+    timestamp: string
+
+success_criteria:
+  - criterion: "Save and load checkpoints"
+    measurement_method: "bun test test/advanced/StateManager.test.ts"
+    expected: "State persisted and restored correctly"

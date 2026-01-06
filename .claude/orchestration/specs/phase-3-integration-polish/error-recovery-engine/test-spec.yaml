@@ -1,0 +1,26 @@
+# Test Specification: ErrorRecoveryEngine
+
+metadata:
+  component: "ErrorRecoveryEngine"
+  version: "1.0.0"
+
+test_requirements:
+  overall_coverage: 80
+  unit_test_count: 10
+
+unit_tests:
+  retry:
+    test_cases:
+      - name: "Retry successful operation"
+      - name: "Retry failed operation up to maxAttempts"
+      - name: "Use exponential backoff"
+
+  recovery:
+    test_cases:
+      - name: "Save checkpoint on failure"
+      - name: "Recover from checkpoint"
+
+  circuit:
+    test_cases:
+      - name: "Open circuit after threshold"
+      - name: "Close circuit after cooldown"

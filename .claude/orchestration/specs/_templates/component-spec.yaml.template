@@ -1,0 +1,244 @@
+# Component Specification Template: [Component Name]
+# Phase [X] - [Phase Name]
+#
+# INSTRUCTIONS:
+# 1. Copy this template to: specs/phase-[X]-[phase-name]/[component-name]/component-spec.yaml
+# 2. Replace all [placeholders] with actual values
+# 3. All claims MUST have evidence IDs from research-findings.md
+# 4. All failure modes MUST have detection + recovery + timeout
+# 5. After component-spec, create test-spec.yaml
+
+metadata:
+  component_name: "[ComponentName]"
+  phase: "Phase [X] - [Phase Name]"
+  version: "1.0.0"
+  status: "specification"
+  created: "[YYYY-MM-DD]"
+  evidence_sources:
+    - "evidence/research-findings.md#[section]"
+    - "docs/planning/[plan-file].md#[section]"
+
+interface:
+  class_name: "[ClassName]"
+  language: "[TypeScript | Python]"
+  runtime: "[Node.js | Python]"
+  dependencies:
+    - name: "[dependency-name]"
+      version: "[version]"
+      evidence: "evidence/research-findings.md#[claim-id]"
+
+  description: |
+    [One paragraph description of what this component does.
+    Must reference evidence IDs for any capability claims.]
+
+methods:
+  [method_name_1]:
+    signature: "[async methodName](input: InputType): Promise<OutputType>"
+    description: "[What this method does]"
+    inputs:
+      [input_name]:
+        type: "[Type]"
+        description: "[Description]"
+        required: [true | false]
+        default: "[default value]"
+        evidence: "evidence/research-findings.md#[claim-id]"
+    outputs:
+      success:
+        type: "[OutputType]"
+        properties:
+          [property_name]: "[Type]"
+    failure_modes:
+      - error: "[ERROR_CODE_1]"
+        description: "[What went wrong]"
+        detection: "[How to detect this error]"
+        recovery: "[How to recover from this error]"
+        timeout: "[timeout in seconds or N/A]"
+      - error: "[ERROR_CODE_2]"
+        description: "[What went wrong]"
+        detection: "[How to detect this error]"
+        recovery: "[How to recover from this error]"
+        timeout: "[timeout in seconds or N/A]"
+    evidence_requirements:
+      - id: "EVIDENCE-XXX"
+        claim: "[Specific verifiable claim]"
+        source: "evidence/research-findings.md#[claim-id]"
+        verification: "[How to verify this claim works]"
+
+  [method_name_2]:
+    # ... repeat structure for each method
+
+integration_points:
+  [integration_name]:
+    type: "[script | library | api | service]"
+    path: "[path or URL]"
+    description: "[What this integration does]"
+    integration_method: "[How integration works]"
+    evidence: "evidence/research-findings.md#[claim-id]"
+    capabilities:
+      - check: "[what this integration checks or does]"
+        threshold: "[threshold value]"
+        evidence: "evidence/research-findings.md#[claim-id]"
+        action: "[what happens when threshold exceeded]"
+    integration_pattern:
+      type: "[pre-flight | continuous | post-execution]"
+      when: "[when this integration runs]"
+      implementation: |
+        ```[typescript | python]
+        // Implementation code example
+        ```
+      fallback: "[what to do if integration unavailable]"
+
+evidence_requirements:
+  mandatory:
+    - id: "EVIDENCE-XXX"
+      claim: "[Specific verifiable claim]"
+      source: "evidence/research-findings.md#[section]"
+      verification_method: "[How to verify this claim]"
+      required_for: "[method name or feature]"
+    # ... repeat for all evidence requirements
+
+  verification_protocol:
+    standard: "All evidence must be verified against primary sources"
+    format: "Each evidence ID maps to claim → source → verification method → required_for"
+    tracking: "[path to verification log file]"
+    frequency: "[when to verify evidence]"
+
+success_criteria:
+  phase_[x]_gate:
+    criteria:
+      - criterion: "[Measurable success criterion 1]"
+        measurement_method: |
+          ```bash
+          # Verification command(s)
+          ```
+        threshold: "[Specific pass/fail threshold]"
+        evidence: "[what log/output proves this works]"
+        status: "pending"
+        priority: "critical | high | medium"
+
+      - criterion: "[Measurable success criterion 2]"
+        measurement_method: |
+          ```bash
+          # Verification command(s)
+          ```
+        threshold: "[Specific pass/fail threshold]"
+        evidence: "[what log/output proves this works]"
+        status: "pending"
+        priority: "critical | high | medium"
+
+      # ... repeat for all criteria (3-6 total)
+
+    aggregate_success:
+      description: "Phase [X] gate decision"
+      decision_logic:
+        - "IF [N] critical criteria pass → GO to next phase"
+        - "IF [N-1] critical criteria pass + documented blocker → CONDITIONAL GO"
+        - "IF <[N-1] critical criteria pass → NO-GO, reassess approach"
+      evidence_required: "All criteria must have verification logs linked"
+      human_approval: "Required for GO decision"
+      status: "pending"
+
+implementation_notes:
+  constraints:
+    - constraint: "[Use actual X, not simulation]"
+      rationale: "[Why this constraint exists]"
+      evidence: "evidence/research-findings.md#[claim-id]"
+      enforcement: "[How to enforce this constraint]"
+
+    - constraint: "[Maximum value limit]"
+      rationale: "[Why this limit exists]"
+      evidence: "evidence/research-findings.md#[claim-id]"
+      enforcement: "[How to enforce this limit]"
+
+    # ... repeat for all constraints
+
+  prohibited:
+    - prohibition: "[What NOT to do]"
+      rationale: "[Why this is prohibited]"
+      detection: "[How to detect violation]"
+      consequence: "[What happens if violated]"
+
+    # ... repeat for all prohibitions
+
+  development_guidance:
+    setup_steps:
+      - step: "[Setup step 1]"
+        command: "[command to run]"
+        verification: "[how to verify step succeeded]"
+
+      # ... repeat for all setup steps
+
+    testing_strategy:
+      unit_tests:
+        - test: "[Test name]"
+          file: "[test file path]"
+          coverage: "[what this test covers]"
+          mocks: "[what can be mocked]"
+
+        # ... repeat for unit tests
+
+      integration_tests:
+        - test: "[Test name]"
+          file: "[test file path]"
+          scenario: "[what this test does]"
+          real_dependencies: "[Required (no mocks) | Allowed]"
+          verification: "[pass condition]"
+
+        # ... repeat for integration tests
+
+    risk_mitigation:
+      risk_1:
+        name: "[Risk name]"
+        probability: "[high | medium | low]"
+        impact: "[high | medium | low]"
+        mitigation:
+          - "[Mitigation strategy 1]"
+          - "[Mitigation strategy 2]"
+
+      # ... repeat for all risks
+
+    deliverables:
+      week_[n]:
+        - "[Deliverable 1]"
+        - "[Deliverable 2]"
+
+      # ... repeat for each week
+
+---
+# TEMPLATE USAGE GUIDE
+#
+# 1. Setup:
+#    cp component-spec.yaml.template specs/phase-[X]/[component]/component-spec.yaml
+#    Edit placeholders: [Component Name], [Phase X], etc.
+#
+# 2. Required Sections:
+#    ✓ metadata (component info, evidence sources)
+#    ✓ interface (class, methods, dependencies)
+#    ✓ methods (all methods with inputs, outputs, failure modes, evidence)
+#    ✓ integration_points (existing infrastructure used)
+#    ✓ evidence_requirements (all claims trace to research)
+#    ✓ success_criteria (phase gate criteria, measurable)
+#    ✓ implementation_notes (constraints, prohibited, guidance)
+#
+# 3. Evidence Requirements:
+#    - Every claim must have evidence ID from research-findings.md
+#    - Evidence format: EVIDENCE-XXX → claim → source → verification → required_for
+#    - No unverified claims allowed
+#
+# 4. Failure Mode Requirements:
+#    - Every method must have failure_modes section
+#    - Each failure mode: error + description + detection + recovery + timeout
+#    - Timeout must be specific (seconds or N/A)
+#
+# 5. Success Criteria Requirements:
+#    - 3-6 criteria per phase gate
+#    - Each criterion must be measurable (PASS/FAIL)
+#    - Must include verification command(s)
+#    - Must specify threshold (what counts as pass)
+#    - Must specify evidence (what log/output proves it works)
+#    - Priority: critical, high, or medium
+#
+# 6. After Component Spec:
+#    Create test-spec.yaml using this component spec as input
+#    Test requirements map to component methods
+#    Test success criteria match component success criteria

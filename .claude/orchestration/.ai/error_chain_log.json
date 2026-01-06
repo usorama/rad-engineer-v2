@@ -1,0 +1,77 @@
+{
+  "recent_errors": [
+    {
+      "type": "undefined_references",
+      "matched_text": "null",
+      "position": [
+        67,
+        71
+      ],
+      "timestamp": "2026-01-04T20:26:29.908143"
+    },
+    {
+      "type": "undefined_references",
+      "matched_text": "null",
+      "position": [
+        89,
+        93
+      ],
+      "timestamp": "2026-01-04T20:26:35.382951"
+    },
+    {
+      "type": "undefined_references",
+      "matched_text": "null",
+      "position": [
+        81,
+        85
+      ],
+      "timestamp": "2026-01-04T20:55:47.212292"
+    },
+    {
+      "type": "undefined_references",
+      "matched_text": "null",
+      "position": [
+        169,
+        173
+      ],
+      "timestamp": "2026-01-04T20:56:20.503529"
+    },
+    {
+      "type": "undefined_references",
+      "matched_text": "null",
+      "position": [
+        151,
+        155
+      ],
+      "timestamp": "2026-01-04T20:56:28.928980"
+    },
+    {
+      "type": "undefined_references",
+      "matched_text": "null",
+      "position": [
+        154,
+        158
+      ],
+      "timestamp": "2026-01-04T20:56:37.101702"
+    },
+    {
+      "type": "error_messages",
+      "matched_text": "error",
+      "position": [
+        253,
+        258
+      ],
+      "timestamp": "2026-01-04T21:33:32.353055"
+    },
+    {
+      "type": "error_messages",
+      "matched_text": "error",
+      "position": [
+        228,
+        233
+      ],
+      "timestamp": "2026-01-04T21:33:37.721604"
+    }
+  ],
+  "last_updated": "2026-01-04T22:06:42.914668"
+}

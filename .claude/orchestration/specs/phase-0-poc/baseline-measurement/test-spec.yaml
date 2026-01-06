@@ -1,0 +1,987 @@
+# Test Specification: Baseline Measurement
+# Phase 0 - Prerequisites & Foundation
+#
+# INSTRUCTIONS:
+# 1. All test requirements map to component-spec.yaml methods
+# 2. All thresholds are verified numbers from research-findings.md
+# 3. Coverage requirement: ≥80% overall
+
+metadata:
+  component: "BaselineMeasurement"
+  version: "1.0.0"
+  created: "2026-01-05"
+  evidence_sources:
+    - "specs/phase-0-poc/baseline-measurement/evidence/research-findings.md"
+    - "specs/phase-0-poc/baseline-measurement/component-spec.yaml"
+  verified_thresholds:
+    token_warning: 150000        # from CLAIM-005
+    token_critical: 175000       # from CLAIM-005
+    token_maximum: 190000        # from CLAIM-005
+    timeout_quick: 5000          # from Agent-2
+    timeout_normal: 30000        # from Agent-2
+    timeout_extended: 120000     # from Agent-2
+    timeout_maximum: 300000      # from Agent-2
+    success_minimum: 0.70        # from CLAIM-007
+    success_target: 0.90         # from CLAIM-007
+    success_excellent: 0.95      # from CLAIM-007
+    overhead_max_ms: 1           # from Agent-2
+
+test_requirements:
+  overall_coverage: 80
+  unit_test_count: 15
+  integration_test_count: 4
+  e2e_test_count: 1
+
+unit_tests:
+  recordMetric:
+    description: "Test recording individual metric entries with validation and buffering"
+    file: "test/baseline/recordMetric.test.ts"
+    test_cases:
+      - name: "Record valid metric with all fields"
+        input:
+          data:
+            timestamp: 1704451200000
+            duration: 1250
+            tokenUsage: { input: 1000, output: 2000 }
+            outcome: "complete"
+            taskType: "sdk-invoke"
+        expected:
+          buffered: true
+          fileAppended: true
+        assertions:
+          - "Metric added to buffer"
+          - "Metric written to file"
+          - "File contains valid JSON line"
+
+      - name: "Record metric with minimal required fields"
+        input:
+          data:
+            timestamp: 1704451200000
+            duration: 500
+            outcome: "complete"
+            taskType: "query"
+        expected:
+          buffered: true
+        assertions:
+          - "Metric accepted with defaults"
+          - "Token usage defaults to 0"
+
+      - name: "Reject metric with missing required fields"
+        input:
+          data:
+            timestamp: 1704451200000
+            outcome: "complete"
+        expected:
+          buffered: false
+          errorLogged: true
+        assertions:
+          - "Metric not added to buffer"
+          - "Error logged with INVALID_METRIC_DATA"
+
+      - name: "Handle file write failure"
+        input:
+          data:
+            timestamp: 1704451200000
+            duration: 1000
+            outcome: "complete"
+            taskType: "test"
+          injectError: "FILE_WRITE_FAILED"
+        expected:
+          buffered: true
+          retried: true
+        assertions:
+          - "Metric kept in buffer"
+          - "Retry scheduled"
+
+      - name: "Auto-flush buffer at 100 entries"
+        input:
+          data: [100 metrics]
+        expected:
+          flushed: true
+          bufferSize: 0
+        assertions:
+          - "Buffer flushed after 100th entry"
+          - "All 100 metrics in file"
+
+    coverage_requirements:
+      branches: 85
+      functions: 90
+      lines: 90
+
+  getMetrics:
+    description: "Test metric retrieval with filtering and statistical analysis"
+    file: "test/baseline/getMetrics.test.ts"
+    test_cases:
+      - name: "Get all metrics without filter"
+        input:
+          filter: {}
+        expected:
+          count: 50
+          tokenStats:
+            average: 3000
+            p50: 2500
+            p95: 8000
+            p99: 15000
+        assertions:
+          - "Returns all 50 metrics"
+          - "Percentiles calculated correctly"
+
+      - name: "Filter metrics by time range"
+        input:
+          filter:
+            startTime: 1704451200000
+            endTime: 1704454800000
+        expected:
+          count: 25
+        assertions:
+          - "Only metrics in time range returned"
+          - "Timestamp boundaries respected"
+
+      - name: "Filter metrics by task type"
+        input:
+          filter:
+            taskType: "sdk-invoke"
+        expected:
+          count: 30
+        assertions:
+          - "Only matching task types returned"
+
+      - name: "Calculate success rate correctly"
+        input:
+          data: [35 complete, 10 failed, 5 partial]
+        expected:
+          successRate: 0.70
+        assertions:
+          - "Success rate = complete / total"
+          - "Partial counted in total, not success"
+
+      - name: "Detect increasing trend"
+        input:
+          data: [50 metrics with increasing values]
+        expected:
+          trend: "increasing"
+        assertions:
+          - "Recent average > 110% of older average"
+
+      - name: "Handle corrupted JSON lines"
+        input:
+          fileContents: [valid, valid, "invalid json", valid]
+        expected:
+          count: 3
+          warnings: 1
+        assertions:
+          - "Invalid line skipped"
+          - "Warning logged for skipped line"
+
+      - name: "Return empty summary for insufficient data"
+        input:
+          filter:
+            taskType: "nonexistent"
+        expected:
+          count: 0
+          warning: "Insufficient data"
+        assertions:
+          - "Empty summary returned"
+          - "Warning about low sample size"
+
+    coverage_requirements:
+      branches: 85
+      functions: 90
+      lines: 85
+
+  exportMetrics:
+    description: "Test metrics export in JSON and CSV formats"
+    file: "test/baseline/exportMetrics.test.ts"
+    test_cases:
+      - name: "Export to JSON format"
+        input:
+          format: "json"
+        expected:
+          output: "valid JSON array"
+        assertions:
+          - "Output is valid JSON"
+          - "Contains all metrics"
+          - "Can be parsed with JSON.parse()"
+
+      - name: "Export to CSV format"
+        input:
+          format: "csv"
+        expected:
+          output: "valid CSV with headers"
+        assertions:
+          - "First line contains headers"
+          - "Subsequent lines contain data"
+          - "Fields properly escaped"
+
+      - name: "Reject unsupported format"
+        input:
+          format: "xml"
+        expected:
+          error: "UNSUPPORTED_FORMAT"
+        assertions:
+          - "Error thrown with supported formats list"
+
+      - name: "Handle empty metrics file"
+        input:
+          format: "json"
+          fileContents: ""
+        expected:
+          output: "[]"
+        assertions:
+          - "Empty array returned"
+
+      - name: "Fallback to raw JSONL on serialization failure"
+        input:
+          format: "json"
+          injectError: "SERIALIZATION_FAILED"
+        expected:
+          output: "raw file contents"
+        assertions:
+          - "Returns JSONL file contents as fallback"
+
+    coverage_requirements:
+      branches: 80
+      functions: 85
+      lines: 85
+
+  generateBaseline:
+    description: "Test baseline report generation with thresholds"
+    file: "test/baseline/generateBaseline.test.ts"
+    test_cases:
+      - name: "Generate report with 50 metrics"
+        input:
+          data: [50 diverse metrics]
+        expected:
+          summary:
+            count: 50
+            successRate: 0.90
+          thresholds:
+            token:
+              warning: 150000
+              critical: 175000
+              maximum: 190000
+            successRate:
+              minimum: 0.70
+              target: 0.90
+              excellent: 0.95
+        assertions:
+          - "Report contains summary section"
+          - "All thresholds defined"
+          - "Recommendations generated"
+
+      - name: "Warn on insufficient data"
+        input:
+          data: [20 metrics]
+        expected:
+          report:
+            warning: "Low sample size"
+        assertions:
+          - "Report generated with warning"
+          - "Warning specifies sample size < 50"
+
+      - name: "Compare metrics against token thresholds"
+        input:
+          data: [metrics with 160K tokens]
+        expected:
+          thresholds:
+            token:
+              status: "warning"
+        assertions:
+          - "Token usage exceeds warning threshold"
+          - "Status set to 'warning'"
+
+      - name: "Compare success rate against thresholds"
+        input:
+          data: [metrics with 92% success]
+        expected:
+          thresholds:
+            successRate:
+              status: "target"
+        assertions:
+          - "Success rate meets target threshold"
+          - "Status set to 'target'"
+
+      - name: "Generate recommendations for improvement"
+        input:
+          data: [metrics with high failure rate]
+        expected:
+          recommendations: ["string array"]
+        assertions:
+          - "Recommendations array not empty"
+          - "Recommendations address issues"
+
+    coverage_requirements:
+      branches: 85
+      functions: 90
+      lines: 90
+
+  flush:
+    description: "Test buffer flush behavior"
+    file: "test/baseline/flush.test.ts"
+    test_cases:
+      - name: "Flush non-empty buffer"
+        input:
+          bufferSize: 50
+        expected:
+          flushed: true
+          bufferSize: 0
+        assertions:
+          - "All metrics written to file"
+          - "Buffer cleared"
+
+      - name: "Flush empty buffer (no-op)"
+        input:
+          bufferSize: 0
+        expected:
+          flushed: false
+        assertions:
+          - "No file write attempted"
+          - "No error thrown"
+
+      - name: "Handle flush failure"
+        input:
+          injectError: "FLUSH_FAILED"
+        expected:
+          buffered: true
+          errorLogged: true
+        assertions:
+          - "Metrics kept in buffer"
+          - "Error logged"
+          - "Retry possible"
+
+      - name: "Flush on shutdown (signal handler)"
+        input:
+          signal: "SIGINT"
+        expected:
+          flushed: true
+        assertions:
+          - "Buffer flushed before exit"
+          - "Process exits gracefully"
+
+    coverage_requirements:
+      branches: 85
+      functions: 90
+      lines: 90
+
+integration_tests:
+  sdk_integration_wrapper:
+    description: "Test SDK call wrapping for metric extraction"
+    file: "test/baseline/integration/sdk-integration.test.ts"
+    test_cases:
+      - name: "Wrap successful SDK call and record metric"
+        setup:
+          sdkResponse:
+            content: "Test response"
+            usage:
+              input_tokens: 1500
+              output_tokens: 2500
+        steps:
+          - "Call measuredSDKCall()"
+          - "Wait for completion"
+          - "Check metric recorded"
+        expected:
+          metric:
+            outcome: "complete"
+            tokenUsage:
+              input: 1500
+              output: 2500
+            duration: "> 0"
+        assertions:
+          - "Metric recorded with correct tokens"
+          - "Duration measured"
+          - "Outcome set to 'complete'"
+
+      - name: "Wrap failed SDK call and record error"
+        setup:
+          sdkError: "APIError"
+        steps:
+          - "Call measuredSDKCall() with failing request"
+          - "Wait for error"
+          - "Check metric recorded"
+        expected:
+          metric:
+            outcome: "failed"
+            errorType: "APIError"
+        assertions:
+          - "Metric recorded despite error"
+          - "Error type captured"
+          - "Duration measured"
+
+      - name: "Metric recording failure doesn't fail SDK call"
+        setup:
+          injectRecordingError: true
+        steps:
+          - "Call measuredSDKCall()"
+          - "SDK call succeeds"
+          - "Metric recording fails"
+        expected:
+          sdkResult: "success"
+          metricRecorded: false
+        assertions:
+          - "SDK call returns result"
+          - "Warning logged for metric failure"
+
+    coverage_requirements:
+      branches: 85
+      functions: 85
+      lines: 85
+
+  file_system_persistence:
+    description: "Test file system persistence and rotation"
+    file: "test/baseline/integration/persistence.test.ts"
+    test_cases:
+      - name: "Create metrics directory on init"
+        setup:
+          cleanState: true
+        steps:
+          - "Initialize BaselineMeasurement"
+          - "Check directory created"
+        expected:
+          directoryExists: true
+        assertions:
+          - "rad-engineer/metrics/ directory exists"
+          - "Permissions allow read/write"
+
+      - name: "Append metric to JSONL file"
+        setup:
+          initialized: true
+          metric:
+            timestamp: 1704451200000
+            duration: 1000
+            outcome: "complete"
+        steps:
+          - "Record metric"
+          - "Read file contents"
+        expected:
+          fileContents: "JSON string + newline"
+        assertions:
+          - "File contains metric as JSON line"
+          - "Line ends with newline"
+          - "Can parse each line independently"
+
+      - name: "Rotate file when size exceeds 10MB"
+        setup:
+          fileSize: 10485760  # 10MB
+        steps:
+          - "Record metric"
+          - "Check file rotation"
+        expected:
+          oldFile: "renamed with timestamp"
+          newFile: "created fresh"
+        assertions:
+          - "Old file has timestamp suffix"
+          - "New file created"
+          - "No data lost"
+
+      - name: "Recover metrics after crash"
+        setup:
+          bufferState: "has data"
+          crash: true
+        steps:
+          - "Simulate crash with buffer data"
+          - "Restart BaselineMeasurement"
+          - "Check for recovery warning"
+        expected:
+          warning: "Buffer had data at startup"
+        assertions:
+          - "Warning logged about potential data loss"
+          - "System continues normally"
+
+    coverage_requirements:
+      branches: 85
+      functions: 85
+      lines: 85
+
+  statistics_and_trends:
+    description: "Test statistical analysis and trend detection"
+    file: "test/baseline/integration/statistics.test.ts"
+    test_cases:
+      - name: "Calculate percentiles from real data"
+        setup:
+          metrics: [100 diverse entries]
+        steps:
+          - "Call getMetrics()"
+          - "Extract statistics"
+        expected:
+          percentiles:
+            p50: "correct median"
+            p95: "correct 95th percentile"
+            p99: "correct 99th percentile"
+        assertions:
+          - "p50 = 50th percentile"
+          - "p95 = 95th percentile"
+          - "p99 = 99th percentile"
+
+      - name: "Detect stable trend"
+        setup:
+          metrics: [50 values with < 10% variance]
+        steps:
+          - "Call getMetrics()"
+          - "Check trend"
+        expected:
+          trend: "stable"
+        assertions:
+          - "Recent avg within 90-110% of older avg"
+
+      - name: "Detect decreasing trend"
+        setup:
+          metrics: [50 values decreasing by 20%]
+        steps:
+          - "Call getMetrics()"
+          - "Check trend"
+        expected:
+          trend: "decreasing"
+        assertions:
+          - "Recent avg < 90% of older avg"
+
+      - name: "Handle small dataset"
+        setup:
+          metrics: [5 entries]
+        steps:
+          - "Call getMetrics()"
+          - "Check summary"
+        expected:
+          warning: "Insufficient data"
+          percentiles:
+            p50: "calculated"
+            p95: "N/A"
+        assertions:
+          - "Warning about sample size"
+          - "Some percentiles unavailable"
+
+    coverage_requirements:
+      branches: 80
+      functions: 85
+      lines: 85
+
+  baseline_report_generation:
+    description: "Test end-to-end baseline report generation"
+    file: "test/baseline/integration/baseline-report.test.ts"
+    test_cases:
+      - name: "Generate complete baseline report"
+        setup:
+          metrics: [100 diverse entries]
+        steps:
+          - "Call generateBaseline()"
+          - "Write report to file"
+          - "Read and validate report"
+        expected:
+          report:
+            summary: {}
+            thresholds: {}
+            recommendations: []
+            generatedAt: "ISO 8601 date"
+        assertions:
+          - "Report file created"
+          - "Contains all required sections"
+          - "Valid JSON format"
+
+      - name: "Report includes threshold comparisons"
+        setup:
+          metrics: [mixed token usage]
+        steps:
+          - "Generate baseline"
+          - "Check threshold section"
+        expected:
+          thresholds:
+            token:
+              current: 160000
+              warning: 150000
+              status: "warning"
+        assertions:
+          - "Current values compared to thresholds"
+          - "Status indicates threshold breach"
+
+      - name: "Report includes actionable recommendations"
+        setup:
+          metrics: [high failure rate]
+        steps:
+          - "Generate baseline"
+          - "Check recommendations"
+        expected:
+          recommendations: ["string array"]
+        assertions:
+          - "Recommendations address issues"
+          - "Specific actions suggested"
+
+    coverage_requirements:
+      branches: 85
+      functions: 90
+      lines: 90
+
+chaos_tests:
+  description: "Test system resilience under stress conditions"
+  file: "test/baseline/chaos/chaos.test.ts"
+
+  test_cases:
+    - name: "File system write failure during flush"
+      setup:
+        injectFailure: "ENOSPC"  # No space left on device
+        bufferSize: 100
+      chaos:
+        type: "resource_spike"
+        inject: "Disk full error on write"
+      expected:
+        buffer: "retained in memory"
+        errorLogged: true
+        retryScheduled: true
+      assertions:
+        - "Buffer not cleared on failure"
+        - "Error logged with details"
+        - "Retry attempted on next flush"
+
+    - name: "Concurrent metric recording (race condition)"
+      setup:
+        concurrentWriters: 10
+        metricsPerWriter: 100
+      chaos:
+        type: "resource_spike"
+        inject: "Simultaneous file writes"
+      expected:
+        fileIntegrity: "maintained"
+        metricsRecorded: 1000
+      assertions:
+        - "All metrics recorded"
+        - "No corrupted JSON lines"
+        - "No data loss"
+
+    - name: "Buffer overflow during rapid recording"
+      setup:
+        recordingRate: "1000 metrics/second"
+        bufferSize: 100
+      chaos:
+        type: "rate_limit"
+        inject: "Rapid metric recording exceeds buffer"
+      expected:
+        autoFlushTriggered: true
+        bufferManaged: true
+      assertions:
+        - "Auto-flush prevents overflow"
+        - "No metrics lost"
+        - "System remains responsive"
+
+    - name: "Corrupted metrics file recovery"
+      setup:
+        fileContents: [valid, "corrupted", valid, "corrupted", valid]
+      chaos:
+        type: "context_overflow"
+        inject: "Corrupted JSON lines in file"
+      expected:
+        validMetrics: 3
+        skippedMetrics: 2
+        warnings: 2
+      assertions:
+        - "Valid metrics loaded"
+        - "Corrupted lines skipped"
+        - "Warnings logged for skipped lines"
+
+    - name: "Memory pressure during metric processing"
+      setup:
+        metricCount: 10000
+        fileSize: "5MB"
+      chaos:
+        type: "resource_spike"
+        inject: "Large dataset processing"
+      expected:
+        processingTime: "< 5 seconds"
+        memoryUsage: "stable"
+      assertions:
+        - "All metrics processed"
+        - "No memory leaks"
+        - "Processing completes"
+
+    - name: "Signal interruption during flush"
+      setup:
+        signal: "SIGTERM"
+        flushing: true
+      chaos:
+        type: "timeout"
+        inject: "Terminate during active flush"
+      expected:
+        gracefulShutdown: true
+        dataLoss: "minimal"
+      assertions:
+        - "Flush completes before exit"
+        - "Buffer cleared"
+        - "No partial writes in file"
+
+coverage_requirements:
+  overall:
+    minimum: 80
+    target: 85
+
+  by_component:
+    recordMetric:
+      statements: 85
+      branches: 85
+      functions: 90
+      lines: 90
+
+    getMetrics:
+      statements: 85
+      branches: 85
+      functions: 90
+      lines: 85
+
+    exportMetrics:
+      statements: 80
+      branches: 80
+      functions: 85
+      lines: 85
+
+    generateBaseline:
+      statements: 85
+      branches: 85
+      functions: 90
+      lines: 90
+
+    flush:
+      statements: 85
+      branches: 85
+      functions: 90
+      lines: 90
+
+  critical_paths:
+    metric_recording_path: 95
+    persistence_path: 95
+    statistics_calculation_path: 90
+
+verification_commands:
+  pre_implementation:
+    - description: "Verify rad-engineer directory exists"
+      command: "ls -la rad-engineer/"
+      expected_output: "Directory listing showing src/ and test/ folders"
+
+    - description: "Verify Node.js version compatible"
+      command: "node --version"
+      expected_output: "v20.x.x or higher"
+
+    - description: "Verify dependencies installed"
+      command: "cd rad-engineer && bun pm ls | grep anthropic"
+      expected_output: "@anthropic-ai/sdk listed"
+
+  unit_tests:
+    - description: "Run all unit tests with coverage"
+      command: "cd rad-engineer && bun test test/baseline/*.test.ts --coverage"
+      expected_output: "All tests pass, coverage >= 80%"
+
+    - description: "Run token tracking tests"
+      command: "cd rad-engineer && bun test test/baseline/recordMetric.test.ts"
+      expected_output: "10/10 tests pass"
+
+    - description: "Run statistics tests"
+      command: "cd rad-engineer && bun test test/baseline/getMetrics.test.ts"
+      expected_output: "7/7 tests pass"
+
+    - description: "Run export tests"
+      command: "cd rad-engineer && bun test test/baseline/exportMetrics.test.ts"
+      expected_output: "5/5 tests pass"
+
+    - description: "Run baseline generation tests"
+      command: "cd rad-engineer && bun test test/baseline/generateBaseline.test.ts"
+      expected_output: "5/5 tests pass"
+
+    - description: "Run flush tests"
+      command: "cd rad-engineer && bun test test/baseline/flush.test.ts"
+      expected_output: "4/4 tests pass"
+
+  integration_tests:
+    - description: "Run SDK integration tests"
+      command: "cd rad-engineer && bun test test/baseline/integration/sdk-integration.test.ts"
+      expected_output: "3/3 tests pass"
+
+    - description: "Run persistence tests"
+      command: "cd rad-engineer && bun test test/baseline/integration/persistence.test.ts"
+      expected_output: "4/4 tests pass"
+
+    - description: "Run statistics tests"
+      command: "cd rad-engineer && bun test test/baseline/integration/statistics.test.ts"
+      expected_output: "4/4 tests pass"
+
+    - description: "Run baseline report tests"
+      command: "cd rad-engineer && bun test test/baseline/integration/baseline-report.test.ts"
+      expected_output: "3/3 tests pass"
+
+  chaos_tests:
+    - description: "Run chaos engineering tests"
+      command: "cd rad-engineer && bun test test/baseline/chaos/chaos.test.ts"
+      expected_output: "6/6 tests pass, system recovers"
+
+  evidence_collection:
+    - description: "Collect metric during test runs"
+      command: "cd rad-engineer && bun test --reporter=json > test-results.json"
+      frequency: "Every test run"
+      output_file: "test-results.json"
+
+    - description: "Generate coverage report"
+      command: "cd rad-engineer && bun test --coverage --coverage-reporter=json"
+      frequency: "Every test run"
+      output_file: "coverage/coverage-final.json"
+
+  coverage_verification:
+    - description: "Verify overall coverage"
+      command: "cd rad-engineer && bun test --coverage | grep 'Coverage'"
+      expected_output: "All metrics >= 80%"
+
+    - description: "Verify critical path coverage"
+      command: "cd rad-engineer && cat coverage/coverage-summary.json | jq '.total.lines.pct'"
+      expected_output: "Value >= 80"
+
+success_criteria:
+  phase_0_week_1:
+    - description: "Token usage tracking functional"
+      verification: "cd rad-engineer && bun test test/baseline/recordMetric.test.ts"
+      expected: "10/10 tests pass, coverage >= 80%"
+
+    - description: "Metrics persistence to JSONL file"
+      verification: "cd rad-engineer && bun test test/baseline/integration/persistence.test.ts && ls -lh metrics/baseline.jsonl"
+      expected: "4/4 tests pass, file exists with >= 10 entries"
+
+    - description: "Percentile calculations accurate"
+      verification: "cd rad-engineer && bun test test/baseline/getMetrics.test.ts"
+      expected: "7/7 tests pass, p50/p95/p99 correct"
+
+  phase_0_week_2:
+    - description: "Baseline report generation"
+      verification: "cd rad-engineer && bun test test/baseline/generateBaseline.test.ts && bun run src/baseline/generate-baseline.ts && cat baseline-report.json"
+      expected: "5/5 tests pass, report contains summary/thresholds/recommendations"
+
+    - description: "Performance overhead < 1ms per metric"
+      verification: "cd rad-engineer && bun test test/baseline/performance.test.ts"
+      expected: "Average metric recording time < 1ms"
+
+    - description: "Success rate tracking functional"
+      verification: "cd rad-engineer && bun test test/baseline/integration/statistics.test.ts"
+      expected: "4/4 tests pass, success rate calculated correctly"
+
+  evidence_requirements:
+    - description: "Collect metric values during tests"
+      format: "JSON"
+      fields:
+        - timestamp: number
+        - duration: number
+        - tokenUsage: { input: number, output: number }
+        - outcome: "complete | partial | failed"
+
+    - description: "Collect threshold comparison results"
+      format: "JSON"
+      fields:
+        - threshold: string
+        - currentValue: number
+        - thresholdValue: number
+        - status: "pass | warning | critical"
+
+    - description: "Collect performance measurements"
+      format: "JSON"
+      fields:
+        - operation: string
+        - duration: number
+        - memoryUsage: number
+
+  phase_gate_criteria:
+    go:
+      - "Token usage tracking functional: 10/10 tests pass, coverage >= 80%"
+      - "Metrics persistence to JSONL file: 4/4 tests pass, file exists with valid entries"
+      - "Percentile calculations accurate: 7/7 tests pass"
+      - "Baseline report generation: 5/5 tests pass, report complete"
+      - "Performance overhead < 1ms per metric: Performance test passes"
+      - "Success rate tracking functional: 4/4 tests pass"
+
+    no_go:
+      - "Any critical test fails (token tracking, persistence, percentiles)"
+      - "Coverage < 80% on any component"
+      - "Performance overhead exceeds 1ms threshold"
+      - "Baseline report incomplete or missing sections"
+
+evidence_collection_frequency:
+  during_tests:
+    token_usage: "Every SDK call in tests"
+    performance_timing: "Every metric recording operation"
+    file_operations: "Every write/read operation"
+
+  post_tests:
+    aggregate_metrics: "After each test suite completes"
+    generate_report: "After all tests pass"
+
+test_data_requirements:
+  fixtures:
+    - name: "sample-metrics.jsonl"
+      source: "test/fixtures/sample-metrics.jsonl"
+      required: true
+      structure:
+        - timestamp: number
+        - duration: number
+        - tokenUsage: { input: number, output: number }
+        - outcome: "complete | partial | failed"
+        - taskType: string
+
+    - name: "corrupted-metrics.jsonl"
+      source: "test/fixtures/corrupted-metrics.jsonl"
+      required: true
+      structure:
+        - valid lines: JSON objects
+        - corrupted lines: invalid JSON
+
+    - name: "large-metrics.jsonl"
+      source: "test/fixtures/large-metrics.jsonl"
+      required: false
+      structure:
+        - 1000+ metric entries
+        - diverse values
+
+  test_environments:
+    local:
+      description: "Local development environment"
+      requirements:
+        - "Node.js v20+"
+        - "Bun runtime"
+        - "rad-engineer/ directory"
+        - "Write permissions for metrics/"
+
+    ci:
+      description: "Continuous integration environment"
+      requirements:
+        - "All dependencies installed via bun install"
+        - "Metrics directory created on init"
+        - "No external API dependencies for unit tests"
+
+documentation_requirements:
+  test_documentation:
+    - "test/baseline/README.md - Test suite overview"
+    - "JSDoc comments for complex test helpers"
+    - "Assertion explanations in test files"
+
+  evidence_documentation:
+    - "test/baseline/EVIDENCE.md - Evidence format documentation"
+    - "test/baseline/SCHEMA.md - Metric schema documentation"
+    - "metrics/README.md - Metrics file format documentation"
+
+  failure_documentation:
+    - "test/baseline/FAILURES.md - Failure categorization"
+    - "test/baseline/chaos/README.md - Chaos test scenarios"
+
+continuous_integration:
+  test_triggers:
+    - "On every push to main branch"
+    - "On every pull request"
+    - "On tag creation (v*)"
+
+  required_checks:
+    - "Unit tests pass (>= 80% coverage)"
+    - "Integration tests pass"
+    - "TypeScript typecheck passes (0 errors)"
+    - "ESLint passes (no warnings)"
+
+  blocking_conditions:
+    - "Unit test failures"
+    - "Coverage < 80%"
+    - "TypeScript errors"
+    - "Integration test failures"
+
+---
+# TEST SPECIFICATION COMPLETE
+#
+# All test requirements map to component-spec.yaml methods
+# All thresholds verified in research-findings.md
+# Coverage requirements: >= 80% overall, 95% critical paths
+# Ready for validation

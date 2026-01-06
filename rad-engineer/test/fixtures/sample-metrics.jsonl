@@ -1,0 +1,10 @@
+{"timestamp":1704451200000,"duration":1000,"tokenUsage":{"input":1000,"output":2000},"outcome":"complete","taskType":"sdk-invoke"}
+{"timestamp":1704451201000,"duration":1200,"tokenUsage":{"input":1200,"output":2200},"outcome":"complete","taskType":"sdk-invoke"}
+{"timestamp":1704451202000,"duration":800,"tokenUsage":{"input":800,"output":1500},"outcome":"complete","taskType":"query"}
+{"timestamp":1704451203000,"duration":1500,"tokenUsage":{"input":1500,"output":3000},"outcome":"partial","taskType":"sdk-invoke"}
+{"timestamp":1704451204000,"duration":500,"tokenUsage":{"input":500,"output":1000},"outcome":"complete","taskType":"query"}
+{"timestamp":1704451205000,"duration":2000,"tokenUsage":{"input":2000,"output":4000},"outcome":"failed","taskType":"sdk-invoke","errorType":"APIError"}
+{"timestamp":1704451206000,"duration":900,"tokenUsage":{"input":900,"output":1800},"outcome":"complete","taskType":"query"}
+{"timestamp":1704451207000,"duration":1100,"tokenUsage":{"input":1100,"output":2100},"outcome":"complete","taskType":"sdk-invoke"}
+{"timestamp":1704451208000,"duration":700,"tokenUsage":{"input":700,"output":1400},"outcome":"complete","taskType":"query"}
+{"timestamp":1704451209000,"duration":1300,"tokenUsage":{"input":1300,"output":2600},"outcome":"complete","taskType":"sdk-invoke"}

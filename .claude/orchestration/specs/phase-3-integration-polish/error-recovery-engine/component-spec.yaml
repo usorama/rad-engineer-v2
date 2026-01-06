@@ -1,0 +1,39 @@
+# Component Specification: ErrorRecoveryEngine
+# Phase 3 - Integration & Polish
+
+metadata:
+  component_name: "ErrorRecoveryEngine"
+  phase: "Phase 3 - Integration & Polish"
+  version: "1.0.0"
+  created: "2026-01-05"
+  dependencies:
+    - "WaveOrchestrator"
+    - "StateManager"
+
+interface:
+  class_name: "ErrorRecoveryEngine"
+  file_location: "rad-engineer/src/integration/ErrorRecoveryEngine.ts"
+
+  methods:
+    - name: "retryWithBackoff"
+      signature: "async retryWithBackoff<T>(fn: () => Promise<T>, options?: RetryOptions): Promise<T>"
+      description: "Retry function with exponential backoff"
+
+    - name: "executeWithRecovery"
+      signature: "async executeWithRecovery(tasks: Task[], stateName?: string): Promise<WaveResult>"
+      description: "Execute tasks with automatic error recovery and checkpointing"
+
+    - name: "getCircuitBreakerState"
+      signature: "getCircuitBreakerState(service: string): CircuitState"
+      description: "Get circuit breaker state for a service"
+
+types:
+  RetryOptions:
+    maxAttempts: number  # default: 3
+    baseDelay: number  # default: 1000ms
+    maxDelay: number  # default: 30000ms
+
+success_criteria:
+  - criterion: "Retry failed operations with backoff"
+    measurement_method: "bun test test/integration/ErrorRecoveryEngine.test.ts"
+    expected: "Failed operations retry up to maxAttempts"
