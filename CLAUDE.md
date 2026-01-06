@@ -179,6 +179,27 @@ cat .claude/orchestration/docs/planning/PHASE_GATE_ITERATION_PATTERN.md
 
 ## ⚠️ CRITICAL CONSTRAINTS
 
+### Evidence-Based Approach (MANDATORY)
+
+```
+📊 EVIDENCE REQUIRED FOR ALL CLAIMS
+   • NEVER claim files exist without reading them first
+   • NEVER claim features exist without checking the codebase
+   • Use Glob/Grep to verify before making statements
+   • Provide file paths and line numbers as evidence
+   • Run commands to verify state (ls, cat, find)
+   • Update CLAUDE.md only with verified information
+
+VERIFICATION PROTOCOL:
+   1. Glob for pattern: "**/*keyword*"
+   2. Read actual file contents
+   3. Run verification commands
+   4. Present evidence with file paths
+   5. Update documentation with facts only
+
+PENALTY: If you make unverified claims, user will be disappointed
+```
+
 ### Agent Concurrency
 
 ```

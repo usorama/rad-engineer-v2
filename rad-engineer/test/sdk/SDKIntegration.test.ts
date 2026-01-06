@@ -75,6 +75,7 @@ describe("SDKIntegration", () => {
       });
 
       const task: AgentTask = {
+        version: "1.0",
         prompt: "What is 2 + 2?",
       };
 
@@ -93,6 +94,7 @@ describe("SDKIntegration", () => {
       });
 
       const task: AgentTask = {
+        version: "1.0",
         prompt: "Wait for 5 minutes",
       };
 

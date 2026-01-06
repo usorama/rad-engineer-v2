@@ -3,7 +3,7 @@
  * Monitors kernel_task CPU, memory pressure, and process count
  */
 
-import { execSync } from "node:child_process";
+import { execFileNoThrow } from "../utils/execFileNoThrow.js";
 import type { ResourceCheckResult, ResourceMetrics } from "./types";
 
 /**
@@ -46,9 +46,9 @@ export class ResourceMonitor {
    */
   private async collectMetrics(): Promise<ResourceMetrics> {
     const timestamp = new Date().toISOString();
-    const kernel_task_cpu = this.getKernelTaskCPU();
-    const memory_pressure = this.getMemoryPressure();
-    const process_count = this.getProcessCount();
+    const kernel_task_cpu = await this.getKernelTaskCPU();
+    const memory_pressure = await this.getMemoryPressure();
+    const process_count = await this.getProcessCount();
 
     return {
       kernel_task_cpu,
@@ -62,50 +62,89 @@ export class ResourceMonitor {
   /**
    * Get kernel_task CPU usage on macOS
    */
-  private getKernelTaskCPU(): number {
+  private async getKernelTaskCPU(): Promise<number> {
     try {
-      const output = execSync("ps -A -o %cpu,comm | grep kernel_task", {
-        encoding: "utf-8",
-      });
-      const match = output.match(/^(\d+\.?\d*)/m);
-      return match ? parseFloat(match[1]) : 0;
+      const result = await execFileNoThrow("ps", ["-A", "-o", "%cpu,comm"]);
+      if (result.success) {
+        const match = result.stdout.match(/kernel_task\s+(\d+\.?\d*)/m);
+        return match ? parseFloat(match[1]) : 0;
+      }
     } catch {
-      return 0;
+      // Fall through
     }
+    return 0;
   }
 
   /**
    * Get memory pressure percentage
+   *
+   * FIXED BUGS:
+   * - Parse actual page size from vm_stat header (not hardcoded 4096)
+   * - Get actual total memory via sysctl hw.memsize (not hardcoded 16GB)
+   * - Count all available pages (free + inactive + speculative + purgeable)
    */
-  private getMemoryPressure(): number {
+  private async getMemoryPressure(): Promise<number> {
     try {
-      const output = execSync("vm_stat | grep Pages_free", {
-        encoding: "utf-8",
-      });
-      const match = output.match(/(\d+)/);
-      if (match) {
-        const freePages = parseInt(match[1], 10);
-        const pageSize = 4096; // 4KB pages on macOS
-        const freeMB = (freePages * pageSize) / (1024 * 1024);
-        const totalMB = 16384; // Assume 16GB total
-        return 100 - (freeMB / totalMB) * 100;
+      // Get vm_stat output
+      const vmStatResult = await execFileNoThrow("vm_stat", []);
+      if (!vmStatResult.success) {
+        return 50; // Conservative default
       }
+
+      // Parse page size from vm_stat header (e.g., "page size of 16384 bytes")
+      const pageSizeMatch = vmStatResult.stdout.match(/page size of (\d+) bytes/);
+      const pageSize = pageSizeMatch ? parseInt(pageSizeMatch[1], 10) : 16384;
+
+      // Get actual total memory via sysctl hw.memsize
+      const memSizeResult = await execFileNoThrow("sysctl", ["hw.memsize"]);
+      if (!memSizeResult.success) {
+        return 50;
+      }
+
+      const totalBytes = parseInt(memSizeResult.stdout.split(": ")[1], 10);
+      const totalMB = totalBytes / (1024 * 1024);
+
+      // Parse available memory pages (free + inactive + speculative + purgeable)
+      const freeMatch = vmStatResult.stdout.match(/Pages free:\s+(\d+)/);
+      const inactiveMatch = vmStatResult.stdout.match(/Pages inactive:\s+(\d+)/);
+      const speculativeMatch = vmStatResult.stdout.match(/Pages speculative:\s+(\d+)/);
+      const purgeableMatch = vmStatResult.stdout.match(/Pages purgeable:\s+(\d+)/);
+
+      if (!freeMatch) {
+        return 50;
+      }
+
+      const freePages = parseInt(freeMatch[1], 10);
+      const inactivePages = inactiveMatch ? parseInt(inactiveMatch[1], 10) : 0;
+      const speculativePages = speculativeMatch ? parseInt(speculativeMatch[1], 10) : 0;
+      const purgeablePages = purgeableMatch ? parseInt(purgeableMatch[1], 10) : 0;
+
+      // Calculate available memory
+      const availablePages = freePages + inactivePages + speculativePages + purgeablePages;
+      const availableMB = (availablePages * pageSize) / (1024 * 1024);
+
+      // Calculate memory pressure as percentage used
+      return 100 - (availableMB / totalMB) * 100;
     } catch {
-      // Fallback
+      // Fallback on any error
+      return 50; // Conservative default
     }
-    return 50; // Conservative default
   }
 
   /**
    * Get total process count
    */
-  private getProcessCount(): number {
+  private async getProcessCount(): Promise<number> {
     try {
-      const output = execSync("ps -A | wc -l", { encoding: "utf-8" });
-      return parseInt(output.trim(), 10);
+      const result = await execFileNoThrow("ps", ["-A"]);
+      if (result.success) {
+        const lines = result.stdout.trim().split("\n");
+        return lines.length;
+      }
     } catch {
-      return 200; // Conservative default
+      // Fall through
     }
+    return 200; // Conservative default
   }
 
   /**

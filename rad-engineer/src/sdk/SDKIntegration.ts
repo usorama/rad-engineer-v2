@@ -282,6 +282,7 @@ export class SDKIntegration {
     // Execute test iterations
     for (let i = 0; i < iterations; i++) {
       const task: AgentTask = {
+        version: "1.0",
         prompt: `Test task ${i + 1}: What is 2 + 2?`,
       };
 
