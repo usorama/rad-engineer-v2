@@ -8,8 +8,8 @@
  * 3. Formats and returns results
  */
 
-import { KnowledgeBase } from "./knowledge-base/dist/core/KnowledgeBase.js";
-import type { KBConfig } from "./knowledge-base/dist/core/types.js";
+import { KnowledgeBase } from "../../../knowledge-base/dist/core/KnowledgeBase.js";
+import type { KBConfig } from "../../../knowledge-base/dist/core/types.js";
 
 /**
  * Execute a Knowledge Base query
