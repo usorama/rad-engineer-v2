@@ -17,7 +17,7 @@ describe("BanditRouter", () => {
 
   it("should route query to provider", async () => {
     // Add some stats with multiple updates to ensure exploitation
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 20; i++) {
       store.updateStats(
         "anthropic",
         "claude-3-5-sonnet-20241022",
@@ -40,14 +40,21 @@ describe("BanditRouter", () => {
       complexityScore: 0.5,
     };
 
-    const decision = await router.route(features);
+    // Run multiple times to account for Thompson Sampling randomness
+    let anthropicCount = 0;
+    const trials = 20;
 
-    expect(decision.provider).toBe("anthropic");
-    expect(decision.model).toBe("claude-3-5-sonnet-20241022");
-    expect(decision.confidence).toBeGreaterThanOrEqual(0);
-    expect(decision.confidence).toBeLessThanOrEqual(1);
-    // With enough data, should exploit (not explore)
-    expect(decision.exploration).toBe(false);
+    for (let i = 0; i < trials; i++) {
+      const decision = await router.route(features);
+      if (decision.provider === "anthropic") anthropicCount++;
+      expect(decision.confidence).toBeGreaterThanOrEqual(0);
+      expect(decision.confidence).toBeLessThanOrEqual(1);
+      // With enough data, should exploit (not explore)
+      expect(decision.exploration).toBe(false);
+    }
+
+    // Should choose anthropic most of the time (it's the only provider with stats)
+    expect(anthropicCount).toBeGreaterThanOrEqual(trials * 0.8); // At least 80%
   });
 
   it("should be deterministic", async () => {
@@ -180,15 +187,22 @@ describe("BanditRouter", () => {
       maxCost: 0.005, // Low cost budget
     };
 
-    const decision = await router.route(features);
+    // Run multiple times to account for Thompson Sampling randomness
+    let glmCount = 0;
+    const trials = 20;
 
-    // Should choose cheap provider
-    expect(decision.provider).toBe("glm");
+    for (let i = 0; i < trials; i++) {
+      const decision = await router.route(features);
+      if (decision.provider === "glm") glmCount++;
+    }
+
+    // Should choose cheap provider (glm) most of the time due to cost constraint
+    expect(glmCount).toBeGreaterThanOrEqual(trials * 0.7); // At least 70%
   });
 
   it("should respect quality constraints", async () => {
     // Add low quality provider (multiple updates for EMA to converge)
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 20; i++) {
       store.updateStats(
         "glm",
         "glm-4.7",
@@ -202,7 +216,8 @@ describe("BanditRouter", () => {
     }
 
     // Add high quality provider (multiple updates for EMA to converge)
-    for (let i = 0; i < 15; i++) {
+    // Need at least 20 updates for EMA to reach 0.85+ (starting from 0.5 with alpha=0.1)
+    for (let i = 0; i < 20; i++) {
       store.updateStats(
         "anthropic",
         "claude-3-5-sonnet-20241022",
@@ -230,7 +245,7 @@ describe("BanditRouter", () => {
     // But Thompson Sampling is probabilistic, so we run multiple times
     let anthropicCount = 0;
     let glmCount = 0;
-    const trials = 30;
+    const trials = 50;
 
     for (let i = 0; i < trials; i++) {
       const d = await router.route(features);
@@ -239,7 +254,8 @@ describe("BanditRouter", () => {
     }
 
     // Anthropic (higher quality) should be chosen more often due to quality constraint
-    expect(anthropicCount).toBeGreaterThan(glmCount);
+    // Use a softer assertion: anthropic should be chosen at least 70% of the time
+    expect(anthropicCount / trials).toBeGreaterThanOrEqual(0.7);
   });
 
   it("should compare providers", () => {

@@ -15,6 +15,7 @@ import type {
   QualityMetrics,
   EvaluationResult,
   Domain,
+  ProviderStats,
 } from "./types.js";
 
 /**
@@ -258,7 +259,16 @@ export class EvaluationLoop {
     const comparisons = [];
 
     for (const { provider, model } of providers) {
-      const stats = this.store.getStats(provider, model, "general");
+      // Try to find stats in any domain
+      const state = this.store.getState();
+      let stats: ProviderStats | undefined;
+
+      for (const stat of state.stats) {
+        if (stat.provider === provider && stat.model === model) {
+          stats = stat;
+          break;
+        }
+      }
 
       if (stats) {
         const totalSamples = stats.success + stats.failure;
