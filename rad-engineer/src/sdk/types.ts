@@ -83,6 +83,10 @@ export interface TestResult {
   duration: number; // milliseconds
   toolsInvoked: string[];
   error: Error | null;
+  /** Provider used for this execution (when using ProviderFactory) */
+  providerUsed?: string;
+  /** Model used for this execution (when using ProviderFactory) */
+  modelUsed?: string;
 }
 
 /**

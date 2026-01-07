@@ -7,7 +7,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src test",
     "test": "bun test",
-    "test:coverage": "bun test --coverage"
+    "test:coverage": "bun test --coverage",
+    "evals": "bun run src/cli/evals.ts"
   },
   "devDependencies": {
     "@types/bun": "^1.3.5",

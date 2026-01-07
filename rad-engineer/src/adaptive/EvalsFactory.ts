@@ -28,6 +28,14 @@ export interface EvalsSystem {
   evaluation: EvaluationLoop;
   /** State manager for persistence */
   stateManager: StateManager;
+}
+
+/**
+ * EVALS System Factory
+ *
+ * Provides static methods for initializing and managing EVALS system
+ */
+export class EvalsFactory {
   /**
    * Initialize EVALS system and integrate with ProviderFactory
    *
@@ -46,7 +54,7 @@ export interface EvalsSystem {
 
     // Initialize core components
     const store = new PerformanceStore();
-    const router = new BanditRouter(store, evalsConfig.explorationRate);
+    const router = new BanditRouter(store, providerFactory, evalsConfig);
     const featureExtractor = new QueryFeatureExtractor();
     const evaluation = new EvaluationLoop(store, {
       timeout: evalsConfig.evaluation.timeout,

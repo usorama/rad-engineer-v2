@@ -20,6 +20,7 @@
 import type { ResourceManager } from "@/core/index.js";
 import type { PromptValidator } from "@/core/index.js";
 import type { ResponseParser, AgentResponse } from "@/core/index.js";
+import type { SDKIntegration } from "@/sdk/index.js";
 
 /**
  * Task definition for wave execution
@@ -55,6 +56,10 @@ export interface TaskResult {
   error?: string;
   /** Parsed agent response if successful */
   response?: AgentResponse;
+  /** Provider used for task execution (from SDKIntegration) */
+  providerUsed?: string;
+  /** Model used for task execution (from SDKIntegration) */
+  modelUsed?: string;
 }
 
 /**
@@ -130,15 +135,18 @@ export class WaveOrchestrator {
   private readonly resourceManager: ResourceManager;
   private readonly promptValidator: PromptValidator;
   private readonly responseParser: ResponseParser;
+  private readonly sdk: SDKIntegration;
 
   constructor(config: {
     resourceManager: ResourceManager;
     promptValidator: PromptValidator;
     responseParser: ResponseParser;
+    sdk: SDKIntegration;
   }) {
     this.resourceManager = config.resourceManager;
     this.promptValidator = config.promptValidator;
     this.responseParser = config.responseParser;
+    this.sdk = config.sdk;
   }
 
   /**
@@ -268,7 +276,7 @@ export class WaveOrchestrator {
           continue;
         }
 
-        // Execute task (simulate agent execution)
+        // Execute task via SDKIntegration
         try {
           const taskResult = await this.executeTask(task);
           waveResults.push(taskResult);
@@ -325,37 +333,61 @@ export class WaveOrchestrator {
   }
 
   /**
-   * Execute a single task (simulate agent execution)
+   * Execute a single task using SDKIntegration
    *
-   * This is a placeholder for actual agent execution via Claude Agent SDK
-   * In production, this would spawn an agent, wait for completion, and return the result
+   * Process:
+   * 1. Call sdk.testAgent() with task prompt
+   * 2. Parse response using responseParser
+   * 3. Return TaskResult with response and provider/model info
    *
    * @param task - Task to execute
    * @returns TaskResult with execution outcome
    */
   private async executeTask(task: Task): Promise<TaskResult> {
-    // Simulate agent execution
-    // In production, this would:
-    // 1. Register agent with ResourceManager
-    // 2. Spawn agent via Claude Agent SDK
-    // 3. Wait for completion
-    // 4. Parse response
-    // 5. Unregister agent
+    try {
+      // Execute agent via SDKIntegration
+      const agentTask = {
+        version: "1.0" as const,
+        prompt: task.prompt,
+      };
 
-    // For now, simulate successful execution
-    const mockResponse: AgentResponse = {
-      success: true,
-      filesModified: [`/mock/${task.id}.ts`],
-      testsWritten: [`/mock/${task.id}.test.ts`],
-      summary: `Task ${task.id} completed successfully`,
-      errors: [],
-      nextSteps: [],
-    };
+      const testResult = await this.sdk.testAgent(agentTask);
 
-    return {
-      id: task.id,
-      success: true,
-      response: mockResponse,
-    };
+      // Check if execution succeeded
+      if (!testResult.success) {
+        return {
+          id: task.id,
+          success: false,
+          error: testResult.error?.message || "Agent execution failed",
+        };
+      }
+
+      // Parse agent response using ResponseParser
+      const parseResult = this.responseParser.parse(testResult.agentResponse);
+
+      if (!parseResult.success) {
+        return {
+          id: task.id,
+          success: false,
+          error: `Failed to parse agent response: ${parseResult.error}`,
+        };
+      }
+
+      // Return successful task result with provider/model info
+      return {
+        id: task.id,
+        success: true,
+        response: parseResult.data,
+        providerUsed: testResult.providerUsed,
+        modelUsed: testResult.modelUsed,
+      };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      return {
+        id: task.id,
+        success: false,
+        error: `Task execution failed: ${errorMsg}`,
+      };
+    }
   }
 }

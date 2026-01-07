@@ -13,6 +13,8 @@ import type {
   RoutingCandidate,
   EvalConfig,
 } from "./types.js";
+import type { ProviderFactory } from "../sdk/providers/ProviderFactory.js";
+import { ProviderAvailability } from "../sdk/providers/ProviderAvailability.js";
 
 /**
  * Bandit Router using Thompson Sampling
@@ -21,25 +23,76 @@ export class BanditRouter {
   private store: PerformanceStore;
   private config: EvalConfig;
   private explorationRate: number;
+  private factory?: ProviderFactory; // Optional for backwards compatibility
 
-  constructor(store: PerformanceStore, config?: Partial<EvalConfig>) {
+  constructor(store: PerformanceStore, config?: Partial<EvalConfig>);
+  constructor(store: PerformanceStore, factory: ProviderFactory, config?: Partial<EvalConfig>);
+  constructor(store: PerformanceStore, factoryOrConfig?: ProviderFactory | Partial<EvalConfig> | number, config?: Partial<EvalConfig>) {
     this.store = store;
-    this.config = {
-      enabled: config?.enabled ?? true,
-      explorationRate: config?.explorationRate ?? 0.10,
-      qualityThreshold: config?.qualityThreshold ?? 0.7,
-      ewc: config?.ewc ?? { enabled: true, lambda: 0.5 },
-      state: config?.state ?? {
-        path: "~/.config/rad-engineer/performance-store.yaml",
-        autoSave: true,
-        versionsToKeep: 100,
-      },
-      evaluation: config?.evaluation ?? {
-        timeout: 5000,
-        useLocalModel: true,
-        localModel: "llama3.2",
-      },
-    };
+
+    // Smart parameter handling for backwards compatibility
+    // If factoryOrConfig is a ProviderFactory, use it as factory
+    // If factoryOrConfig is a number, treat it as explorationRate (legacy support)
+    // Otherwise, treat it as config
+    if (typeof factoryOrConfig === 'number') {
+      // Legacy support: exploration rate as second parameter
+      this.factory = undefined;
+      this.config = {
+        enabled: config?.enabled ?? true,
+        explorationRate: factoryOrConfig,
+        qualityThreshold: config?.qualityThreshold ?? 0.7,
+        ewc: config?.ewc ?? { enabled: true, lambda: 0.5 },
+        state: config?.state ?? {
+          path: "~/.config/rad-engineer/performance-store.yaml",
+          autoSave: true,
+          versionsToKeep: 100,
+        },
+        evaluation: config?.evaluation ?? {
+          timeout: 5000,
+          useLocalModel: true,
+          localModel: "llama3.2",
+        },
+      };
+    } else if (factoryOrConfig && typeof factoryOrConfig === 'object' && 'defaultProvider' in factoryOrConfig) {
+      // It's a ProviderFactory
+      this.factory = factoryOrConfig as ProviderFactory;
+      this.config = {
+        enabled: config?.enabled ?? true,
+        explorationRate: config?.explorationRate ?? 0.10,
+        qualityThreshold: config?.qualityThreshold ?? 0.7,
+        ewc: config?.ewc ?? { enabled: true, lambda: 0.5 },
+        state: config?.state ?? {
+          path: "~/.config/rad-engineer/performance-store.yaml",
+          autoSave: true,
+          versionsToKeep: 100,
+        },
+        evaluation: config?.evaluation ?? {
+          timeout: 5000,
+          useLocalModel: true,
+          localModel: "llama3.2",
+        },
+      };
+    } else {
+      // It's config or undefined
+      this.factory = undefined;
+      this.config = {
+        enabled: (factoryOrConfig as Partial<EvalConfig>)?.enabled ?? true,
+        explorationRate: (factoryOrConfig as Partial<EvalConfig>)?.explorationRate ?? 0.10,
+        qualityThreshold: (factoryOrConfig as Partial<EvalConfig>)?.qualityThreshold ?? 0.7,
+        ewc: (factoryOrConfig as Partial<EvalConfig>)?.ewc ?? { enabled: true, lambda: 0.5 },
+        state: (factoryOrConfig as Partial<EvalConfig>)?.state ?? {
+          path: "~/.config/rad-engineer/performance-store.yaml",
+          autoSave: true,
+          versionsToKeep: 100,
+        },
+        evaluation: (factoryOrConfig as Partial<EvalConfig>)?.evaluation ?? {
+          timeout: 5000,
+          useLocalModel: true,
+          localModel: "llama3.2",
+        },
+      };
+    }
+
     this.explorationRate = this.config.explorationRate;
   }
 
@@ -58,7 +111,7 @@ export class BanditRouter {
     const rng = createSeededRNG(seedInput);
 
     // Get candidates for this context
-    const candidates = this.store.getCandidates(
+    let candidates = this.store.getCandidates(
       features.domain,
       features.complexityScore
     );
@@ -73,13 +126,52 @@ export class BanditRouter {
       throw new Error("No candidates available for routing");
     }
 
+    // Filter candidates by provider availability (if factory is available)
+    let availableCandidates = finalCandidates;
+    if (this.factory) {
+      availableCandidates = await this.filterByAvailability(finalCandidates);
+
+      if (availableCandidates.length === 0) {
+        throw new Error(
+          "No available providers with valid credentials. " +
+          "Please configure API keys for at least one provider."
+        );
+      }
+    }
+
     // EXPLORE with fixed probability (deterministic)
     if (rng.next() < this.explorationRate) {
-      return this.explore(finalCandidates, rng, features);
+      return this.explore(availableCandidates, rng, features);
     }
 
     // EXPLOIT: use Thompson Sampling to select best candidate
-    return this.exploit(finalCandidates, rng, features);
+    return this.exploit(availableCandidates, rng, features);
+  }
+
+  /**
+   * Filter candidates by provider availability
+   */
+  private async filterByAvailability(
+    candidates: RoutingCandidate[]
+  ): Promise<RoutingCandidate[]> {
+    if (!this.factory) {
+      return candidates;
+    }
+
+    const available: RoutingCandidate[] = [];
+
+    for (const candidate of candidates) {
+      const check = await ProviderAvailability.isProviderAvailable(
+        this.factory,
+        candidate.provider
+      );
+
+      if (check.available) {
+        available.push(candidate);
+      }
+    }
+
+    return available;
   }
 
   /**

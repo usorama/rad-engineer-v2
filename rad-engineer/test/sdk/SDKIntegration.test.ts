@@ -5,13 +5,34 @@
 
 import { beforeEach, afterEach, describe, test, expect } from "bun:test";
 import { SDKIntegration } from "../../src/sdk/index.js";
+import { ProviderFactory } from "../../src/sdk/providers/ProviderFactory.js";
+import { ProviderType } from "../../src/sdk/providers/types.js";
 import type { SDKConfig, AgentTask } from "../../src/sdk/types.js";
 
 describe("SDKIntegration", () => {
   let sdk: SDKIntegration;
+  let providerFactory: ProviderFactory;
 
   beforeEach(() => {
-    sdk = new SDKIntegration();
+    // Create ProviderFactory with test configuration
+    providerFactory = new ProviderFactory({
+      defaultProvider: ProviderType.GLM,
+      providers: {
+        "test-glm": {
+          providerType: ProviderType.GLM,
+          apiKey: "test-api-key",
+          baseUrl: "https://test.api.com",
+          model: "glm-4.7",
+          timeout: 60000,
+          temperature: 1.0,
+          maxTokens: 4096,
+          topP: 1.0,
+          stream: false,
+        },
+      },
+      enableFallback: false,
+    });
+    sdk = new SDKIntegration(providerFactory);
   });
 
   afterEach(() => {
@@ -19,10 +40,9 @@ describe("SDKIntegration", () => {
   });
 
   describe("initSDK", () => {
-    test("initializes with valid API key", async () => {
+    test("initializes with valid model configuration", async () => {
       const config: SDKConfig = {
-        apiKey: "sk-ant-test-key",
-        model: "claude-3-5-sonnet-20241022",
+        model: "glm-4.7",
         stream: true,
       };
 
@@ -34,16 +54,15 @@ describe("SDKIntegration", () => {
       expect(result.error).toBeNull();
     });
 
-    test("rejects invalid API key", async () => {
+    test("rejects missing model configuration", async () => {
       const config: SDKConfig = {
-        apiKey: "",
-        model: "claude-3-5-sonnet-20241022",
+        model: "",
       };
 
       const result = await sdk.initSDK(config);
 
       expect(result.success).toBe(false);
-      expect(result.error?.message).toContain("environment variable");
+      expect(result.error?.message).toContain("Model name must be provided");
     });
 
     test("configures default hooks", async () => {
@@ -54,8 +73,7 @@ describe("SDKIntegration", () => {
       };
 
       const config: SDKConfig = {
-        apiKey: "sk-ant-test-key",
-        model: "claude-3-5-sonnet-20241022",
+        model: "glm-4.7",
         hooks,
       };
 
@@ -70,8 +88,7 @@ describe("SDKIntegration", () => {
     test("spawns agent with minimal prompt", async () => {
       // First initialize SDK
       await sdk.initSDK({
-        apiKey: "sk-ant-test-key",
-        model: "claude-3-5-sonnet-20241022",
+        model: "glm-4.7",
       });
 
       const task: AgentTask = {
@@ -82,15 +99,14 @@ describe("SDKIntegration", () => {
       await sdk.testAgent(task);
 
       // Note: This will fail without valid API key
-      // For unit tests, we'd mock the Anthropic client
+      // For unit tests, we'd mock the provider client
       // For now, we test the structure - test will complete even if API fails
       expect(sdk.getClient()).toBeDefined();
     });
 
     test("handles timeout gracefully", async () => {
       await sdk.initSDK({
-        apiKey: "sk-ant-test-key",
-        model: "claude-3-5-sonnet-20241022",
+        model: "glm-4.7",
       });
 
       const task: AgentTask = {
@@ -108,8 +124,7 @@ describe("SDKIntegration", () => {
   describe("measureBaseline", () => {
     test("measures with sufficient iterations", async () => {
       await sdk.initSDK({
-        apiKey: "sk-ant-test-key",
-        model: "claude-3-5-sonnet-20241022",
+        model: "glm-4.7",
       });
 
       // This test will fail with real API calls without valid key
@@ -122,8 +137,7 @@ describe("SDKIntegration", () => {
 
     test("rejects insufficient iterations", async () => {
       await sdk.initSDK({
-        apiKey: "sk-ant-test-key",
-        model: "claude-3-5-sonnet-20241022",
+        model: "glm-4.7",
       });
 
       // Should reject with fewer than 10 iterations

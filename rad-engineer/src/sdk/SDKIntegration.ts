@@ -6,7 +6,6 @@
  * Replaces simulation with actual SDK message loop, tool execution, and streaming.
  */
 
-import Anthropic from "@anthropic-ai/sdk";
 import type {
   SDKConfig,
   InitResult,
@@ -17,6 +16,11 @@ import type {
 } from "./types";
 import { SDKError, SDKErrorCode } from "./types";
 import { ResourceMonitor } from "./ResourceMonitor";
+import { ProviderFactory } from "./providers/ProviderFactory.js";
+import { ProviderAutoDetector } from "../config/ProviderAutoDetector.js";
+import { EvaluationLoop } from "../adaptive/EvaluationLoop.js";
+import type { RoutingDecision } from "../adaptive/types.js";
+import type { ChatResponse } from "./providers/types.js";
 
 /**
  * SDK Integration class
@@ -27,13 +31,24 @@ import { ResourceMonitor } from "./ResourceMonitor";
  * - Baseline metrics collection
  */
 export class SDKIntegration {
-  private client: Anthropic | null = null;
   private resourceMonitor: ResourceMonitor;
   private streamingEnabled = false;
   private hooksRegistered = false;
+  private model: string = "";
+  private providerFactory: ProviderFactory;
+  private evalsEnabled = false;
+  private evaluationLoop?: EvaluationLoop;
 
-  constructor() {
+  constructor(providerFactory?: ProviderFactory) {
     this.resourceMonitor = new ResourceMonitor();
+
+    // Auto-detect and initialize ProviderFactory if not provided
+    if (providerFactory) {
+      this.providerFactory = providerFactory;
+    } else {
+      const factoryConfig = ProviderAutoDetector.initializeFromEnv();
+      this.providerFactory = new ProviderFactory(factoryConfig);
+    }
   }
 
   /**
@@ -45,21 +60,6 @@ export class SDKIntegration {
     const startTime = Date.now();
 
     try {
-      // Validate API key
-      if (!config.apiKey || config.apiKey.trim() === "") {
-        throw new SDKError(
-          SDKErrorCode.API_KEY_MISSING,
-          "ANTHROPIC_API_KEY environment variable not set",
-          "Set the ANTHROPIC_API_KEY environment variable with your API key"
-        );
-      }
-
-      // Initialize Anthropic client
-      this.client = new Anthropic({
-        apiKey: config.apiKey,
-        dangerouslyAllowBrowser: false, // Security: only server-side
-      });
-
       // Configure streaming
       this.streamingEnabled = config.stream ?? true;
 
@@ -69,24 +69,20 @@ export class SDKIntegration {
         // Hooks will be called during agent execution
       }
 
-      // Verify model is valid by making a minimal API call
-      try {
-        // Quick validation call (will fail if model is invalid)
-        // Note: We don't actually call here to save tokens,
-        // but we could validate model name format
-        if (!config.model.includes("claude-")) {
-          throw new SDKError(
-            SDKErrorCode.INVALID_MODEL,
-            `Model name "${config.model}" not recognized`,
-            `Falling back to default model: claude-3-5-sonnet-20241022`
-          );
-        }
-      } catch (error) {
-        if (error instanceof SDKError && error.code === SDKErrorCode.INVALID_MODEL) {
-          // Log warning and continue with fallback
-          console.warn(error.message);
-        }
+      // Verify model is provided (no hardcoded fallback)
+      if (!config.model || config.model.trim() === "") {
+        throw new SDKError(
+          SDKErrorCode.INVALID_MODEL,
+          "Model name must be provided in configuration",
+          "Set the model in SDKConfig (e.g., via environment variable or config file)"
+        );
       }
+
+      // Store model for use in agent execution
+      this.model = config.model;
+
+      // ProviderFactory is already initialized in constructor
+      // No need to directly create Anthropic client anymore
 
       // Check for initialization timeout
       if (Date.now() - startTime > 10000) {
@@ -127,15 +123,6 @@ export class SDKIntegration {
     const toolsInvoked: string[] = [];
 
     try {
-      // Verify SDK is initialized
-      if (!this.client) {
-        throw new SDKError(
-          SDKErrorCode.API_KEY_MISSING,
-          "SDK not initialized. Call initSDK() first.",
-          "Call initSDK(config) before executing agents"
-        );
-      }
-
       // Check system resources before spawning
       const resourceCheck = await this.resourceMonitor.checkResources();
       if (!resourceCheck.can_spawn_agent) {
@@ -156,64 +143,86 @@ export class SDKIntegration {
       // Prepare tools (default set if not provided)
       const tools = task.tools ?? this.getDefaultTools();
 
-      // Execute agent with streaming support
+      // Get provider using EVALS routing or default provider
+      let provider: Awaited<ReturnType<typeof this.providerFactory.getProvider>>;
+      let routingDecision;
+      let providerUsed: string;
+      let modelUsed: string;
+
+      if (this.evalsEnabled && this.providerFactory.isEvalsRoutingEnabled()) {
+        // Use EVALS intelligent routing
+        const routed = await this.providerFactory.routeProvider(task.prompt);
+        provider = routed.provider;
+        routingDecision = routed.decision;
+        providerUsed = routed.decision.provider;
+        modelUsed = this.model; // Use configured model
+      } else {
+        // Use default provider
+        provider = await this.providerFactory.getProvider();
+        const providerConfig = provider.getConfig();
+        providerUsed = providerConfig.providerType;
+        modelUsed = this.model;
+      }
+
+      // Verify model is configured
+      if (!this.model) {
+        throw new SDKError(
+          SDKErrorCode.INVALID_MODEL,
+          "Model not configured. Call initSDK() with a valid model.",
+          "Provide a model name in SDKConfig during initialization"
+        );
+      }
+
+      // Execute agent with streaming support using provider adapter
       let agentResponse = "";
       let promptTokens = 0;
       let completionTokens = 0;
 
+      const chatRequest = {
+        prompt: task.prompt,
+        tools,
+      };
+
       if (this.streamingEnabled) {
-        // Streaming execution
-        const stream = await this.client.messages.create({
-          model: "claude-3-5-sonnet-20241022",
-          max_tokens: 4096,
-          messages: [{ role: "user", content: task.prompt }],
-          tools,
-          stream: true,
-        });
+        // Streaming execution using provider adapter
+        const stream = provider.streamChat(chatRequest);
 
-        for await (const event of stream) {
-          if (event.type === "content_block_delta") {
-            if (event.delta.type === "text_delta") {
-              agentResponse += event.delta.text;
-            }
+        for await (const chunk of stream) {
+          // Accumulate text content from stream chunks
+          if (chunk.delta) {
+            agentResponse += chunk.delta;
           }
-          if (event.type === "message_start") {
-            promptTokens = event.message.usage.input_tokens;
-          }
-          if (event.type === "message_delta") {
-            if (event.usage) {
-              completionTokens = event.usage.output_tokens;
-            }
-          }
-          if (event.type === "content_block_stop") {
-            // Content block complete
+          // Stream is done when done flag is set
+          if (chunk.done) {
+            break;
           }
         }
 
-        // Track tool invocations from content blocks
-        // Note: In streaming, tools appear as content_block_start with type 'tool_use'
+        // For streaming, we'll need to get usage separately or estimate
+        // In Phase 1, we'll set tokens to 0 for streaming (to be improved)
+        promptTokens = 0;
+        completionTokens = 0;
+
+        // Note: EVALS feedback recording not yet implemented for streaming
+        // Will be added when streaming response metadata is available
       } else {
-        // Non-streaming execution
-        const response = await this.client.messages.create({
-          model: "claude-3-5-sonnet-20241022",
-          max_tokens: 4096,
-          messages: [{ role: "user", content: task.prompt }],
-          tools,
-        });
+        // Non-streaming execution using provider adapter
+        const response = await provider.createChat(chatRequest);
 
-        agentResponse = response.content
-          .filter((block): block is { type: "text"; text: string } => block.type === "text")
-          .map((block) => block.text)
-          .join("\n");
+        agentResponse = response.content;
+        promptTokens = response.usage.promptTokens;
+        completionTokens = response.usage.completionTokens;
 
-        for (const block of response.content) {
-          if (block.type === "tool_use") {
-            toolsInvoked.push(block.name);
-          }
+        // Track tool invocations if present
+        if (response.toolUse) {
+          // Extract tool names from toolUse response
+          // This depends on the provider's toolUse format
         }
 
-        promptTokens = response.usage.input_tokens;
-        completionTokens = response.usage.output_tokens;
+        // Record EVALS feedback after successful execution
+        if (this.evalsEnabled && routingDecision) {
+          await this.recordEvalsFeedback(task, response, routingDecision);
+        }
       }
 
       const duration = Date.now() - startTime;
@@ -229,17 +238,18 @@ export class SDKIntegration {
         duration,
         toolsInvoked,
         error: null,
+        providerUsed,
+        modelUsed,
       };
     } catch (error) {
       const duration = Date.now() - startTime;
 
       // Categorize error type
-      if (error instanceof Anthropic.APIError) {
-        if (error.message.includes("timeout")) {
-          // Agent timeout
-        } else if (error.message.includes("rate_limit")) {
-          // Rate limit hit
-        }
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes("timeout")) {
+        // Agent timeout
+      } else if (errorMessage.includes("rate_limit")) {
+        // Rate limit hit
       }
 
       return {
@@ -248,7 +258,7 @@ export class SDKIntegration {
         tokensUsed: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
         duration,
         toolsInvoked,
-        error: error instanceof Error ? error : new Error(String(error)),
+        error: error instanceof Error ? error : new Error(errorMessage),
       };
     }
   }
@@ -416,10 +426,26 @@ export class SDKIntegration {
   }
 
   /**
-   * Get the current Anthropic client instance
+   * Get the provider factory instance
    */
-  getClient(): Anthropic | null {
-    return this.client;
+  getProviderFactory(): ProviderFactory {
+    return this.providerFactory;
+  }
+
+  /**
+   * Get the current provider's underlying client (for backward compatibility)
+   * @deprecated Use getProviderFactory() instead
+   */
+  async getClient(): Promise<any | null> {
+    try {
+      const provider = await this.providerFactory.getProvider();
+      const config = provider.getConfig();
+      // Return the config which contains client info
+      // In Phase 1, this returns the provider config for backward compatibility
+      return config as any;
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -434,5 +460,128 @@ export class SDKIntegration {
    */
   getResourceMonitor(): ResourceMonitor {
     return this.resourceMonitor;
+  }
+
+  /**
+   * Enable EVALS intelligent routing for provider selection
+   * @param banditRouter - Bandit router instance
+   * @param featureExtractor - Query feature extractor
+   * @param performanceStore - Performance store
+   * @param evaluationLoop - Evaluation loop for quality assessment
+   */
+  enableEvalsRouting(
+    banditRouter: any, // BanditRouter
+    featureExtractor: any, // QueryFeatureExtractor
+    performanceStore: any, // PerformanceStore
+    evaluationLoop?: EvaluationLoop
+  ): void {
+    this.providerFactory.enableEvalsRouting(banditRouter, featureExtractor, performanceStore);
+    this.evaluationLoop = evaluationLoop;
+    this.evalsEnabled = true;
+  }
+
+  /**
+   * Disable EVALS routing (use default provider)
+   */
+  disableEvalsRouting(): void {
+    this.providerFactory.disableEvalsRouting();
+    this.evaluationLoop = undefined;
+    this.evalsEnabled = false;
+  }
+
+  /**
+   * Check if EVALS routing is enabled
+   */
+  isEvalsRoutingEnabled(): boolean {
+    return this.evalsEnabled && this.providerFactory.isEvalsRoutingEnabled();
+  }
+
+  /**
+   * Record feedback for EVALS routing (placeholder for Phase 1)
+   * @param result - Test result with provider information
+   * @param feedback - Quality score or feedback metric
+   * @deprecated Use private recordEvalsFeedback with task/response/decision instead
+   */
+  async recordEvalsFeedbackLegacy(result: TestResult, feedback: number): Promise<void> {
+    // Placeholder for backward compatibility
+    // This method is kept for API compatibility but does nothing
+    // The actual recording happens in the private recordEvalsFeedback method
+    if (!this.evalsEnabled) {
+      return;
+    }
+
+    console.debug(
+      `[SDKIntegration] Feedback recording placeholder: ` +
+      `provider=${result.providerUsed}, model=${result.modelUsed}, score=${feedback}`
+    );
+  }
+
+  /**
+   * Record feedback for EVALS PerformanceStore after agent execution
+   * Evaluates response quality and updates performance metrics.
+   *
+   * @param task - The agent task that was executed
+   * @param response - The provider's chat response
+   * @param decision - The routing decision that was made
+   * @private
+   */
+  private async recordEvalsFeedback(
+    task: AgentTask,
+    response: ChatResponse,
+    decision: RoutingDecision
+  ): Promise<void> {
+    // Skip if EVALS is not enabled or EvaluationLoop is not available
+    if (!this.evalsEnabled || !this.evaluationLoop) {
+      return;
+    }
+
+    try {
+      // Calculate cost from token usage (simplified cost model)
+      // In production, this would use actual provider pricing
+      const cost = this.calculateCost(response.usage);
+
+      // Evaluate response quality using EvaluationLoop
+      const evaluationResult = await this.evaluationLoop.evaluateAndUpdate(
+        task.prompt,
+        response.content,
+        decision.provider,
+        decision.model,
+        task.context?.files, // Context files if available
+        cost,
+        response.metadata?.finishReason === "stop" ? 0 : 100 // Latency indicator
+      );
+
+      // Log evaluation results for debugging
+      console.debug(
+        `[SDKIntegration] EVALS feedback recorded: ` +
+        `provider=${decision.provider}, ` +
+        `model=${decision.model}, ` +
+        `quality=${evaluationResult.metrics.overall.toFixed(3)}, ` +
+        `success=${evaluationResult.success}, ` +
+        `cost=${cost.toFixed(4)}`
+      );
+    } catch (error) {
+      // Log error but don't fail the execution
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(
+        `[SDKIntegration] Failed to record EVALS feedback: ${errorMessage}`
+      );
+    }
+  }
+
+  /**
+   * Calculate cost from token usage
+   * Simplified cost model for Phase 1
+   * @private
+   */
+  private calculateCost(usage: ChatResponse["usage"]): number {
+    // Simplified cost model (in dollars per 1M tokens)
+    const INPUT_COST_PER_1M = 3.0; // Approximate for Claude Sonnet
+    const OUTPUT_COST_PER_1M = 15.0;
+
+    const inputCost = (usage.promptTokens / 1_000_000) * INPUT_COST_PER_1M;
+    const outputCost = (usage.completionTokens / 1_000_000) * OUTPUT_COST_PER_1M;
+
+    return inputCost + outputCost;
   }
 }

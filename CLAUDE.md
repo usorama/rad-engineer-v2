@@ -265,3 +265,95 @@ PENALTY: If you make unverified claims, user will be disappointed
 **Version**: 1.0.0
 **Status**: Phase 1 - /execute skill implementation
 **Last Updated**: 2026-01-05
+
+---
+
+## CRITICAL: Evidence-Based Outcome Reasoning (MANDATORY)
+
+**PRINCIPLE**: Always optimize for OUTCOMES based on EVIDENCE, never convenience
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  WHEN ANSWERING QUESTIONS OR MAKING DECISIONS:                 │
+│                                                                 │
+│  1. START WITH OUTCOMES: What result do we want?               │
+│  2. GATHER EVIDENCE: What data/experience supports this?       │
+│  3. CRITICALLY REASON: Does evidence support the outcome?      │
+│  4. CHOOSE BEST PATH: Even if inconvenient                   │
+│                                                                 │
+│  NEVER: Choose the easy path without evidence                 │
+│  NEVER: Assume without verification                            │
+│  NEVER: Optimize for convenience over outcomes                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Decision Framework
+
+**When asked a question or making a choice:**
+
+1. **Define the Outcome**: What are we trying to achieve?
+   - Example: "Deterministic, repeatable, reproducible execution"
+
+2. **Gather Evidence**: What proof exists?
+   - Read actual files (use Glob/Grep/Read)
+   - Run commands to verify state
+   - Check documentation
+   - Research best practices
+
+3. **Critical Analysis**: Does evidence support the approach?
+   - What are the trade-offs?
+   - What are the risks?
+   - What does the data say?
+
+4. **Choose Based on Evidence**: Not convenience
+   - If evidence shows X is better but harder → do X
+   - If evidence shows Y is worse but easier → don't do Y
+
+### Examples
+
+**❌ WRONG (Convenience-Based)**:
+```
+Q: Should we adopt existing agents or create new ones?
+A: Let's adopt existing ones - it's faster and we already have them.
+```
+
+**✅ CORRECT (Outcome-Based)**:
+```
+Q: Should we adopt existing agents or create new ones?
+A: Let me analyze from outcomes perspective:
+
+DESIRED OUTCOME: Deterministic, repeatable, reproducible agents
+
+EVIDENCE:
+- .claude/agents/planner.md has 7709 bytes, detailed PM persona
+- .claude/agents/developer.md has TDD workflow, quality gates
+- Agents are proven (used in production)
+- Base instructions mandate context management, quality checks
+
+ANALYSIS:
+- Existing agents have proven patterns ✓
+- Repeated use = improvement over time ✓
+- Creating new = unknown quality, more effort ✗
+
+DECISION: Adopt existing agents (evidence supports better outcome)
+```
+
+### Verification Protocol
+
+**Before making any recommendation:**
+
+1. **Read the actual files** - Don't assume
+2. **Run verification commands** - Don't guess
+3. **Check multiple sources** - Don't rely on one
+4. **Present evidence** - File paths, line numbers, outputs
+
+### Questions to Always Ask
+
+When uncertain:
+- "What outcome are we optimizing for?"
+- "What evidence supports this?"
+- "Is this the best way or just the easiest way?"
+- "What does the data/code actually say?"
+
+---
+

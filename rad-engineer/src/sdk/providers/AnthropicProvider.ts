@@ -28,7 +28,7 @@ export class AnthropicProvider implements ProviderAdapter {
     this.config = {
       providerType: "anthropic" as ProviderType,
       baseUrl: "https://api.anthropic.com",
-      model: "claude-3-5-sonnet-20241022",
+      model: "",
       timeout: 300000,
       temperature: 1.0,
       maxTokens: 4096,

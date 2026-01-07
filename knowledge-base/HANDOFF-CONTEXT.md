@@ -382,32 +382,23 @@ kb-gen-context > .kb/context.md
 
 ---
 
-## 🤔 Decision Required: Integration Priority
+## ✅ DECISION MADE: Option A - `/kb-query` Skill
 
-**Question for Approval:**
+**User Rationale:** "if it's repeatable and reproducible for all claude code docs, I prefer Option A"
 
-Which integration approach should we implement first?
+**Implementation Plan:**
+1. Create `.claude/skills/kb-query/SKILL.md` with proper YAML frontmatter
+2. Implement skill handler that queries Knowledge Base
+3. Test with Claude Code to verify discovery and invocation
+4. Document usage patterns
 
-**Option A: Quick Win - `/kb-query` Skill Only**
-- Time: 2-3 hours
-- Works: Claude Code only
-- Risk: Low
+**Time Estimate:** 2-3 hours
 
-**Option B: Universal - MCP Server First**
-- Time: 6-8 hours
-- Works: All MCP-compatible tools
-- Risk: Medium (network dependency)
-
-**Option C: Complete - Skill + MCP**
-- Time: 8-12 hours
-- Works: All scenarios
-- Risk: Medium (more complex)
-
-**My Recommendation: Option C**
-- Implement skill first (quick validation)
-- Add MCP server (universal access)
-- Test both thoroughly
-- Document usage patterns
+**Scope:** Claude Code only (initially)
+- Skill-based approach is repeatable across projects
+- Leverages Claude Code's built-in skill discovery
+- Simple, focused implementation
+- Can be extended to MCP later if needed
 
 ---
 
