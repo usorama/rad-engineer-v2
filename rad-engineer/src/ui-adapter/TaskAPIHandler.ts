@@ -21,7 +21,9 @@ import type { WaveState } from "@/advanced/StateManager.js";
 import type { WaveOrchestrator, Task as WaveTask, WaveResult } from "@/advanced/WaveOrchestrator.js";
 import type { ResourceManager } from "@/core/ResourceManager.js";
 import { FormatTranslator } from "./FormatTranslator.js";
-import type { AutoClaudeTask, AutoClaudeTaskSpec, TaskProgressEvent } from "./types.js";
+import type { AutoClaudeTask, AutoClaudeTaskSpec, TaskProgressEvent, QualityGateResult, QualityGatesResults } from "./types.js";
+import { execFileNoThrow } from "@/utils/execFileNoThrow.js";
+import type { ExecFileResult } from "@/utils/execFileNoThrow.js";
 
 /**
  * Task checkpoint format stored in StateManager
@@ -447,11 +449,28 @@ export class TaskAPIHandler extends EventEmitter {
         waveNumber: 1,
       });
 
+      // Run quality gates after successful execution
+      let qualityGatesResults: QualityGatesResults | undefined;
+      if (status === "completed") {
+        qualityGatesResults = await this.runQualityGates(taskId);
+
+        // If any required gate failed, mark task as failed
+        if (!qualityGatesResults.passed) {
+          status = "failed";
+          errorMsg = "Quality gates failed: " +
+            qualityGatesResults.gates
+              .filter(g => !g.passed && g.severity === "required")
+              .map(g => `${g.type} check failed`)
+              .join(", ");
+        }
+      }
+
       // Update task with final status
       await this.updateTaskAfterExecution(taskId, {
         status,
         progress,
         error: errorMsg,
+        qualityGates: qualityGatesResults,
       });
 
       if (this.config.debug) {
@@ -490,7 +509,12 @@ export class TaskAPIHandler extends EventEmitter {
    */
   private async updateTaskAfterExecution(
     taskId: string,
-    updates: { status: "completed" | "failed" | "cancelled"; progress: number; error?: string }
+    updates: {
+      status: "completed" | "failed" | "cancelled";
+      progress: number;
+      error?: string;
+      qualityGates?: QualityGatesResults;
+    }
   ): Promise<void> {
     const checkpoint = await this.loadCheckpoint();
     const taskIndex = checkpoint.tasks.findIndex((t) => t.id === taskId);
@@ -506,6 +530,9 @@ export class TaskAPIHandler extends EventEmitter {
     task.updatedAt = new Date().toISOString();
     if (updates.error) {
       task.error = updates.error;
+    }
+    if (updates.qualityGates) {
+      task.qualityGates = updates.qualityGates;
     }
 
     checkpoint.tasks[taskIndex] = task;
@@ -537,6 +564,126 @@ export class TaskAPIHandler extends EventEmitter {
 
     if (this.config.debug) {
       console.log(`[TaskAPIHandler] Progress [${taskId}]: ${event.progress}% - ${event.message}`);
+    }
+  }
+
+  /**
+   * Run quality gates after task execution
+   *
+   * Executes three quality checks:
+   * 1. typecheck (required) - pnpm typecheck must show 0 errors
+   * 2. lint (warning) - pnpm lint should pass
+   * 3. test (required) - pnpm test must pass with ≥80% coverage
+   *
+   * @param taskId - Task ID for progress events
+   * @returns Quality gates results
+   */
+  private async runQualityGates(taskId: string): Promise<QualityGatesResults> {
+    const startedAt = new Date().toISOString();
+    const gates: QualityGateResult[] = [];
+    let totalDuration = 0;
+
+    // Emit progress
+    this.emitProgress(taskId, {
+      progress: 100,
+      message: "Running quality gates...",
+    });
+
+    // 1. TypeCheck (required)
+    const typecheckResult = await this.runQualityGate("typecheck", "pnpm typecheck", "required");
+    gates.push(typecheckResult);
+    totalDuration += typecheckResult.duration;
+
+    // 2. Lint (warning)
+    const lintResult = await this.runQualityGate("lint", "pnpm lint", "warning");
+    gates.push(lintResult);
+    totalDuration += lintResult.duration;
+
+    // 3. Test (required)
+    const testResult = await this.runQualityGate("test", "pnpm test", "required");
+    gates.push(testResult);
+    totalDuration += testResult.duration;
+
+    const completedAt = new Date().toISOString();
+
+    // Overall pass: all required gates must pass
+    const passed = gates
+      .filter(g => g.severity === "required")
+      .every(g => g.passed);
+
+    const results: QualityGatesResults = {
+      passed,
+      gates,
+      totalDuration,
+      startedAt,
+      completedAt,
+    };
+
+    // Emit quality:completed event
+    this.emit("quality:completed", { taskId, results });
+
+    if (this.config.debug) {
+      console.log(`[TaskAPIHandler] Quality gates for task ${taskId}: ${passed ? "PASSED" : "FAILED"}`);
+      gates.forEach(gate => {
+        const status = gate.passed ? "✓" : "✗";
+        console.log(`  ${status} ${gate.type} (${gate.severity}): ${gate.duration}ms`);
+      });
+    }
+
+    return results;
+  }
+
+  /**
+   * Run a single quality gate
+   *
+   * @param type - Gate type
+   * @param command - Command string (e.g., "pnpm typecheck")
+   * @param severity - Gate severity
+   * @returns Quality gate result
+   */
+  private async runQualityGate(
+    type: "typecheck" | "lint" | "test",
+    command: string,
+    severity: "required" | "warning"
+  ): Promise<QualityGateResult> {
+    const timestamp = new Date().toISOString();
+    const startTime = Date.now();
+
+    // Parse command into executable and args
+    // Command format: "pnpm <script>"
+    const parts = command.split(" ");
+    const executable = parts[0];
+    const args = parts.slice(1);
+
+    // Execute command with no-throw semantics
+    const result: ExecFileResult = await execFileNoThrow(
+      executable,
+      args,
+      120000 // 2 minute timeout for quality gates
+    );
+
+    const duration = Date.now() - startTime;
+    const output = result.stdout || result.stderr || "";
+
+    if (result.success) {
+      return {
+        type,
+        passed: true,
+        severity,
+        output,
+        duration,
+        timestamp,
+      };
+    } else {
+      return {
+        type,
+        passed: false,
+        severity,
+        output,
+        duration,
+        error: result.stderr || "Command failed",
+        timestamp,
+      };
     }
   }
 

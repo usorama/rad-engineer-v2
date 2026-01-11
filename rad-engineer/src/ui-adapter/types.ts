@@ -59,6 +59,8 @@ export interface AutoClaudeTask {
   progress?: number;
   /** Optional error message if failed */
   error?: string;
+  /** Optional quality gates results (set after execution completes) */
+  qualityGates?: QualityGatesResults;
 }
 
 /**
@@ -104,4 +106,52 @@ export interface TaskWaveMapping {
   wave: Wave;
   /** Current wave state (if executing) */
   waveState?: WaveState;
+}
+
+/**
+ * Quality gate type
+ * Defines different types of quality checks
+ */
+export type QualityGateType = "typecheck" | "lint" | "test";
+
+/**
+ * Quality gate severity
+ * Determines whether a failure blocks completion
+ */
+export type QualityGateSeverity = "required" | "warning";
+
+/**
+ * Individual quality gate result
+ */
+export interface QualityGateResult {
+  /** Type of quality gate */
+  type: QualityGateType;
+  /** Whether the check passed */
+  passed: boolean;
+  /** Severity level */
+  severity: QualityGateSeverity;
+  /** Command output */
+  output: string;
+  /** Duration in milliseconds */
+  duration: number;
+  /** Error message if failed */
+  error?: string;
+  /** Timestamp when check was run */
+  timestamp: string;
+}
+
+/**
+ * Combined quality gates results
+ */
+export interface QualityGatesResults {
+  /** Overall pass/fail status (all required gates must pass) */
+  passed: boolean;
+  /** Individual gate results */
+  gates: QualityGateResult[];
+  /** Total duration in milliseconds */
+  totalDuration: number;
+  /** Timestamp when checks started */
+  startedAt: string;
+  /** Timestamp when checks completed */
+  completedAt: string;
 }
