@@ -358,6 +358,107 @@ describe("RoadmapAPIHandler: generateRoadmap", () => {
     expect(progressEvents.some(e => e.stage === "research")).toBe(true);
     expect(progressEvents.some(e => e.stage === "planning")).toBe(true);
   });
+
+  it("Uses default description when not provided", async () => {
+    const roadmap = await handler.generateRoadmap({
+      query: "Build user authentication",
+      name: "Auth Roadmap",
+    });
+
+    expect(roadmap.description).toContain("User authentication system");
+  });
+});
+
+describe("RoadmapAPIHandler: Debug mode", () => {
+  let handler: RoadmapAPIHandler;
+  let stateManager: StateManager;
+  let tempDir: string;
+  let consoleSpy: any;
+
+  beforeEach(async () => {
+    tempDir = join(process.cwd(), "test-roadmap-handler-checkpoints-debug");
+    await fs.mkdir(tempDir, { recursive: true });
+    stateManager = new StateManager({ checkpointsDir: tempDir });
+
+    // Spy on console.log
+    consoleSpy = {
+      calls: [] as string[],
+      original: console.log,
+    };
+    console.log = (...args: any[]) => {
+      consoleSpy.calls.push(args.join(" "));
+    };
+
+    const config: RoadmapAPIHandlerConfig = {
+      projectDir: "/test/project",
+      stateManager,
+      debug: true,
+    };
+    handler = new RoadmapAPIHandler(config);
+  });
+
+  afterEach(async () => {
+    // Restore console.log
+    console.log = consoleSpy.original;
+
+    try {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+  });
+
+  it("Logs debug messages when debug mode enabled", async () => {
+    const roadmap = await handler.generateRoadmap({
+      query: "Test query",
+      name: "Test Roadmap",
+    });
+
+    expect(consoleSpy.calls.some((c: string) => c.includes("[RoadmapAPIHandler] Initialized"))).toBe(true);
+    expect(consoleSpy.calls.some((c: string) => c.includes("[RoadmapAPIHandler] Generating roadmap"))).toBe(true);
+    expect(consoleSpy.calls.some((c: string) => c.includes("[RoadmapAPIHandler] Saved checkpoint"))).toBe(true);
+    expect(consoleSpy.calls.some((c: string) => c.includes("[RoadmapAPIHandler] Generated roadmap"))).toBe(true);
+  });
+
+  it("Logs feature operations in debug mode", async () => {
+    await handler.generateRoadmap({
+      query: "Test",
+      name: "Test",
+    });
+
+    consoleSpy.calls = []; // Clear previous calls
+
+    const feature = await handler.addFeature({
+      title: "Test feature",
+      description: "Test",
+    });
+
+    expect(consoleSpy.calls.some((c: string) => c.includes("[RoadmapAPIHandler] Added feature"))).toBe(true);
+
+    await handler.updateFeature(feature.id, { title: "Updated" });
+    expect(consoleSpy.calls.some((c: string) => c.includes("[RoadmapAPIHandler] Updated feature"))).toBe(true);
+
+    await handler.convertFeatureToSpec(feature.id);
+    expect(consoleSpy.calls.some((c: string) => c.includes("[RoadmapAPIHandler] Converting feature"))).toBe(true);
+    expect(consoleSpy.calls.some((c: string) => c.includes("[RoadmapAPIHandler] Feature converted"))).toBe(true);
+  });
+
+  it("Logs delete operations in debug mode", async () => {
+    await handler.generateRoadmap({
+      query: "Test",
+      name: "Test",
+    });
+
+    const feature = await handler.addFeature({
+      title: "Test",
+      description: "Test",
+    });
+
+    consoleSpy.calls = [];
+
+    await handler.deleteFeature(feature.id);
+    expect(consoleSpy.calls.some((c: string) => c.includes("[RoadmapAPIHandler] Deleted feature"))).toBe(true);
+  });
 });
 
 describe("RoadmapAPIHandler: addFeature", () => {

@@ -1,0 +1,169 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run quality gates
+        run: |
+          echo "Running typecheck..."
+          bun run typecheck
+          echo "Running lint..."
+          bun run lint
+          echo "Running tests..."
+          bun test
+
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$GITHUB_REF_NAME" >> $GITHUB_OUTPUT
+
+      - name: Build release artifacts
+        env:
+          VERSION: ${{ steps.get_version.outputs.version }}
+        run: |
+          mkdir -p dist
+
+          # Copy source files for distribution
+          cp -r src dist/
+          cp -r test dist/
+          cp package.json dist/
+          cp bun.lock dist/
+          cp tsconfig.json dist/
+          cp eslint.config.js dist/
+          cp README.md dist/
+          cp bunfig.toml dist/ || true
+
+          # Create tarball
+          tar -czf "rad-engineer-v${VERSION}.tar.gz" -C dist .
+
+          # Create zip archive
+          cd dist && zip -r "../rad-engineer-v${VERSION}.zip" . && cd ..
+
+      - name: Generate SHA256 checksums
+        env:
+          VERSION: ${{ steps.get_version.outputs.version }}
+        run: |
+          sha256sum "rad-engineer-v${VERSION}.tar.gz" > checksums.txt
+          sha256sum "rad-engineer-v${VERSION}.zip" >> checksums.txt
+          cat checksums.txt
+
+      - name: Generate release notes
+        id: release_notes
+        env:
+          VERSION: ${{ steps.get_version.outputs.version }}
+          TAG_NAME: ${{ steps.get_version.outputs.tag }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Get commits since last tag (safely)
+          PREVIOUS_TAG=$(git describe --abbrev=0 --tags $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null || echo "")
+
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "First release"
+            # For first release, get all commits
+            git log --pretty=format:"%s (%h)" --no-merges > commits.tmp
+          else
+            echo "Changes since $PREVIOUS_TAG"
+            # Get commits between tags
+            git log "${PREVIOUS_TAG}..HEAD" --pretty=format:"%s (%h)" --no-merges > commits.tmp
+          fi
+
+          # Create release notes file safely (no direct injection)
+          cat > release_notes.md << 'RELEASE_NOTES_EOF'
+          ## What's Changed
+
+          RELEASE_NOTES_EOF
+
+          # Append commits with proper escaping
+          while IFS= read -r commit_line; do
+            echo "- ${commit_line}" >> release_notes.md
+          done < commits.tmp
+
+          # Append installation instructions
+          cat >> release_notes.md << RELEASE_NOTES_EOF
+
+          ## Installation
+
+          Download the appropriate archive for your system and extract it:
+
+          \`\`\`bash
+          # Using tar.gz
+          tar -xzf rad-engineer-v${VERSION}.tar.gz
+          cd rad-engineer
+          bun install
+
+          # Or using zip
+          unzip rad-engineer-v${VERSION}.zip
+          cd rad-engineer
+          bun install
+          \`\`\`
+
+          ## Verification
+
+          Verify the integrity of downloaded files using SHA256 checksums:
+
+          \`\`\`bash
+          sha256sum -c checksums.txt
+          \`\`\`
+
+          ## Requirements
+
+          - Node.js >= 20.0.0
+          - Bun >= 1.0.0
+
+          **Full Changelog**: https://github.com/${REPO}/compare/${PREVIOUS_TAG}...${TAG_NAME}
+          RELEASE_NOTES_EOF
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          name: Release ${{ steps.get_version.outputs.tag }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ contains(steps.get_version.outputs.version, '-') }}
+          files: |
+            rad-engineer-v${{ steps.get_version.outputs.version }}.tar.gz
+            rad-engineer-v${{ steps.get_version.outputs.version }}.zip
+            checksums.txt
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts-v${{ steps.get_version.outputs.version }}
+          path: |
+            rad-engineer-v${{ steps.get_version.outputs.version }}.tar.gz
+            rad-engineer-v${{ steps.get_version.outputs.version }}.zip
+            checksums.txt
+          retention-days: 90
