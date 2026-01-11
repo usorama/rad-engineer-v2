@@ -3,11 +3,14 @@
  *
  * Exports:
  * - ElectronIPCAdapter: Main adapter for IPC communication
+ * - TaskAPIHandler: Task CRUD operations with StateManager persistence
  * - FormatTranslator: Format conversion utilities
  * - Types: TypeScript interfaces for UI integration
  */
 
 export { ElectronIPCAdapter } from "./ElectronIPCAdapter.js";
+export { TaskAPIHandler } from "./TaskAPIHandler.js";
+export type { TaskAPIHandlerConfig } from "./TaskAPIHandler.js";
 export { FormatTranslator } from "./FormatTranslator.js";
 export type {
   AutoClaudeTask,

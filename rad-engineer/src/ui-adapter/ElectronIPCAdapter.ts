@@ -1,22 +1,27 @@
 /**
  * ElectronIPCAdapter - Bridge between Auto-Claude UI and rad-engineer backend
  *
- * P0 Implementation: Stub APIs for demo with dummy data
+ * P1 Implementation: Real StateManager integration via TaskAPIHandler
  *
  * Responsibilities:
  * - Handle IPC calls from Auto-Claude frontend
+ * - Delegate CRUD operations to TaskAPIHandler
  * - Convert between Auto-Claude and rad-engineer formats
- * - Coordinate with WaveOrchestrator for task execution
+ * - Coordinate with WaveOrchestrator for task execution (P1-002)
  * - Emit progress events during execution
  *
  * IPC APIs:
  * - task:get-all → getAllTasks()
  * - task:create → createTask()
  * - task:start → startTask()
+ * - task:update → updateTask()
+ * - task:delete → deleteTask()
  */
 
 import { EventEmitter } from "events";
 import { FormatTranslator } from "./FormatTranslator.js";
+import { TaskAPIHandler } from "./TaskAPIHandler.js";
+import { StateManager } from "@/advanced/StateManager.js";
 import type {
   IPCAdapterConfig,
   AutoClaudeTask,
@@ -24,7 +29,6 @@ import type {
   TaskProgressEvent,
   TaskWaveMapping,
 } from "./types.js";
-import type { Wave } from "@/plan/types.js";
 
 /**
  * ElectronIPCAdapter - Main adapter class
@@ -56,18 +60,29 @@ import type { Wave } from "@/plan/types.js";
 export class ElectronIPCAdapter extends EventEmitter {
   private readonly config: IPCAdapterConfig;
   private readonly translator: FormatTranslator;
+  private readonly taskHandler: TaskAPIHandler;
   private readonly taskMappings: Map<string, TaskWaveMapping>;
-  private readonly tasks: Map<string, AutoClaudeTask>;
 
   constructor(config: IPCAdapterConfig) {
     super();
     this.config = config;
     this.translator = new FormatTranslator();
     this.taskMappings = new Map();
-    this.tasks = new Map();
 
-    // P0: Initialize with dummy tasks
-    this.initializeDummyTasks();
+    // P1: Initialize StateManager and TaskAPIHandler
+    const stateManager = new StateManager({
+      checkpointsDir: `${config.projectDir}/.auto-claude-integration`,
+    });
+    this.taskHandler = new TaskAPIHandler({
+      projectDir: config.projectDir,
+      stateManager,
+      debug: config.debug,
+    });
+
+    // P1: Forward task-updated events from TaskAPIHandler
+    this.taskHandler.on("task-updated", (task: AutoClaudeTask) => {
+      this.emit("task:updated", task);
+    });
 
     if (this.config.debug) {
       console.log(`[ElectronIPCAdapter] Initialized with projectDir: ${config.projectDir}`);
@@ -75,46 +90,10 @@ export class ElectronIPCAdapter extends EventEmitter {
   }
 
   /**
-   * P0: Initialize with 2 dummy tasks for demo
-   * Future: Load from StateManager or database
-   */
-  private initializeDummyTasks(): void {
-    const dummyTasks: AutoClaudeTask[] = [
-      {
-        id: "demo-1",
-        title: "Demo Task 1",
-        description: "This is a demo task for testing the UI integration",
-        status: "pending",
-        createdAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-        updatedAt: new Date(Date.now() - 3600000).toISOString(),
-        priority: 4,
-        tags: ["demo", "ui-integration"],
-        progress: 0,
-      },
-      {
-        id: "demo-2",
-        title: "Demo Task 2",
-        description: "This is a completed demo task showing successful execution",
-        status: "completed",
-        createdAt: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
-        updatedAt: new Date(Date.now() - 1800000).toISOString(), // 30 min ago
-        priority: 3,
-        tags: ["demo", "completed"],
-        progress: 100,
-      },
-    ];
-
-    for (const task of dummyTasks) {
-      this.tasks.set(task.id, task);
-    }
-  }
-
-  /**
    * Get all tasks
    * IPC: task:get-all
    *
-   * P0: Returns dummy tasks from in-memory store
-   * Future: Query StateManager for persisted tasks
+   * P1: Delegates to TaskAPIHandler for persistent storage
    *
    * @returns Array of Auto-Claude tasks
    */
@@ -123,19 +102,14 @@ export class ElectronIPCAdapter extends EventEmitter {
       console.log("[ElectronIPCAdapter] getAllTasks() called");
     }
 
-    // P0: Return all tasks from in-memory store
-    return Array.from(this.tasks.values()).sort((a, b) => {
-      // Sort by createdAt descending (newest first)
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
+    return this.taskHandler.getAllTasks();
   }
 
   /**
    * Create a new task
    * IPC: task:create
    *
-   * P0: Creates task stub with generated ID
-   * Future: Create full Wave via PlanSkill, persist to StateManager
+   * P1: Delegates to TaskAPIHandler for persistent storage
    *
    * @param spec - Task specification from frontend
    * @returns Created Auto-Claude task
@@ -145,34 +119,18 @@ export class ElectronIPCAdapter extends EventEmitter {
       console.log("[ElectronIPCAdapter] createTask() called", spec);
     }
 
-    // Generate unique task ID
-    const taskId = `task-${Date.now()}`;
+    // P1: Create task via TaskAPIHandler (persists to StateManager)
+    const task = await this.taskHandler.createTask(spec);
 
-    // P0: Create stub Wave via FormatTranslator
-    const wave = this.translator.toRadEngineerWave(spec, taskId);
-
-    // Create Auto-Claude task
-    const task: AutoClaudeTask = {
-      id: taskId,
-      title: spec.title,
-      description: spec.description,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      priority: spec.priority,
-      tags: spec.tags,
-      progress: 0,
-    };
-
-    // Store task and mapping
-    this.tasks.set(taskId, task);
-    this.taskMappings.set(taskId, {
-      taskId,
+    // Create stub Wave mapping via FormatTranslator
+    const wave = this.translator.toRadEngineerWave(spec, task.id);
+    this.taskMappings.set(task.id, {
+      taskId: task.id,
       wave,
     });
 
     if (this.config.debug) {
-      console.log(`[ElectronIPCAdapter] Created task: ${taskId}`);
+      console.log(`[ElectronIPCAdapter] Created task: ${task.id}`);
     }
 
     return task;
@@ -182,8 +140,8 @@ export class ElectronIPCAdapter extends EventEmitter {
    * Start task execution
    * IPC: task:start
    *
-   * P0: Stub implementation - logs and emits fake progress
-   * Future: Execute wave via WaveOrchestrator, emit real progress
+   * P1: Delegates to TaskAPIHandler for state management
+   * Future (P1-002): Execute wave via WaveOrchestrator, emit real progress
    *
    * @param taskId - Task ID to start
    * @throws Error if task not found or already executing
@@ -193,38 +151,18 @@ export class ElectronIPCAdapter extends EventEmitter {
       console.log(`[ElectronIPCAdapter] startTask() called for: ${taskId}`);
     }
 
-    // Validate task exists
-    const task = this.tasks.get(taskId);
-    if (!task) {
-      throw new Error(`Task not found: ${taskId}`);
-    }
+    // P1: Start task via TaskAPIHandler (updates state, persists)
+    await this.taskHandler.startTask(taskId);
 
-    // Validate task is not already executing
-    if (task.status === "in_progress") {
-      throw new Error(`Task already in progress: ${taskId}`);
-    }
-
-    // Validate task is not already completed
-    if (task.status === "completed") {
-      throw new Error(`Task already completed: ${taskId}`);
-    }
-
-    // Update task status
-    task.status = "in_progress";
-    task.updatedAt = new Date().toISOString();
-    this.tasks.set(taskId, task);
-
-    // P0: Log stub execution
-    console.log(`[ElectronIPCAdapter] WaveOrchestrator stub called for task: ${taskId}`);
-
-    // P0: Emit fake progress events
+    // P1: Emit fake progress events for demo
+    // Future (P1-002): Real progress from WaveOrchestrator
     await this.emitFakeProgress(taskId);
 
-    // P0: Mark task as completed
-    task.status = "completed";
-    task.progress = 100;
-    task.updatedAt = new Date().toISOString();
-    this.tasks.set(taskId, task);
+    // P1: Mark task as completed
+    await this.taskHandler.updateTask(taskId, {
+      status: "completed",
+      progress: 100,
+    });
 
     if (this.config.debug) {
       console.log(`[ElectronIPCAdapter] Task completed: ${taskId}`);
@@ -263,12 +201,61 @@ export class ElectronIPCAdapter extends EventEmitter {
 
   /**
    * Get specific task by ID
+   * IPC: task:get
+   *
+   * P1: Delegates to TaskAPIHandler
    *
    * @param taskId - Task ID
    * @returns Task if found, null otherwise
    */
   async getTask(taskId: string): Promise<AutoClaudeTask | null> {
-    return this.tasks.get(taskId) || null;
+    return this.taskHandler.getTask(taskId);
+  }
+
+  /**
+   * Update existing task
+   * IPC: task:update
+   *
+   * P1: Delegates to TaskAPIHandler for persistent updates
+   *
+   * @param taskId - Task ID to update
+   * @param updates - Partial task updates
+   * @returns Updated task
+   * @throws Error if task not found
+   */
+  async updateTask(
+    taskId: string,
+    updates: Partial<AutoClaudeTask>
+  ): Promise<AutoClaudeTask> {
+    if (this.config.debug) {
+      console.log(`[ElectronIPCAdapter] updateTask() called for: ${taskId}`);
+    }
+
+    return this.taskHandler.updateTask(taskId, updates);
+  }
+
+  /**
+   * Delete a task
+   * IPC: task:delete
+   *
+   * P1: Delegates to TaskAPIHandler for persistent deletion
+   *
+   * @param taskId - Task ID to delete
+   * @returns True if deleted, false if not found
+   */
+  async deleteTask(taskId: string): Promise<boolean> {
+    if (this.config.debug) {
+      console.log(`[ElectronIPCAdapter] deleteTask() called for: ${taskId}`);
+    }
+
+    const deleted = await this.taskHandler.deleteTask(taskId);
+
+    // Also remove wave mapping if exists
+    if (deleted) {
+      this.taskMappings.delete(taskId);
+    }
+
+    return deleted;
   }
 
   /**
