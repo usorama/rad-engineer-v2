@@ -282,126 +282,185 @@ export class InsightsAPIHandler extends EventEmitter {
    * @throws Error if session not found
    */
   async sendMessage(sessionId: string, message: string): Promise<ChatMessage> {
-    const checkpoint = await this.loadCheckpoint();
-    const sessionIndex = checkpoint.sessions.findIndex((s) => s.id === sessionId);
-
-    if (sessionIndex === -1) {
-      throw new Error(`Session not found: ${sessionId}`);
-    }
-
-    const session = checkpoint.sessions[sessionIndex];
-
-    // Add user message
-    const userMessageId = `msg-${Date.now()}-${this.messageIdCounter++}`;
-    const userMessage: ChatMessage = {
-      id: userMessageId,
-      sessionId,
-      role: "user",
-      content: message,
-      timestamp: new Date().toISOString(),
-    };
-
-    session.messages.push(userMessage);
-    session.updatedAt = new Date().toISOString();
-    session.metadata = {
-      messageCount: session.messages.length,
-      lastMessageAt: userMessage.timestamp,
-    };
-
-    // Save user message
-    checkpoint.sessions[sessionIndex] = session;
-    await this.saveCheckpoint(checkpoint);
-
-    // Emit user message
-    this.emit("message-added", userMessage);
-
-    if (this.config.debug) {
-      console.log(`[InsightsAPIHandler] User message: ${message.substring(0, 50)}...`);
-    }
-
-    // Gather decision context
-    const decisionContext = await this.gatherDecisionContext(message);
-
-    // Build messages for API
-    const apiMessages = this.buildAPIMessages(session, decisionContext);
-
-    // Create assistant message
-    const assistantMessageId = `msg-${Date.now()}-${this.messageIdCounter++}`;
-    let assistantContent = "";
-
     try {
-      // Stream response from Anthropic
-      const stream = await this.anthropic.messages.create({
-        model: this.config.model || "claude-3-5-sonnet-20241022",
-        max_tokens: 4096,
-        messages: apiMessages,
-        stream: true,
-      });
+      const checkpoint = await this.loadCheckpoint();
+      const sessionIndex = checkpoint.sessions.findIndex((s) => s.id === sessionId);
 
-      // Process stream
-      for await (const event of stream) {
-        if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-          const chunk = event.delta.text;
-          assistantContent += chunk;
-
-          // Emit chunk
-          this.emit("message-chunk", {
-            sessionId,
-            messageId: assistantMessageId,
-            content: chunk,
-            done: false,
-          } as MessageChunk);
-        }
+      if (sessionIndex === -1) {
+        const error = new Error(`Session not found: ${sessionId}`);
+        this.emit('error', {
+          code: 'SESSION_NOT_FOUND',
+          message: `Cannot send message - session ${sessionId} does not exist`,
+          action: 'Create a new session or verify the session ID is correct',
+          details: error.message
+        });
+        throw error;
       }
 
-      // Emit final chunk
-      this.emit("message-chunk", {
+      const session = checkpoint.sessions[sessionIndex];
+
+      // Add user message
+      const userMessageId = `msg-${Date.now()}-${this.messageIdCounter++}`;
+      const userMessage: ChatMessage = {
+        id: userMessageId,
         sessionId,
-        messageId: assistantMessageId,
-        content: "",
-        done: true,
-      } as MessageChunk);
+        role: "user",
+        content: message,
+        timestamp: new Date().toISOString(),
+      };
+
+      session.messages.push(userMessage);
+      session.updatedAt = new Date().toISOString();
+      session.metadata = {
+        messageCount: session.messages.length,
+        lastMessageAt: userMessage.timestamp,
+      };
+
+      // Save user message
+      checkpoint.sessions[sessionIndex] = session;
+      await this.saveCheckpoint(checkpoint);
+
+      // Emit user message
+      this.emit("message-added", userMessage);
 
       if (this.config.debug) {
-        console.log(`[InsightsAPIHandler] Assistant response: ${assistantContent.substring(0, 50)}...`);
+        console.log(`[InsightsAPIHandler] User message: ${message.substring(0, 50)}...`);
       }
+
+      // Gather decision context
+      const decisionContext = await this.gatherDecisionContext(message);
+
+      // Build messages for API
+      const apiMessages = this.buildAPIMessages(session, decisionContext);
+
+      // Create assistant message
+      const assistantMessageId = `msg-${Date.now()}-${this.messageIdCounter++}`;
+      let assistantContent = "";
+      let streamError: string | null = null;
+
+      try {
+        // Validate API key
+        if (!this.config.apiKey && !process.env.ANTHROPIC_API_KEY) {
+          throw new Error('Anthropic API key not configured');
+        }
+
+        // Stream response from Anthropic
+        const stream = await this.anthropic.messages.create({
+          model: this.config.model || "claude-3-5-sonnet-20241022",
+          max_tokens: 4096,
+          messages: apiMessages,
+          stream: true,
+        });
+
+        // Process stream
+        for await (const event of stream) {
+          if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+            const chunk = event.delta.text;
+            assistantContent += chunk;
+
+            // Emit chunk
+            this.emit("message-chunk", {
+              sessionId,
+              messageId: assistantMessageId,
+              content: chunk,
+              done: false,
+            } as MessageChunk);
+          }
+        }
+
+        // Emit final chunk
+        this.emit("message-chunk", {
+          sessionId,
+          messageId: assistantMessageId,
+          content: "",
+          done: true,
+        } as MessageChunk);
+
+        if (this.config.debug) {
+          console.log(`[InsightsAPIHandler] Assistant response: ${assistantContent.substring(0, 50)}...`);
+        }
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        streamError = errorMsg;
+
+        // Determine error type for better guidance
+        let action = 'Check your Anthropic API key and network connection';
+        let code = 'AI_STREAM_ERROR';
+
+        if (errorMsg.includes('API key')) {
+          code = 'AI_API_KEY_ERROR';
+          action = 'Set ANTHROPIC_API_KEY environment variable or provide apiKey in config';
+        } else if (errorMsg.includes('rate limit')) {
+          code = 'AI_RATE_LIMIT_ERROR';
+          action = 'Wait a moment before sending another message. Consider upgrading your API plan.';
+        } else if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
+          code = 'AI_NETWORK_ERROR';
+          action = 'Check your internet connection and firewall settings. Verify Anthropic API is accessible.';
+        } else if (errorMsg.includes('timeout')) {
+          code = 'AI_TIMEOUT_ERROR';
+          action = 'Request took too long. Try again with a shorter message or simpler query.';
+        }
+
+        this.emit('error', {
+          code,
+          message: 'Failed to get AI response',
+          action,
+          details: errorMsg
+        });
+
+        // Graceful degradation: provide helpful error message
+        assistantContent = `I apologize, but I encountered an error while processing your message.\n\n**Error**: ${errorMsg}\n\n**What you can do**: ${action}`;
+
+        // Emit error chunk
+        this.emit("message-chunk", {
+          sessionId,
+          messageId: assistantMessageId,
+          content: assistantContent,
+          done: true,
+        } as MessageChunk);
+      }
+
+      // Add assistant message
+      const assistantMessage: ChatMessage = {
+        id: assistantMessageId,
+        sessionId,
+        role: "assistant",
+        content: assistantContent,
+        timestamp: new Date().toISOString(),
+        decisionContext: decisionContext.map((d) => d.id),
+      };
+
+      session.messages.push(assistantMessage);
+      session.updatedAt = new Date().toISOString();
+      session.metadata = {
+        messageCount: session.messages.length,
+        lastMessageAt: assistantMessage.timestamp,
+      };
+
+      // Save assistant message
+      const updatedCheckpoint = await this.loadCheckpoint();
+      const updatedSessionIndex = updatedCheckpoint.sessions.findIndex((s) => s.id === sessionId);
+      if (updatedSessionIndex !== -1) {
+        updatedCheckpoint.sessions[updatedSessionIndex] = session;
+        await this.saveCheckpoint(updatedCheckpoint);
+      }
+
+      // Emit assistant message
+      this.emit("message-added", assistantMessage);
+
+      return assistantMessage;
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(`[InsightsAPIHandler] API error: ${errorMsg}`);
-
-      // Return error message
-      assistantContent = `I apologize, but I encountered an error: ${errorMsg}`;
+      // Top-level error (session not found, storage failure)
+      if (!(error instanceof Error && error.message.includes('Session not found'))) {
+        this.emit('error', {
+          code: 'SEND_MESSAGE_ERROR',
+          message: 'Failed to send message',
+          action: 'Check that session exists and storage is accessible',
+          details: error instanceof Error ? error.message : String(error)
+        });
+      }
+      throw error;
     }
-
-    // Add assistant message
-    const assistantMessage: ChatMessage = {
-      id: assistantMessageId,
-      sessionId,
-      role: "assistant",
-      content: assistantContent,
-      timestamp: new Date().toISOString(),
-      decisionContext: decisionContext.map((d) => d.id),
-    };
-
-    session.messages.push(assistantMessage);
-    session.updatedAt = new Date().toISOString();
-    session.metadata = {
-      messageCount: session.messages.length,
-      lastMessageAt: assistantMessage.timestamp,
-    };
-
-    // Save assistant message
-    const updatedCheckpoint = await this.loadCheckpoint();
-    const updatedSessionIndex = updatedCheckpoint.sessions.findIndex((s) => s.id === sessionId);
-    if (updatedSessionIndex !== -1) {
-      updatedCheckpoint.sessions[updatedSessionIndex] = session;
-      await this.saveCheckpoint(updatedCheckpoint);
-    }
-
-    // Emit assistant message
-    this.emit("message-added", assistantMessage);
-
-    return assistantMessage;
   }
 
   /**

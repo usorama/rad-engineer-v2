@@ -133,6 +133,17 @@ export class WorktreeAPIHandler {
   private readonly config: WorktreeAPIHandlerConfig;
   private readonly execFileNoThrow: ExecFileNoThrowFn;
 
+  // Performance: Caching layer
+  private cache = new Map<string, { data: unknown; timestamp: number }>();
+  private readonly CACHE_TTL = 60000; // 1 minute cache TTL
+
+  // Performance: Memoized worktree list
+  private worktreeListCache: WorktreeInfo[] | null = null;
+  private worktreeListCacheTime = 0;
+
+  // Performance: Branch existence cache
+  private branchExistsCache = new Map<string, { exists: boolean; timestamp: number }>();
+
   constructor(config: WorktreeAPIHandlerConfig) {
     this.config = config;
     this.execFileNoThrow = config.execFileNoThrow;
@@ -145,7 +156,44 @@ export class WorktreeAPIHandler {
   }
 
   /**
+   * Get data from cache
+   *
+   * @param key - Cache key
+   * @returns Cached data or null if expired/not found
+   */
+  private getCached<T>(key: string): T | null {
+    const entry = this.cache.get(key);
+    if (entry && Date.now() - entry.timestamp < this.CACHE_TTL) {
+      return entry.data as T;
+    }
+    this.cache.delete(key);
+    return null;
+  }
+
+  /**
+   * Set data in cache
+   *
+   * @param key - Cache key
+   * @param data - Data to cache
+   */
+  private setCached<T>(key: string, data: T): void {
+    this.cache.set(key, { data, timestamp: Date.now() });
+  }
+
+  /**
+   * Invalidate cache entries
+   */
+  private invalidateCache(): void {
+    this.cache.clear();
+    this.worktreeListCache = null;
+    this.worktreeListCacheTime = 0;
+    this.branchExistsCache.clear();
+  }
+
+  /**
    * List all worktrees in the repository
+   *
+   * Performance: Cached with 1-minute TTL to avoid repeated git calls
    *
    * Process:
    * 1. Execute `git worktree list --porcelain`
@@ -166,6 +214,17 @@ export class WorktreeAPIHandler {
       console.log("[WorktreeAPIHandler] Listing worktrees");
     }
 
+    // Check cache
+    if (this.worktreeListCache && Date.now() - this.worktreeListCacheTime < this.CACHE_TTL) {
+      if (this.config.debug) {
+        console.log(`[WorktreeAPIHandler] Listed ${this.worktreeListCache.length} worktree(s) from cache`);
+      }
+      return {
+        success: true,
+        worktrees: this.worktreeListCache,
+      };
+    }
+
     // Execute git worktree list
     const result = await this.execFileNoThrow(
       "git",
@@ -184,6 +243,10 @@ export class WorktreeAPIHandler {
     // Parse porcelain output
     const worktrees = this.parseWorktreeList(result.stdout);
 
+    // Cache result
+    this.worktreeListCache = worktrees;
+    this.worktreeListCacheTime = Date.now();
+
     if (this.config.debug) {
       console.log(
         `[WorktreeAPIHandler] Listed ${worktrees.length} worktree(s)`
@@ -198,6 +261,8 @@ export class WorktreeAPIHandler {
 
   /**
    * Create a new worktree from a branch
+   *
+   * Performance: Invalidates worktree list cache after creation
    *
    * Process:
    * 1. Validate branch name
@@ -254,9 +319,12 @@ export class WorktreeAPIHandler {
       };
     }
 
+    // Invalidate cache after successful creation
+    this.invalidateCache();
+
     if (this.config.debug) {
       console.log(
-        `[WorktreeAPIHandler] Created worktree at ${worktreePath}`
+        `[WorktreeAPIHandler] Created worktree at ${worktreePath} and invalidated cache`
       );
     }
 
@@ -268,6 +336,8 @@ export class WorktreeAPIHandler {
 
   /**
    * Delete a worktree
+   *
+   * Performance: Invalidates worktree list cache after deletion
    *
    * Process:
    * 1. Validate path
@@ -308,9 +378,12 @@ export class WorktreeAPIHandler {
       };
     }
 
+    // Invalidate cache after successful deletion
+    this.invalidateCache();
+
     if (this.config.debug) {
       console.log(
-        `[WorktreeAPIHandler] Deleted worktree at ${worktreePath}`
+        `[WorktreeAPIHandler] Deleted worktree at ${worktreePath} and invalidated cache`
       );
     }
 
@@ -322,6 +395,8 @@ export class WorktreeAPIHandler {
   /**
    * Check if a branch exists
    *
+   * Performance: Cached branch existence checks for 1 minute
+   *
    * Process:
    * 1. Execute `git rev-parse --verify <branch>`
    * 2. Return true if command succeeds
@@ -330,13 +405,27 @@ export class WorktreeAPIHandler {
    * @returns True if branch exists
    */
   private async checkBranchExists(branch: string): Promise<boolean> {
+    // Check cache
+    const cachedEntry = this.branchExistsCache.get(branch);
+    if (cachedEntry && Date.now() - cachedEntry.timestamp < this.CACHE_TTL) {
+      if (this.config.debug) {
+        console.log(`[WorktreeAPIHandler] Branch existence check for '${branch}' from cache: ${cachedEntry.exists}`);
+      }
+      return cachedEntry.exists;
+    }
+
     const result = await this.execFileNoThrow(
       "git",
       ["rev-parse", "--verify", branch],
       5000 // 5 second timeout
     );
 
-    return result.success;
+    const exists = result.success;
+
+    // Cache result
+    this.branchExistsCache.set(branch, { exists, timestamp: Date.now() });
+
+    return exists;
   }
 
   /**

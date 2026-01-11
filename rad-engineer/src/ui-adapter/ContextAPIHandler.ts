@@ -175,6 +175,16 @@ export class ContextAPIHandler extends EventEmitter {
   private readonly config: ContextAPIHandlerConfig;
   private readonly decisionStore: DecisionLearningStore;
 
+  // Performance: Caching layer
+  private cache = new Map<string, { data: unknown; timestamp: number }>();
+  private readonly CACHE_TTL = 60000; // 1 minute cache TTL
+
+  // Performance: Memoized queries
+  private memoriesCache: MemoryItem[] | null = null;
+  private memoriesCacheTime = 0;
+  private statisticsCache: StoreStatistics | null = null;
+  private statisticsCacheTime = 0;
+
   constructor(config: ContextAPIHandlerConfig) {
     super();
     this.config = config;
@@ -186,7 +196,45 @@ export class ContextAPIHandler extends EventEmitter {
   }
 
   /**
+   * Get data from cache
+   *
+   * @param key - Cache key
+   * @returns Cached data or null if expired/not found
+   */
+  private getCached<T>(key: string): T | null {
+    const entry = this.cache.get(key);
+    if (entry && Date.now() - entry.timestamp < this.CACHE_TTL) {
+      return entry.data as T;
+    }
+    this.cache.delete(key);
+    return null;
+  }
+
+  /**
+   * Set data in cache
+   *
+   * @param key - Cache key
+   * @param data - Data to cache
+   */
+  private setCached<T>(key: string, data: T): void {
+    this.cache.set(key, { data, timestamp: Date.now() });
+  }
+
+  /**
+   * Invalidate cache entries
+   */
+  private invalidateCache(): void {
+    this.cache.clear();
+    this.memoriesCache = null;
+    this.memoriesCacheTime = 0;
+    this.statisticsCache = null;
+    this.statisticsCacheTime = 0;
+  }
+
+  /**
    * Get all memories from decision store
+   *
+   * Performance: Cached with 1-minute TTL to avoid repeated store queries
    *
    * Process:
    * 1. Query all decisions from store
@@ -197,11 +245,23 @@ export class ContextAPIHandler extends EventEmitter {
    */
   async getMemories(): Promise<MemoryItem[]> {
     try {
+      // Check cache
+      if (this.memoriesCache && Date.now() - this.memoriesCacheTime < this.CACHE_TTL) {
+        if (this.config.debug) {
+          console.log(`[ContextAPIHandler] Retrieved ${this.memoriesCache.length} memories from cache`);
+        }
+        return this.memoriesCache;
+      }
+
       const decisions = this.decisionStore.getDecisions();
       const memories = this.convertToMemoryItems(decisions);
 
       // Sort by timestamp descending (newest first)
       memories.sort((a, b) => b.timestamp - a.timestamp);
+
+      // Cache result
+      this.memoriesCache = memories;
+      this.memoriesCacheTime = Date.now();
 
       if (this.config.debug) {
         console.log(`[ContextAPIHandler] Retrieved ${memories.length} memories`);
@@ -218,6 +278,8 @@ export class ContextAPIHandler extends EventEmitter {
   /**
    * Search memories with query filters
    *
+   * Performance: Cached search results by query hash for 1 minute
+   *
    * Process:
    * 1. Convert search query to DecisionFilter
    * 2. Query decisions from store with filter
@@ -230,6 +292,18 @@ export class ContextAPIHandler extends EventEmitter {
    */
   async searchMemories(query: MemorySearchQuery): Promise<MemoryItem[]> {
     try {
+      // Create cache key from query
+      const cacheKey = `search:${JSON.stringify(query)}`;
+
+      // Check cache
+      const cached = this.getCached<MemoryItem[]>(cacheKey);
+      if (cached) {
+        if (this.config.debug) {
+          console.log(`[ContextAPIHandler] Search found ${cached.length} memories from cache`);
+        }
+        return cached;
+      }
+
       // Convert to DecisionFilter
       const filter: DecisionFilter = {
         component: query.component,
@@ -252,6 +326,9 @@ export class ContextAPIHandler extends EventEmitter {
         memories = memories.slice(0, query.limit);
       }
 
+      // Cache result
+      this.setCached(cacheKey, memories);
+
       if (this.config.debug) {
         console.log(`[ContextAPIHandler] Search found ${memories.length} memories`);
       }
@@ -267,6 +344,8 @@ export class ContextAPIHandler extends EventEmitter {
   /**
    * Get specific ADR by decision ID
    *
+   * Performance: Cached ADRs by decision ID for 1 minute
+   *
    * Process:
    * 1. Query decision by ID from store
    * 2. Convert to ADRDisplay format with full details
@@ -277,6 +356,18 @@ export class ContextAPIHandler extends EventEmitter {
    */
   async getADR(decisionId: string): Promise<ADRDisplay | null> {
     try {
+      // Create cache key
+      const cacheKey = `adr:${decisionId}`;
+
+      // Check cache
+      const cached = this.getCached<ADRDisplay>(cacheKey);
+      if (cached) {
+        if (this.config.debug) {
+          console.log(`[ContextAPIHandler] Retrieved ADR from cache: ${decisionId}`);
+        }
+        return cached;
+      }
+
       // Query all decisions and find by ID
       const decisions = this.decisionStore.getDecisions();
       const decision = decisions.find((d) => d.id === decisionId);
@@ -290,6 +381,9 @@ export class ContextAPIHandler extends EventEmitter {
 
       // Convert to ADRDisplay format
       const adr = this.convertToADR(decision);
+
+      // Cache result
+      this.setCached(cacheKey, adr);
 
       if (this.config.debug) {
         console.log(`[ContextAPIHandler] Retrieved ADR: ${decisionId}`);
@@ -306,6 +400,8 @@ export class ContextAPIHandler extends EventEmitter {
   /**
    * Get store statistics
    *
+   * Performance: Cached with 1-minute TTL
+   *
    * Process:
    * 1. Get current store state
    * 2. Extract statistics
@@ -315,6 +411,14 @@ export class ContextAPIHandler extends EventEmitter {
    */
   async getStatistics(): Promise<StoreStatistics> {
     try {
+      // Check cache
+      if (this.statisticsCache && Date.now() - this.statisticsCacheTime < this.CACHE_TTL) {
+        if (this.config.debug) {
+          console.log(`[ContextAPIHandler] Retrieved statistics from cache`);
+        }
+        return this.statisticsCache;
+      }
+
       const state: DecisionStoreVersion = this.decisionStore.getState();
 
       const stats: StoreStatistics = {
@@ -326,6 +430,10 @@ export class ContextAPIHandler extends EventEmitter {
         version: state.version,
         lastUpdated: state.timestamp,
       };
+
+      // Cache result
+      this.statisticsCache = stats;
+      this.statisticsCacheTime = Date.now();
 
       if (this.config.debug) {
         console.log(`[ContextAPIHandler] Retrieved statistics: ${stats.totalDecisions} decisions`);
@@ -342,14 +450,19 @@ export class ContextAPIHandler extends EventEmitter {
   /**
    * Notify UI of memory updates
    *
+   * Performance: Invalidates all caches when memories are updated
+   *
    * Called externally when decisions are added/updated
    * Emits memories-updated event for UI refresh
    */
   notifyMemoriesUpdated(): void {
+    // Invalidate caches
+    this.invalidateCache();
+
     this.emit("memories-updated");
 
     if (this.config.debug) {
-      console.log("[ContextAPIHandler] Emitted memories-updated event");
+      console.log("[ContextAPIHandler] Emitted memories-updated event and invalidated caches");
     }
   }
 

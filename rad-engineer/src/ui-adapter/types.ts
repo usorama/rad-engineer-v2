@@ -155,3 +155,18 @@ export interface QualityGatesResults {
   /** Timestamp when checks completed */
   completedAt: string;
 }
+
+/**
+ * Error event emitted by handlers
+ * Provides user-friendly error information with actionable guidance
+ */
+export interface HandlerErrorEvent {
+  /** Error code for categorization */
+  code: string;
+  /** User-friendly error message */
+  message: string;
+  /** Actionable guidance for the user */
+  action: string;
+  /** Technical details (error message, stack trace, etc.) */
+  details: string;
+}

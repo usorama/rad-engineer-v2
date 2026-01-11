@@ -236,23 +236,53 @@ export class GitHubAPIHandler extends EventEmitter {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({})) as { message?: string };
-        throw new Error(
+
+        // Provide specific guidance based on status code
+        let action = 'Check your GitHub token and network connection';
+        if (response.status === 401) {
+          action = 'GitHub authentication failed. Check that your GitHub token is valid and has not expired.';
+        } else if (response.status === 403) {
+          action = 'GitHub API rate limit exceeded or token lacks required permissions. Wait or use a token with higher rate limits.';
+        } else if (response.status === 404) {
+          action = `Repository ${this.config.owner}/${this.config.repo} not found. Verify the repository exists and your token has access.`;
+        } else if (response.status >= 500) {
+          action = 'GitHub API is experiencing issues. Try again later.';
+        }
+
+        const error = new Error(
           `GitHub API error: ${response.status} ${response.statusText}. ${
             errorData.message || ""
           }`
         );
+
+        this.emit('error', {
+          code: 'GITHUB_API_ERROR',
+          message: `GitHub request failed: ${response.status} ${response.statusText}`,
+          action,
+          details: errorData.message || error.message
+        });
+
+        throw error;
       }
 
       return (await response.json()) as T;
     } catch (error) {
-      if (error instanceof Error && error.message.includes("GitHub API error")) {
-        throw error;
+      // Network error or other fetch failure
+      if (!(error instanceof Error && error.message.includes("GitHub API error"))) {
+        this.emit('error', {
+          code: 'GITHUB_NETWORK_ERROR',
+          message: 'Failed to connect to GitHub',
+          action: 'Check your internet connection and firewall settings. Verify GitHub is accessible.',
+          details: error instanceof Error ? error.message : String(error)
+        });
+
+        throw new Error(
+          `Failed to make GitHub request: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        );
       }
-      throw new Error(
-        `Failed to make GitHub request: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
+      throw error;
     }
   }
 
@@ -267,7 +297,7 @@ export class GitHubAPIHandler extends EventEmitter {
    * 5. Return issues
    *
    * @param options - Fetch options
-   * @returns Array of GitHub issues
+   * @returns Array of GitHub issues (empty array if fetch fails)
    */
   async getIssues(options: GetIssuesOptions = {}): Promise<GitHubIssue[]> {
     try {
@@ -298,8 +328,12 @@ export class GitHubAPIHandler extends EventEmitter {
 
       return issues;
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to fetch issues: ${errorMsg}`);
+      // Error already emitted by githubRequest
+      if (this.config.debug) {
+        console.warn(`[GitHubAPIHandler] Failed to fetch issues: ${error}`);
+      }
+      // Graceful degradation: return empty array
+      return [];
     }
   }
 
@@ -455,32 +489,79 @@ export class GitHubAPIHandler extends EventEmitter {
     const mergeResults: PRReviewResult["mergeResults"] = [];
 
     try {
+      // Validate AIMergeIntegration is available
+      if (!this.config.aiMergeIntegration) {
+        const error = new Error('AI merge integration not available');
+        this.emit('error', {
+          code: 'AI_MERGE_NOT_AVAILABLE',
+          message: 'Cannot review PR - AI merge plugin is not initialized',
+          action: 'Check that Python environment is set up and AI merge plugin is installed',
+          details: error.message
+        });
+        return {
+          prNumber,
+          success: false,
+          mergeResults: [],
+          error: error.message,
+        };
+      }
+
       // Resolve each conflict with AI
       for (const conflict of input.conflicts) {
-        const result = await this.config.aiMergeIntegration.resolveConflict(
-          conflict,
-          {
-            baselineCode: input.baselineCode,
-            taskSnapshots: input.taskSnapshots,
-          }
-        );
+        try {
+          const result = await this.config.aiMergeIntegration.resolveConflict(
+            conflict,
+            {
+              baselineCode: input.baselineCode,
+              taskSnapshots: input.taskSnapshots,
+            }
+          );
 
-        if (result.success && result.output?.data) {
-          const data = result.output.data;
-          mergeResults.push({
-            decision: data.decision,
-            file_path: data.file_path,
-            merged_content: data.merged_content,
-            explanation: data.explanation,
-          });
-        } else {
-          // AI merge failed for this conflict
+          if (result.success && result.output?.data) {
+            const data = result.output.data;
+            mergeResults.push({
+              decision: data.decision,
+              file_path: data.file_path,
+              merged_content: data.merged_content,
+              explanation: data.explanation,
+            });
+          } else {
+            // AI merge failed for this conflict
+            mergeResults.push({
+              decision: "failed",
+              file_path: conflict.file_path,
+              explanation: result.error || "AI merge failed",
+              error: result.error,
+            });
+
+            this.emit('error', {
+              code: 'AI_MERGE_CONFLICT_FAILED',
+              message: `Failed to resolve conflict in ${conflict.file_path}`,
+              action: 'Review the conflict manually or try again with different context',
+              details: result.error || "AI merge returned no result"
+            });
+          }
+        } catch (error) {
+          // Python plugin crashed or unavailable
+          const errorMsg = error instanceof Error ? error.message : String(error);
           mergeResults.push({
             decision: "failed",
             file_path: conflict.file_path,
-            explanation: result.error || "AI merge failed",
-            error: result.error,
+            explanation: "Plugin error: " + errorMsg,
+            error: errorMsg,
           });
+
+          this.emit('error', {
+            code: 'AI_MERGE_PLUGIN_ERROR',
+            message: `AI merge plugin failed for ${conflict.file_path}`,
+            action: 'Check Python environment and plugin installation. Try restarting the application.',
+            details: errorMsg
+          });
+
+          // Continue with other conflicts (graceful degradation)
+          if (this.config.debug) {
+            console.warn(`[GitHubAPIHandler] Continuing with remaining conflicts after error: ${errorMsg}`);
+          }
         }
       }
 
@@ -502,13 +583,21 @@ export class GitHubAPIHandler extends EventEmitter {
         console.log(
           `[GitHubAPIHandler] Reviewed PR #${prNumber}: ${
             success ? "SUCCESS" : "FAILED"
-          }`
+          } (${mergeResults.length} conflicts processed)`
         );
       }
 
       return reviewResult;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
+
+      this.emit('error', {
+        code: 'PR_REVIEW_ERROR',
+        message: `Failed to review PR #${prNumber}`,
+        action: 'Check AI merge plugin and network connectivity. Verify PR data is valid.',
+        details: errorMsg
+      });
+
       return {
         prNumber,
         success: false,

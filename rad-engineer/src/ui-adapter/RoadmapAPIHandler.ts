@@ -149,6 +149,14 @@ export class RoadmapAPIHandler extends EventEmitter {
   private readonly checkpointName = "auto-claude-roadmap";
   private featureIdCounter = 0;
 
+  // Performance: Caching layer
+  private cache = new Map<string, { data: unknown; timestamp: number }>();
+  private readonly CACHE_TTL = 60000; // 1 minute cache TTL
+
+  // Performance: Memoized checkpoint
+  private checkpointCache: RoadmapCheckpoint | null = null;
+  private checkpointCacheTime = 0;
+
   constructor(config: RoadmapAPIHandlerConfig) {
     super();
     this.config = config;
@@ -160,15 +168,67 @@ export class RoadmapAPIHandler extends EventEmitter {
   }
 
   /**
+   * Get data from cache
+   *
+   * @param key - Cache key
+   * @returns Cached data or null if expired/not found
+   */
+  private getCached<T>(key: string): T | null {
+    const entry = this.cache.get(key);
+    if (entry && Date.now() - entry.timestamp < this.CACHE_TTL) {
+      return entry.data as T;
+    }
+    this.cache.delete(key);
+    return null;
+  }
+
+  /**
+   * Set data in cache
+   *
+   * @param key - Cache key
+   * @param data - Data to cache
+   */
+  private setCached<T>(key: string, data: T): void {
+    this.cache.set(key, { data, timestamp: Date.now() });
+  }
+
+  /**
+   * Invalidate cache entries
+   *
+   * @param pattern - Optional pattern to match keys (invalidates all if not provided)
+   */
+  private invalidateCache(pattern?: string): void {
+    if (!pattern) {
+      this.cache.clear();
+      this.checkpointCache = null;
+      this.checkpointCacheTime = 0;
+      return;
+    }
+
+    for (const key of this.cache.keys()) {
+      if (key.includes(pattern)) {
+        this.cache.delete(key);
+      }
+    }
+  }
+
+  /**
    * Load roadmap checkpoint from StateManager
+   *
+   * Performance: Memoized with 1-minute TTL to avoid repeated disk reads
    *
    * @returns Roadmap checkpoint or empty state if not found
    */
   private async loadCheckpoint(): Promise<RoadmapCheckpoint> {
+    // Check memoized checkpoint cache
+    if (this.checkpointCache && Date.now() - this.checkpointCacheTime < this.CACHE_TTL) {
+      return this.checkpointCache;
+    }
+
     const state = await this.stateManager.loadCheckpoint(this.checkpointName);
 
     if (!state) {
-      return {
+      const emptyCheckpoint: RoadmapCheckpoint = {
         waveNumber: 0,
         completedTasks: [],
         failedTasks: [],
@@ -179,13 +239,27 @@ export class RoadmapAPIHandler extends EventEmitter {
           lastUpdated: new Date().toISOString(),
         },
       };
+
+      // Cache empty checkpoint
+      this.checkpointCache = emptyCheckpoint;
+      this.checkpointCacheTime = Date.now();
+
+      return emptyCheckpoint;
     }
 
-    return state as unknown as RoadmapCheckpoint;
+    const checkpoint = state as unknown as RoadmapCheckpoint;
+
+    // Cache loaded checkpoint
+    this.checkpointCache = checkpoint;
+    this.checkpointCacheTime = Date.now();
+
+    return checkpoint;
   }
 
   /**
    * Save roadmap checkpoint to StateManager
+   *
+   * Performance: Invalidates caches after save to ensure consistency
    *
    * @param checkpoint - Roadmap checkpoint to save
    */
@@ -198,13 +272,18 @@ export class RoadmapAPIHandler extends EventEmitter {
       checkpoint as unknown as WaveState
     );
 
+    // Invalidate all caches on save
+    this.invalidateCache();
+
     if (this.config.debug) {
-      console.log(`[RoadmapAPIHandler] Saved checkpoint`);
+      console.log(`[RoadmapAPIHandler] Saved checkpoint and invalidated caches`);
     }
   }
 
   /**
    * Get current roadmap
+   *
+   * Performance: Cached with 1-minute TTL via loadCheckpoint memoization
    *
    * @returns Current roadmap or null if none exists
    */
@@ -215,6 +294,8 @@ export class RoadmapAPIHandler extends EventEmitter {
 
   /**
    * Generate roadmap from user query
+   *
+   * Performance: Invalidates cache before mutating operation
    *
    * Process:
    * 1. Gather requirements via IntakeHandler
@@ -232,6 +313,9 @@ export class RoadmapAPIHandler extends EventEmitter {
     name: string;
     description?: string;
   }): Promise<Roadmap> {
+    // Invalidate cache before mutating operation
+    this.invalidateCache();
+
     if (this.config.debug) {
       console.log(`[RoadmapAPIHandler] Generating roadmap from query: ${spec.query}`);
     }
@@ -339,6 +423,8 @@ export class RoadmapAPIHandler extends EventEmitter {
   /**
    * Add feature to current roadmap
    *
+   * Performance: Invalidates cache before mutating operation
+   *
    * Process:
    * 1. Load current roadmap
    * 2. Create feature object
@@ -356,6 +442,9 @@ export class RoadmapAPIHandler extends EventEmitter {
     priority?: number;
     tags?: string[];
   }): Promise<RoadmapFeature> {
+    // Invalidate cache before mutating operation
+    this.invalidateCache();
+
     const checkpoint = await this.loadCheckpoint();
 
     if (!checkpoint.roadmap) {
@@ -394,6 +483,8 @@ export class RoadmapAPIHandler extends EventEmitter {
   /**
    * Update feature
    *
+   * Performance: Invalidates cache before loading to prevent reference issues
+   *
    * @param featureId - Feature ID to update
    * @param updates - Partial feature updates
    * @returns Updated feature
@@ -403,6 +494,9 @@ export class RoadmapAPIHandler extends EventEmitter {
     featureId: string,
     updates: Partial<RoadmapFeature>
   ): Promise<RoadmapFeature> {
+    // Invalidate cache before mutating operation
+    this.invalidateCache();
+
     const checkpoint = await this.loadCheckpoint();
 
     if (!checkpoint.roadmap) {
@@ -435,6 +529,8 @@ export class RoadmapAPIHandler extends EventEmitter {
   /**
    * Convert feature to executable spec
    *
+   * Performance: Invalidates cache before mutating operation
+   *
    * Process:
    * 1. Find feature
    * 2. If feature is draft, gather requirements and generate plan
@@ -447,6 +543,9 @@ export class RoadmapAPIHandler extends EventEmitter {
    * @throws Error if feature not found or already specified
    */
   async convertFeatureToSpec(featureId: string): Promise<RoadmapFeature> {
+    // Invalidate cache before mutating operation
+    this.invalidateCache();
+
     const checkpoint = await this.loadCheckpoint();
 
     if (!checkpoint.roadmap) {
@@ -548,10 +647,15 @@ export class RoadmapAPIHandler extends EventEmitter {
   /**
    * Delete feature
    *
+   * Performance: Invalidates cache before mutating operation
+   *
    * @param featureId - Feature ID to delete
    * @returns True if deleted, false if not found
    */
   async deleteFeature(featureId: string): Promise<boolean> {
+    // Invalidate cache before mutating operation
+    this.invalidateCache();
+
     const checkpoint = await this.loadCheckpoint();
 
     if (!checkpoint.roadmap) {

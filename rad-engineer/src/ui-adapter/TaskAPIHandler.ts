@@ -171,12 +171,23 @@ export class TaskAPIHandler extends EventEmitter {
    * @returns Array of Auto-Claude tasks
    */
   async getAllTasks(): Promise<AutoClaudeTask[]> {
-    const checkpoint = await this.loadCheckpoint();
+    try {
+      const checkpoint = await this.loadCheckpoint();
 
-    // Sort by createdAt descending (newest first)
-    return checkpoint.tasks.sort((a, b) => {
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
+      // Sort by createdAt descending (newest first)
+      return checkpoint.tasks.sort((a, b) => {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+    } catch (error) {
+      this.emit('error', {
+        code: 'LOAD_TASKS_ERROR',
+        message: 'Failed to load tasks from storage',
+        action: 'Check that project directory is writable and StateManager is initialized',
+        details: error instanceof Error ? error.message : String(error)
+      });
+      // Graceful degradation: return empty array
+      return [];
+    }
   }
 
   /**
@@ -190,9 +201,20 @@ export class TaskAPIHandler extends EventEmitter {
    * @returns Task if found, null otherwise
    */
   async getTask(taskId: string): Promise<AutoClaudeTask | null> {
-    const checkpoint = await this.loadCheckpoint();
-    const task = checkpoint.tasks.find((t) => t.id === taskId);
-    return task || null;
+    try {
+      const checkpoint = await this.loadCheckpoint();
+      const task = checkpoint.tasks.find((t) => t.id === taskId);
+      return task || null;
+    } catch (error) {
+      this.emit('error', {
+        code: 'LOAD_TASK_ERROR',
+        message: `Failed to load task ${taskId}`,
+        action: 'Check that project directory is accessible and storage is not corrupted',
+        details: error instanceof Error ? error.message : String(error)
+      });
+      // Graceful degradation: return null
+      return null;
+    }
   }
 
   /**
@@ -208,37 +230,48 @@ export class TaskAPIHandler extends EventEmitter {
    *
    * @param spec - Task specification from frontend
    * @returns Created Auto-Claude task
+   * @throws Error if task creation fails (after emitting error event)
    */
   async createTask(spec: AutoClaudeTaskSpec): Promise<AutoClaudeTask> {
-    // Generate unique task ID with counter to avoid collisions within same millisecond
-    const taskId = `task-${Date.now()}-${this.taskIdCounter++}`;
+    try {
+      // Generate unique task ID with counter to avoid collisions within same millisecond
+      const taskId = `task-${Date.now()}-${this.taskIdCounter++}`;
 
-    // Create task object
-    const task: AutoClaudeTask = {
-      id: taskId,
-      title: spec.title,
-      description: spec.description,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      priority: spec.priority,
-      tags: spec.tags,
-      progress: 0,
-    };
+      // Create task object
+      const task: AutoClaudeTask = {
+        id: taskId,
+        title: spec.title,
+        description: spec.description,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        priority: spec.priority,
+        tags: spec.tags,
+        progress: 0,
+      };
 
-    // Load checkpoint, add task, save
-    const checkpoint = await this.loadCheckpoint();
-    checkpoint.tasks.push(task);
-    await this.saveCheckpoint(checkpoint);
+      // Load checkpoint, add task, save
+      const checkpoint = await this.loadCheckpoint();
+      checkpoint.tasks.push(task);
+      await this.saveCheckpoint(checkpoint);
 
-    // Emit event for UI updates
-    this.emit("task-updated", task);
+      // Emit event for UI updates
+      this.emit("task-updated", task);
 
-    if (this.config.debug) {
-      console.log(`[TaskAPIHandler] Created task: ${taskId}`);
+      if (this.config.debug) {
+        console.log(`[TaskAPIHandler] Created task: ${taskId}`);
+      }
+
+      return task;
+    } catch (error) {
+      this.emit('error', {
+        code: 'CREATE_TASK_ERROR',
+        message: 'Failed to create task',
+        action: 'Check that project directory is writable and StateManager is initialized. Verify disk space is available.',
+        details: error instanceof Error ? error.message : String(error)
+      });
+      throw error; // Re-throw as task creation is critical
     }
-
-    return task;
   }
 
   /**
@@ -255,36 +288,56 @@ export class TaskAPIHandler extends EventEmitter {
    * @param taskId - Task ID to update
    * @param updates - Partial task updates
    * @returns Updated task
-   * @throws Error if task not found
+   * @throws Error if task not found or update fails
    */
   async updateTask(
     taskId: string,
     updates: Partial<AutoClaudeTask>
   ): Promise<AutoClaudeTask> {
-    const checkpoint = await this.loadCheckpoint();
-    const taskIndex = checkpoint.tasks.findIndex((t) => t.id === taskId);
+    try {
+      const checkpoint = await this.loadCheckpoint();
+      const taskIndex = checkpoint.tasks.findIndex((t) => t.id === taskId);
 
-    if (taskIndex === -1) {
-      throw new Error(`Task not found: ${taskId}`);
+      if (taskIndex === -1) {
+        const error = new Error(`Task not found: ${taskId}`);
+        this.emit('error', {
+          code: 'TASK_NOT_FOUND',
+          message: `Cannot update task ${taskId} - task does not exist`,
+          action: 'Verify the task ID is correct. The task may have been deleted.',
+          details: error.message
+        });
+        throw error;
+      }
+
+      // Apply updates
+      const task = checkpoint.tasks[taskIndex];
+      Object.assign(task, updates);
+      task.updatedAt = new Date().toISOString();
+
+      // Save checkpoint
+      checkpoint.tasks[taskIndex] = task;
+      await this.saveCheckpoint(checkpoint);
+
+      // Emit event
+      this.emit("task-updated", task);
+
+      if (this.config.debug) {
+        console.log(`[TaskAPIHandler] Updated task: ${taskId}`);
+      }
+
+      return task;
+    } catch (error) {
+      // Only emit error if not already emitted (task not found)
+      if (!(error instanceof Error && error.message.includes('Task not found'))) {
+        this.emit('error', {
+          code: 'UPDATE_TASK_ERROR',
+          message: `Failed to update task ${taskId}`,
+          action: 'Check that project directory is writable and storage is not corrupted',
+          details: error instanceof Error ? error.message : String(error)
+        });
+      }
+      throw error;
     }
-
-    // Apply updates
-    const task = checkpoint.tasks[taskIndex];
-    Object.assign(task, updates);
-    task.updatedAt = new Date().toISOString();
-
-    // Save checkpoint
-    checkpoint.tasks[taskIndex] = task;
-    await this.saveCheckpoint(checkpoint);
-
-    // Emit event
-    this.emit("task-updated", task);
-
-    if (this.config.debug) {
-      console.log(`[TaskAPIHandler] Updated task: ${taskId}`);
-    }
-
-    return task;
   }
 
   /**
@@ -333,67 +386,125 @@ export class TaskAPIHandler extends EventEmitter {
    * @throws Error if task not found or invalid state
    */
   async startTask(taskId: string): Promise<void> {
-    const checkpoint = await this.loadCheckpoint();
-    const taskIndex = checkpoint.tasks.findIndex((t) => t.id === taskId);
+    try {
+      const checkpoint = await this.loadCheckpoint();
+      const taskIndex = checkpoint.tasks.findIndex((t) => t.id === taskId);
 
-    if (taskIndex === -1) {
-      throw new Error(`Task not found: ${taskId}`);
-    }
+      if (taskIndex === -1) {
+        const error = new Error(`Task not found: ${taskId}`);
+        this.emit('error', {
+          code: 'TASK_NOT_FOUND',
+          message: `Cannot start task ${taskId} - task does not exist`,
+          action: 'Verify the task ID is correct. The task may have been deleted.',
+          details: error.message
+        });
+        throw error;
+      }
 
-    const task = checkpoint.tasks[taskIndex];
+      const task = checkpoint.tasks[taskIndex];
 
-    // Validate task state
-    if (task.status === "in_progress") {
-      throw new Error(`Task already in progress: ${taskId}`);
-    }
+      // Validate task state
+      if (task.status === "in_progress") {
+        const error = new Error(`Task already in progress: ${taskId}`);
+        this.emit('error', {
+          code: 'TASK_ALREADY_RUNNING',
+          message: `Task ${taskId} is already executing`,
+          action: 'Wait for current execution to complete, or stop the task before restarting',
+          details: error.message
+        });
+        throw error;
+      }
 
-    if (task.status === "completed") {
-      throw new Error(`Task already completed: ${taskId}`);
-    }
+      if (task.status === "completed") {
+        const error = new Error(`Task already completed: ${taskId}`);
+        this.emit('error', {
+          code: 'TASK_ALREADY_COMPLETED',
+          message: `Task ${taskId} has already completed`,
+          action: 'Create a new task if you want to re-run this work',
+          details: error.message
+        });
+        throw error;
+      }
 
-    // Update task status to in_progress
-    task.status = "in_progress";
-    task.updatedAt = new Date().toISOString();
-    task.progress = 0;
+      // Validate WaveOrchestrator is available
+      if (!this.waveOrchestrator.executeWave) {
+        const error = new Error('WaveOrchestrator not available');
+        this.emit('error', {
+          code: 'ORCHESTRATOR_NOT_AVAILABLE',
+          message: 'Cannot start task - execution engine is not initialized',
+          action: 'Restart the application or check that WaveOrchestrator is properly configured',
+          details: error.message
+        });
+        throw error;
+      }
 
-    // Save checkpoint
-    checkpoint.tasks[taskIndex] = task;
-    await this.saveCheckpoint(checkpoint);
+      // Update task status to in_progress
+      task.status = "in_progress";
+      task.updatedAt = new Date().toISOString();
+      task.progress = 0;
 
-    // Emit event
-    this.emit("task-updated", task);
+      // Save checkpoint
+      checkpoint.tasks[taskIndex] = task;
+      await this.saveCheckpoint(checkpoint);
 
-    if (this.config.debug) {
-      console.log(`[TaskAPIHandler] Started task: ${taskId}`);
-    }
+      // Emit event
+      this.emit("task-updated", task);
 
-    // Convert task to Wave
-    const wave = this.formatTranslator.toRadEngineerWave(
-      {
-        title: task.title,
-        description: task.description,
-        priority: task.priority,
-        tags: task.tags,
-      },
-      taskId
-    );
+      if (this.config.debug) {
+        console.log(`[TaskAPIHandler] Started task: ${taskId}`);
+      }
 
-    // Track running wave
-    this.runningWaves.set(taskId, { waveId: wave.id });
+      // Convert task to Wave
+      const wave = this.formatTranslator.toRadEngineerWave(
+        {
+          title: task.title,
+          description: task.description,
+          priority: task.priority,
+          tags: task.tags,
+        },
+        taskId
+      );
 
-    // Execute wave asynchronously (don't await - runs in background)
-    this.executeWaveAsync(taskId, wave).catch(async (error) => {
-      // Handle unexpected errors
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(`[TaskAPIHandler] Wave execution error for task ${taskId}: ${errorMsg}`);
+      // Track running wave
+      this.runningWaves.set(taskId, { waveId: wave.id });
 
-      // Update task to failed
-      await this.updateTaskAfterExecution(taskId, {
-        status: "failed",
-        error: errorMsg,
-        progress: 0,
+      // Execute wave asynchronously (don't await - runs in background)
+      this.executeWaveAsync(taskId, wave).catch(async (error) => {
+        // Handle unexpected errors
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.error(`[TaskAPIHandler] Wave execution error for task ${taskId}: ${errorMsg}`);
+
+        this.emit('error', {
+          code: 'WAVE_EXECUTION_ERROR',
+          message: `Task ${taskId} execution failed`,
+          action: 'Check the task output for details. You may need to retry or fix task configuration.',
+          details: errorMsg
+        });
+
+        // Update task to failed
+        await this.updateTaskAfterExecution(taskId, {
+          status: "failed",
+          error: errorMsg,
+          progress: 0,
+        });
       });
-    });
+    } catch (error) {
+      // Emit error if not already emitted
+      if (!(error instanceof Error && (
+        error.message.includes('Task not found') ||
+        error.message.includes('already in progress') ||
+        error.message.includes('already completed') ||
+        error.message.includes('WaveOrchestrator not available')
+      ))) {
+        this.emit('error', {
+          code: 'START_TASK_ERROR',
+          message: `Failed to start task ${taskId}`,
+          action: 'Check that StateManager and WaveOrchestrator are initialized',
+          details: error instanceof Error ? error.message : String(error)
+        });
+      }
+      throw error;
+    }
   }
 
   /**
@@ -583,54 +694,128 @@ export class TaskAPIHandler extends EventEmitter {
     const gates: QualityGateResult[] = [];
     let totalDuration = 0;
 
-    // Emit progress
-    this.emitProgress(taskId, {
-      progress: 100,
-      message: "Running quality gates...",
-    });
-
-    // 1. TypeCheck (required)
-    const typecheckResult = await this.runQualityGate("typecheck", "pnpm typecheck", "required");
-    gates.push(typecheckResult);
-    totalDuration += typecheckResult.duration;
-
-    // 2. Lint (warning)
-    const lintResult = await this.runQualityGate("lint", "pnpm lint", "warning");
-    gates.push(lintResult);
-    totalDuration += lintResult.duration;
-
-    // 3. Test (required)
-    const testResult = await this.runQualityGate("test", "pnpm test", "required");
-    gates.push(testResult);
-    totalDuration += testResult.duration;
-
-    const completedAt = new Date().toISOString();
-
-    // Overall pass: all required gates must pass
-    const passed = gates
-      .filter(g => g.severity === "required")
-      .every(g => g.passed);
-
-    const results: QualityGatesResults = {
-      passed,
-      gates,
-      totalDuration,
-      startedAt,
-      completedAt,
-    };
-
-    // Emit quality:completed event
-    this.emit("quality:completed", { taskId, results });
-
-    if (this.config.debug) {
-      console.log(`[TaskAPIHandler] Quality gates for task ${taskId}: ${passed ? "PASSED" : "FAILED"}`);
-      gates.forEach(gate => {
-        const status = gate.passed ? "✓" : "✗";
-        console.log(`  ${status} ${gate.type} (${gate.severity}): ${gate.duration}ms`);
+    try {
+      // Emit progress
+      this.emitProgress(taskId, {
+        progress: 100,
+        message: "Running quality gates...",
       });
-    }
 
-    return results;
+      // 1. TypeCheck (required)
+      try {
+        const typecheckResult = await this.runQualityGate("typecheck", "pnpm typecheck", "required");
+        gates.push(typecheckResult);
+        totalDuration += typecheckResult.duration;
+      } catch (error) {
+        // Gate execution failed - add failed result
+        gates.push({
+          type: "typecheck",
+          passed: false,
+          severity: "required",
+          output: "",
+          duration: 0,
+          error: error instanceof Error ? error.message : String(error),
+          timestamp: new Date().toISOString(),
+        });
+        this.emit('error', {
+          code: 'QUALITY_GATE_EXECUTION_ERROR',
+          message: 'TypeCheck quality gate failed to execute',
+          action: 'Check that pnpm is installed and project dependencies are up to date',
+          details: error instanceof Error ? error.message : String(error)
+        });
+      }
+
+      // 2. Lint (warning)
+      try {
+        const lintResult = await this.runQualityGate("lint", "pnpm lint", "warning");
+        gates.push(lintResult);
+        totalDuration += lintResult.duration;
+      } catch (error) {
+        // Gate execution failed - add failed result
+        gates.push({
+          type: "lint",
+          passed: false,
+          severity: "warning",
+          output: "",
+          duration: 0,
+          error: error instanceof Error ? error.message : String(error),
+          timestamp: new Date().toISOString(),
+        });
+        // Warning-level gates don't emit errors, just log
+        if (this.config.debug) {
+          console.warn(`[TaskAPIHandler] Lint quality gate failed to execute: ${error}`);
+        }
+      }
+
+      // 3. Test (required)
+      try {
+        const testResult = await this.runQualityGate("test", "pnpm test", "required");
+        gates.push(testResult);
+        totalDuration += testResult.duration;
+      } catch (error) {
+        // Gate execution failed - add failed result
+        gates.push({
+          type: "test",
+          passed: false,
+          severity: "required",
+          output: "",
+          duration: 0,
+          error: error instanceof Error ? error.message : String(error),
+          timestamp: new Date().toISOString(),
+        });
+        this.emit('error', {
+          code: 'QUALITY_GATE_EXECUTION_ERROR',
+          message: 'Test quality gate failed to execute',
+          action: 'Check that test framework is installed and configured correctly',
+          details: error instanceof Error ? error.message : String(error)
+        });
+      }
+
+      const completedAt = new Date().toISOString();
+
+      // Overall pass: all required gates must pass
+      const passed = gates
+        .filter(g => g.severity === "required")
+        .every(g => g.passed);
+
+      const results: QualityGatesResults = {
+        passed,
+        gates,
+        totalDuration,
+        startedAt,
+        completedAt,
+      };
+
+      // Emit quality:completed event
+      this.emit("quality:completed", { taskId, results });
+
+      if (this.config.debug) {
+        console.log(`[TaskAPIHandler] Quality gates for task ${taskId}: ${passed ? "PASSED" : "FAILED"}`);
+        gates.forEach(gate => {
+          const status = gate.passed ? "✓" : "✗";
+          console.log(`  ${status} ${gate.type} (${gate.severity}): ${gate.duration}ms`);
+        });
+      }
+
+      return results;
+    } catch (error) {
+      // Unexpected error in quality gates orchestration
+      this.emit('error', {
+        code: 'QUALITY_GATES_ERROR',
+        message: 'Quality gates execution failed',
+        action: 'Check system resources and verify project configuration',
+        details: error instanceof Error ? error.message : String(error)
+      });
+
+      // Return failed results with what we have
+      return {
+        passed: false,
+        gates,
+        totalDuration,
+        startedAt,
+        completedAt: new Date().toISOString(),
+      };
+    }
   }
 
   /**

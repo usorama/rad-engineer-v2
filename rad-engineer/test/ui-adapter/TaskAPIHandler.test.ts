@@ -1188,3 +1188,296 @@ describe("TaskAPIHandler: WaveOrchestrator integration", () => {
     expect(cancelEvent?.taskId).toBe(task.id);
   });
 });
+
+describe("TaskAPIHandler: Error Handling and Graceful Degradation", () => {
+  let handler: TaskAPIHandler;
+  let stateManager: StateManager;
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = `/tmp/test-task-handler-errors-${Date.now()}`;
+    await fs.mkdir(tempDir, { recursive: true });
+
+    stateManager = new StateManager({ checkpointsDir: tempDir });
+
+    handler = new TaskAPIHandler({
+      projectDir: "/test/project",
+      stateManager,
+      waveOrchestrator: createMockWaveOrchestrator(),
+      resourceManager: createMockResourceManager(),
+      debug: false,
+    });
+  });
+
+  afterEach(async () => {
+    try {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    } catch (error) {
+      // Ignore cleanup errors
+    }
+  });
+
+  it("Emits error event on getAllTasks storage failure", async () => {
+    // Create isolated handler for corruption test
+    const corruptTempDir = `/tmp/test-task-handler-corrupt1-${Date.now()}`;
+    await fs.mkdir(corruptTempDir, { recursive: true });
+    const corruptStateManager = new StateManager({ checkpointsDir: corruptTempDir });
+    const corruptHandler = new TaskAPIHandler({
+      projectDir: "/test/project",
+      stateManager: corruptStateManager,
+      waveOrchestrator: createMockWaveOrchestrator(),
+      resourceManager: createMockResourceManager(),
+    });
+
+    const errorEvents: any[] = [];
+    corruptHandler.on("error", (event) => {
+      errorEvents.push(event);
+    });
+
+    // Corrupt StateManager by removing temp directory
+    await fs.rm(corruptTempDir, { recursive: true, force: true });
+
+    const tasks = await corruptHandler.getAllTasks();
+
+    // Graceful degradation: returns empty array
+    expect(tasks).toEqual([]);
+
+    // Error event emitted
+    expect(errorEvents.length).toBeGreaterThan(0);
+    expect(errorEvents[0].code).toBe("LOAD_TASKS_ERROR");
+    expect(errorEvents[0].message).toContain("Failed to load tasks");
+    expect(errorEvents[0].action).toBeTruthy();
+  });
+
+  it("Emits error event on getTask storage failure", async () => {
+    // Create isolated handler for corruption test
+    const corruptTempDir = `/tmp/test-task-handler-corrupt2-${Date.now()}`;
+    await fs.mkdir(corruptTempDir, { recursive: true });
+    const corruptStateManager = new StateManager({ checkpointsDir: corruptTempDir });
+    const corruptHandler = new TaskAPIHandler({
+      projectDir: "/test/project",
+      stateManager: corruptStateManager,
+      waveOrchestrator: createMockWaveOrchestrator(),
+      resourceManager: createMockResourceManager(),
+    });
+
+    const errorEvents: any[] = [];
+    corruptHandler.on("error", (event) => {
+      errorEvents.push(event);
+    });
+
+    // Corrupt StateManager
+    await fs.rm(corruptTempDir, { recursive: true, force: true });
+
+    const task = await corruptHandler.getTask("some-id");
+
+    // Graceful degradation: returns null
+    expect(task).toBeNull();
+
+    // Error event emitted
+    expect(errorEvents.length).toBeGreaterThan(0);
+    expect(errorEvents[0].code).toBe("LOAD_TASK_ERROR");
+  });
+
+  it("Emits error event on task not found during update", async () => {
+    // Create isolated handler to avoid interference
+    const testTempDir = `/tmp/test-task-handler-notfound-${Date.now()}`;
+    await fs.mkdir(testTempDir, { recursive: true });
+    const testStateManager = new StateManager({ checkpointsDir: testTempDir });
+    const testHandler = new TaskAPIHandler({
+      projectDir: "/test/project",
+      stateManager: testStateManager,
+      waveOrchestrator: createMockWaveOrchestrator(),
+      resourceManager: createMockResourceManager(),
+    });
+
+    const errorEvents: any[] = [];
+    testHandler.on("error", (event) => {
+      errorEvents.push(event);
+    });
+
+    await expect(
+      testHandler.updateTask("non-existent", { title: "Updated" })
+    ).rejects.toThrow("Task not found");
+
+    expect(errorEvents.length).toBeGreaterThan(0);
+    expect(errorEvents[0].code).toBe("TASK_NOT_FOUND");
+    expect(errorEvents[0].action).toContain("Verify the task ID");
+
+    // Cleanup
+    await fs.rm(testTempDir, { recursive: true, force: true });
+  });
+
+  it("Emits error event when starting already running task", async () => {
+    // Create new temp dir and handler for this test
+    const testTempDir = `/tmp/test-task-handler-running-${Date.now()}`;
+    await fs.mkdir(testTempDir, { recursive: true });
+    const testStateManager = new StateManager({ checkpointsDir: testTempDir });
+    const testHandler = new TaskAPIHandler({
+      projectDir: "/test/project",
+      stateManager: testStateManager,
+      waveOrchestrator: createMockWaveOrchestrator(),
+      resourceManager: createMockResourceManager(),
+    });
+
+    // Register error listener BEFORE creating task
+    const errorEvents: any[] = [];
+    testHandler.on("error", (event) => {
+      errorEvents.push(event);
+    });
+
+    const task = await testHandler.createTask({
+      title: "Test task",
+      description: "Test",
+    });
+
+    await testHandler.startTask(task.id);
+
+    await expect(testHandler.startTask(task.id)).rejects.toThrow("already in progress");
+
+    expect(errorEvents.length).toBeGreaterThan(0);
+    expect(errorEvents[0].code).toBe("TASK_ALREADY_RUNNING");
+    expect(errorEvents[0].action).toContain("Wait for current execution");
+
+    // Cleanup
+    await fs.rm(testTempDir, { recursive: true, force: true });
+  });
+
+  it("Emits error event when starting completed task", async () => {
+    // Create new temp dir and handler for this test
+    const testTempDir = `/tmp/test-task-handler-completed-${Date.now()}`;
+    await fs.mkdir(testTempDir, { recursive: true });
+    const testStateManager = new StateManager({ checkpointsDir: testTempDir });
+    const testHandler = new TaskAPIHandler({
+      projectDir: "/test/project",
+      stateManager: testStateManager,
+      waveOrchestrator: createMockWaveOrchestrator(),
+      resourceManager: createMockResourceManager(),
+    });
+
+    // Register error listener BEFORE creating task
+    const errorEvents: any[] = [];
+    testHandler.on("error", (event) => {
+      errorEvents.push(event);
+    });
+
+    const task = await testHandler.createTask({
+      title: "Test task",
+      description: "Test",
+    });
+
+    // Manually set task to completed
+    await testHandler.updateTask(task.id, { status: "completed" });
+
+    await expect(testHandler.startTask(task.id)).rejects.toThrow("already completed");
+
+    expect(errorEvents.length).toBeGreaterThan(0);
+    expect(errorEvents[0].code).toBe("TASK_ALREADY_COMPLETED");
+    expect(errorEvents[0].action).toContain("Create a new task");
+
+    // Cleanup
+    await fs.rm(testTempDir, { recursive: true, force: true });
+  });
+
+  it("Emits error event when WaveOrchestrator is not available", async () => {
+    // Create new temp dir and handler for this test
+    const testTempDir = `/tmp/test-task-handler-noorch-${Date.now()}`;
+    await fs.mkdir(testTempDir, { recursive: true });
+    const testStateManager = new StateManager({ checkpointsDir: testTempDir });
+    const handlerWithoutOrchestrator = new TaskAPIHandler({
+      projectDir: "/test/project",
+      stateManager: testStateManager,
+      waveOrchestrator: {}, // Missing executeWave
+      resourceManager: createMockResourceManager(),
+    });
+
+    // Register error listener BEFORE creating task
+    const errorEvents: any[] = [];
+    handlerWithoutOrchestrator.on("error", (event) => {
+      errorEvents.push(event);
+    });
+
+    const task = await handlerWithoutOrchestrator.createTask({
+      title: "Test task",
+      description: "Test",
+    });
+
+    await expect(handlerWithoutOrchestrator.startTask(task.id)).rejects.toThrow(
+      "WaveOrchestrator not available"
+    );
+
+    expect(errorEvents.length).toBeGreaterThan(0);
+    expect(errorEvents[0].code).toBe("ORCHESTRATOR_NOT_AVAILABLE");
+    expect(errorEvents[0].action).toContain("Restart the application");
+
+    // Cleanup
+    await fs.rm(testTempDir, { recursive: true, force: true });
+  });
+
+  it("Emits error event on wave execution failure", async () => {
+    // Create new temp dir and handler for this test
+    const testTempDir = `/tmp/test-task-handler-fail-${Date.now()}-${Math.random()}`;
+    await fs.mkdir(testTempDir, { recursive: true });
+    const testStateManager = new StateManager({ checkpointsDir: testTempDir });
+
+    const mockOrchestrator = createMockWaveOrchestrator();
+    mockOrchestrator.executeWave = async () => {
+      throw new Error("Wave execution failed");
+    };
+
+    const handlerWithFailingOrchestrator = new TaskAPIHandler({
+      projectDir: "/test/project",
+      stateManager: testStateManager,
+      waveOrchestrator: mockOrchestrator,
+      resourceManager: createMockResourceManager(),
+    });
+
+    // Register error listener BEFORE creating task
+    const errorEvents: any[] = [];
+    handlerWithFailingOrchestrator.on("error", (event) => {
+      errorEvents.push(event);
+    });
+
+    const task = await handlerWithFailingOrchestrator.createTask({
+      title: "Test task",
+      description: "Test",
+    });
+
+    await handlerWithFailingOrchestrator.startTask(task.id);
+
+    // Wait for async execution
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    expect(errorEvents.length).toBeGreaterThan(0);
+    expect(errorEvents.some(e => e.code === "WAVE_EXECUTION_ERROR")).toBe(true);
+    const waveError = errorEvents.find(e => e.code === "WAVE_EXECUTION_ERROR");
+    expect(waveError?.action).toContain("retry");
+
+    // Cleanup
+    await fs.rm(testTempDir, { recursive: true, force: true });
+  });
+
+  it("Error events include all required fields", async () => {
+    const errorEvents: any[] = [];
+    handler.on("error", (event) => {
+      errorEvents.push(event);
+    });
+
+    await expect(
+      handler.updateTask("non-existent", { title: "Updated" })
+    ).rejects.toThrow();
+
+    expect(errorEvents.length).toBeGreaterThan(0);
+    const errorEvent = errorEvents[0];
+
+    // Verify structure
+    expect(errorEvent.code).toBeTruthy();
+    expect(errorEvent.message).toBeTruthy();
+    expect(errorEvent.action).toBeTruthy();
+    expect(errorEvent.details).toBeTruthy();
+
+    // Verify actionable guidance
+    expect(typeof errorEvent.action).toBe("string");
+    expect(errorEvent.action.length).toBeGreaterThan(20); // Meaningful guidance
+  });
+});
