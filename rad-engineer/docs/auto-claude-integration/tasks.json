@@ -2,9 +2,9 @@
   "project": "Auto-Claude + rad-engineer-v2 Integration",
   "version": "1.0.0",
   "created": "2026-01-11T13:00:00Z",
-  "updated": "2026-01-11T18:30:00Z",
+  "updated": "2026-01-11T19:00:00Z",
   "totalTasks": 78,
-  "completedTasks": 21,
+  "completedTasks": 23,
   "phases": {
     "phase0": {
       "name": "Proof of Concept",
@@ -795,15 +795,25 @@
       "phase": "3",
       "title": "Insights Chat Integration",
       "description": "Implement insights API, integrate with DecisionLearningIntegration",
-      "status": "pending",
+      "status": "completed",
       "dependencies": [
         "P2-006"
       ],
       "estimatedHours": 15,
-      "actualHours": null,
+      "actualHours": 5,
       "assignee": "claude",
-      "evidence": [],
-      "notes": "",
+      "evidence": [
+        "File created: src/ui-adapter/InsightsAPIHandler.ts (539 lines)",
+        "Test created: test/ui-adapter/InsightsChat.test.ts (693 lines, 27 tests)",
+        "Test results: 27/27 tests passing (100%)",
+        "Coverage: 100% for InsightsAPIHandler",
+        "TypeScript: PASS (0 errors)",
+        "APIs implemented: createSession, sendMessage, getSessionHistory, getAllSessions, deleteSession",
+        "Integration: DecisionLearningStore for context, Anthropic SDK for streaming",
+        "Event emissions: session-created, message-added, message-chunk (streaming)",
+        "StateManager persistence: insights-chat-sessions checkpoint"
+      ],
+      "notes": "Completed 2026-01-11T19:00:00Z. InsightsAPIHandler with AI-powered chat and DecisionLearningStore context. 27 tests passing, 100% coverage.",
       "subtasks": [
         "Create InsightsAPIHandler.ts in rad-engineer/src/ui-adapter/",
         "Implement insights:send-message API",
@@ -821,15 +831,25 @@
       "phase": "3",
       "title": "GitHub/GitLab Integration",
       "description": "Implement GitHub/GitLab API handlers for issues, PRs, reviews",
-      "status": "pending",
+      "status": "completed",
       "dependencies": [
         "P2-006"
       ],
       "estimatedHours": 15,
-      "actualHours": null,
+      "actualHours": 6,
       "assignee": "claude",
-      "evidence": [],
-      "notes": "",
+      "evidence": [
+        "File created: src/ui-adapter/GitHubAPIHandler.ts (520 lines)",
+        "Test created: test/ui-adapter/GitHubAPIHandler.test.ts (461 lines, 13 tests)",
+        "Test results: 13/13 tests passing (100%)",
+        "Coverage: 97.5% functions, 100% lines",
+        "TypeScript: PASS (0 errors)",
+        "APIs implemented: github:get-issues, create-task-from-issue, get-prs, review-pr",
+        "Integration: TaskAPIHandler for task creation, AIMergePluginIntegration for PR review",
+        "Event emissions: issues-fetched, prs-fetched, task-created-from-issue, pr-reviewed",
+        "Features: Issue filtering, conflict detection, AI merge integration"
+      ],
+      "notes": "Completed 2026-01-11T19:00:00Z. GitHubAPIHandler with issue sync, PR review, and AI merge integration. 13 tests passing, 97.5% coverage.",
       "subtasks": [
         "Create GitHubAPIHandler.ts in rad-engineer/src/ui-adapter/",
         "Implement github:get-issues API",
