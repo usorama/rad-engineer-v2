@@ -5,6 +5,7 @@
  * - ElectronIPCAdapter: Main adapter for IPC communication
  * - TaskAPIHandler: Task CRUD operations with StateManager persistence
  * - SettingsAPIHandler: Settings & profile management with secure storage
+ * - TerminalAPIHandler: Terminal PTY operations with task association
  * - EventBroadcaster: Real-time event broadcasting with backpressure handling
  * - FormatTranslator: Format conversion utilities
  * - Types: TypeScript interfaces for UI integration
@@ -20,6 +21,14 @@ export type {
   AppSettings,
   ProviderType,
 } from "./SettingsAPIHandler.js";
+export { TerminalAPIHandler } from "./TerminalAPIHandler.js";
+export type {
+  TerminalAPIHandlerConfig,
+  TerminalCreateOptions,
+  TerminalOperationResult,
+  TerminalSession,
+  TerminalManager,
+} from "./TerminalAPIHandler.js";
 export {
   EventBroadcaster,
   EventType,
