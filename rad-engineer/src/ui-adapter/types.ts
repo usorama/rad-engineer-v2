@@ -83,6 +83,10 @@ export interface TaskProgressEvent {
 export interface IPCAdapterConfig {
   /** Project directory path */
   projectDir: string;
+  /** WaveOrchestrator instance (optional - creates default if not provided) */
+  waveOrchestrator?: import("@/advanced/WaveOrchestrator.js").WaveOrchestrator;
+  /** ResourceManager instance (optional - creates default if not provided) */
+  resourceManager?: import("@/core/ResourceManager.js").ResourceManager;
   /** Optional: Enable debug logging */
   debug?: boolean;
 }

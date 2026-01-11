@@ -18,7 +18,10 @@
 import { EventEmitter } from "events";
 import { StateManager } from "@/advanced/StateManager.js";
 import type { WaveState } from "@/advanced/StateManager.js";
-import type { AutoClaudeTask, AutoClaudeTaskSpec } from "./types.js";
+import type { WaveOrchestrator, Task as WaveTask, WaveResult } from "@/advanced/WaveOrchestrator.js";
+import type { ResourceManager } from "@/core/ResourceManager.js";
+import { FormatTranslator } from "./FormatTranslator.js";
+import type { AutoClaudeTask, AutoClaudeTaskSpec, TaskProgressEvent } from "./types.js";
 
 /**
  * Task checkpoint format stored in StateManager
@@ -44,6 +47,10 @@ export interface TaskAPIHandlerConfig {
   projectDir: string;
   /** StateManager instance for persistence */
   stateManager: StateManager;
+  /** WaveOrchestrator instance for task execution */
+  waveOrchestrator: Partial<WaveOrchestrator> | WaveOrchestrator;
+  /** ResourceManager instance for concurrency control */
+  resourceManager: Partial<ResourceManager> | ResourceManager;
   /** Optional: Enable debug logging */
   debug?: boolean;
 }
@@ -82,13 +89,20 @@ export interface TaskAPIHandlerConfig {
 export class TaskAPIHandler extends EventEmitter {
   private readonly config: TaskAPIHandlerConfig;
   private readonly stateManager: StateManager;
+  private readonly waveOrchestrator: Partial<WaveOrchestrator> | WaveOrchestrator;
+  private readonly resourceManager: Partial<ResourceManager> | ResourceManager;
+  private readonly formatTranslator: FormatTranslator;
   private readonly checkpointName = "auto-claude-tasks";
   private taskIdCounter = 0; // Counter for unique IDs within same millisecond
+  private readonly runningWaves: Map<string, { waveId: string; abortController?: AbortController }> = new Map();
 
   constructor(config: TaskAPIHandlerConfig) {
     super();
     this.config = config;
     this.stateManager = config.stateManager;
+    this.waveOrchestrator = config.waveOrchestrator;
+    this.resourceManager = config.resourceManager;
+    this.formatTranslator = new FormatTranslator();
 
     if (this.config.debug) {
       console.log(`[TaskAPIHandler] Initialized for project: ${config.projectDir}`);
@@ -307,9 +321,11 @@ export class TaskAPIHandler extends EventEmitter {
    * Process:
    * 1. Validate task exists and is not already executing
    * 2. Update task status to in_progress
-   * 3. Save checkpoint
-   * 4. Emit task-updated event
-   * 5. [STUB] Future: Integrate with WaveOrchestrator (P1-002)
+   * 3. Convert task to Wave via FormatTranslator
+   * 4. Execute wave via WaveOrchestrator
+   * 5. Stream progress events
+   * 6. Update task status based on wave execution result
+   * 7. Save final status to StateManager
    *
    * @param taskId - Task ID to start
    * @throws Error if task not found or invalid state
@@ -333,7 +349,7 @@ export class TaskAPIHandler extends EventEmitter {
       throw new Error(`Task already completed: ${taskId}`);
     }
 
-    // Update task status
+    // Update task status to in_progress
     task.status = "in_progress";
     task.updatedAt = new Date().toISOString();
     task.progress = 0;
@@ -347,13 +363,181 @@ export class TaskAPIHandler extends EventEmitter {
 
     if (this.config.debug) {
       console.log(`[TaskAPIHandler] Started task: ${taskId}`);
-      console.log(
-        `[TaskAPIHandler] STUB: WaveOrchestrator integration pending (P1-002)`
-      );
     }
 
-    // STUB: WaveOrchestrator integration
-    // Future: await this.waveOrchestrator.execute(task)
+    // Convert task to Wave
+    const wave = this.formatTranslator.toRadEngineerWave(
+      {
+        title: task.title,
+        description: task.description,
+        priority: task.priority,
+        tags: task.tags,
+      },
+      taskId
+    );
+
+    // Track running wave
+    this.runningWaves.set(taskId, { waveId: wave.id });
+
+    // Execute wave asynchronously (don't await - runs in background)
+    this.executeWaveAsync(taskId, wave).catch(async (error) => {
+      // Handle unexpected errors
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`[TaskAPIHandler] Wave execution error for task ${taskId}: ${errorMsg}`);
+
+      // Update task to failed
+      await this.updateTaskAfterExecution(taskId, {
+        status: "failed",
+        error: errorMsg,
+        progress: 0,
+      });
+    });
+  }
+
+  /**
+   * Execute wave asynchronously with progress updates
+   *
+   * @param taskId - Task ID
+   * @param wave - Wave to execute
+   */
+  private async executeWaveAsync(taskId: string, wave: any): Promise<void> {
+    try {
+      // Convert wave stories to WaveOrchestrator tasks
+      const waveTasks: WaveTask[] = wave.stories.map((story: any) => ({
+        id: story.id,
+        prompt: story.description,
+        dependencies: story.dependencies || [],
+      }));
+
+      // Emit initial progress
+      this.emitProgress(taskId, {
+        progress: 0,
+        message: `Starting execution of ${waveTasks.length} task(s)`,
+        totalWaves: 1,
+        waveNumber: 1,
+      });
+
+      // Execute wave
+      const result: WaveResult = await this.waveOrchestrator.executeWave!(waveTasks, {
+        continueOnError: false,
+      });
+
+      // Calculate final progress based on results
+      const totalTasks = result.tasks.length;
+      const successTasks = result.totalSuccess;
+      const progress = totalTasks > 0 ? Math.round((successTasks / totalTasks) * 100) : 0;
+
+      // Determine final status
+      let status: "completed" | "failed" = "completed";
+      let errorMsg: string | undefined;
+
+      if (result.totalFailure > 0) {
+        status = "failed";
+        const failedTasks = result.tasks.filter((t) => !t.success);
+        errorMsg = failedTasks.map((t) => `${t.id}: ${t.error}`).join("; ");
+      }
+
+      // Emit final progress
+      this.emitProgress(taskId, {
+        progress,
+        message: status === "completed"
+          ? `Completed ${successTasks}/${totalTasks} task(s)`
+          : `Failed: ${result.totalFailure}/${totalTasks} task(s) failed`,
+        totalWaves: 1,
+        waveNumber: 1,
+      });
+
+      // Update task with final status
+      await this.updateTaskAfterExecution(taskId, {
+        status,
+        progress,
+        error: errorMsg,
+      });
+
+      if (this.config.debug) {
+        console.log(`[TaskAPIHandler] Wave execution completed for task ${taskId}: ${status}`);
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+
+      // Emit error progress
+      this.emitProgress(taskId, {
+        progress: 0,
+        message: `Execution failed: ${errorMsg}`,
+        totalWaves: 1,
+        waveNumber: 1,
+      });
+
+      // Update task to failed
+      await this.updateTaskAfterExecution(taskId, {
+        status: "failed",
+        error: errorMsg,
+        progress: 0,
+      });
+
+      throw error; // Re-throw for caller to handle
+    } finally {
+      // Clean up running wave tracking
+      this.runningWaves.delete(taskId);
+    }
+  }
+
+  /**
+   * Update task after wave execution completes
+   *
+   * @param taskId - Task ID
+   * @param updates - Updates to apply
+   */
+  private async updateTaskAfterExecution(
+    taskId: string,
+    updates: { status: "completed" | "failed" | "cancelled"; progress: number; error?: string }
+  ): Promise<void> {
+    const checkpoint = await this.loadCheckpoint();
+    const taskIndex = checkpoint.tasks.findIndex((t) => t.id === taskId);
+
+    if (taskIndex === -1) {
+      console.warn(`[TaskAPIHandler] Task ${taskId} not found during post-execution update`);
+      return;
+    }
+
+    const task = checkpoint.tasks[taskIndex];
+    task.status = updates.status;
+    task.progress = updates.progress;
+    task.updatedAt = new Date().toISOString();
+    if (updates.error) {
+      task.error = updates.error;
+    }
+
+    checkpoint.tasks[taskIndex] = task;
+    await this.saveCheckpoint(checkpoint);
+
+    // Emit event
+    this.emit("task-updated", task);
+  }
+
+  /**
+   * Emit progress event
+   *
+   * @param taskId - Task ID
+   * @param event - Progress event data
+   */
+  private emitProgress(
+    taskId: string,
+    event: { progress: number; message: string; waveNumber?: number; totalWaves?: number }
+  ): void {
+    const progressEvent: TaskProgressEvent = {
+      taskId,
+      progress: event.progress,
+      message: event.message,
+      waveNumber: event.waveNumber,
+      totalWaves: event.totalWaves,
+    };
+
+    this.emit("task-progress", progressEvent);
+
+    if (this.config.debug) {
+      console.log(`[TaskAPIHandler] Progress [${taskId}]: ${event.progress}% - ${event.message}`);
+    }
   }
 
   /**
@@ -361,10 +545,14 @@ export class TaskAPIHandler extends EventEmitter {
    *
    * Process:
    * 1. Validate task exists and is executing
-   * 2. Update task status based on progress
-   * 3. Save checkpoint
-   * 4. Emit task-updated event
-   * 5. [STUB] Future: Signal WaveOrchestrator to stop (P1-002)
+   * 2. Find running wave for task
+   * 3. Signal stop (mark for cancellation)
+   * 4. Update task status to cancelled
+   * 5. Save checkpoint
+   * 6. Emit task-updated event
+   *
+   * Note: WaveOrchestrator does not support mid-execution cancellation
+   * This implementation marks the task as cancelled and cleans up tracking
    *
    * @param taskId - Task ID to stop
    * @throws Error if task not found or not executing
@@ -384,15 +572,19 @@ export class TaskAPIHandler extends EventEmitter {
       throw new Error(`Task not in progress: ${taskId}`);
     }
 
-    // Update task status based on progress
-    if (task.progress === 100) {
-      task.status = "completed";
-    } else if (task.progress && task.progress > 0) {
-      task.status = "cancelled";
-    } else {
-      task.status = "cancelled";
+    // Check if wave is running
+    const runningWave = this.runningWaves.get(taskId);
+    if (runningWave) {
+      // Clean up running wave tracking
+      this.runningWaves.delete(taskId);
+
+      if (this.config.debug) {
+        console.log(`[TaskAPIHandler] Stopped wave ${runningWave.waveId} for task ${taskId}`);
+      }
     }
 
+    // Update task status to cancelled
+    task.status = "cancelled";
     task.updatedAt = new Date().toISOString();
 
     // Save checkpoint
@@ -402,14 +594,14 @@ export class TaskAPIHandler extends EventEmitter {
     // Emit event
     this.emit("task-updated", task);
 
+    // Emit progress event
+    this.emitProgress(taskId, {
+      progress: task.progress || 0,
+      message: "Task cancelled by user",
+    });
+
     if (this.config.debug) {
       console.log(`[TaskAPIHandler] Stopped task: ${taskId}`);
-      console.log(
-        `[TaskAPIHandler] STUB: WaveOrchestrator stop signal pending (P1-002)`
-      );
     }
-
-    // STUB: WaveOrchestrator stop signal
-    // Future: await this.waveOrchestrator.stop(taskId)
   }
 }

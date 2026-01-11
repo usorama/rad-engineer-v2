@@ -22,6 +22,13 @@ import { EventEmitter } from "events";
 import { FormatTranslator } from "./FormatTranslator.js";
 import { TaskAPIHandler } from "./TaskAPIHandler.js";
 import { StateManager } from "@/advanced/StateManager.js";
+import { WaveOrchestrator } from "@/advanced/WaveOrchestrator.js";
+import { ResourceManager } from "@/core/ResourceManager.js";
+import { PromptValidator } from "@/core/PromptValidator.js";
+import { ResponseParser } from "@/core/ResponseParser.js";
+import { SDKIntegration } from "@/sdk/SDKIntegration.js";
+import { ProviderFactory } from "@/sdk/providers/ProviderFactory.js";
+import { ProviderType } from "@/sdk/providers/types.js";
 import type {
   IPCAdapterConfig,
   AutoClaudeTask,
@@ -73,15 +80,45 @@ export class ElectronIPCAdapter extends EventEmitter {
     const stateManager = new StateManager({
       checkpointsDir: `${config.projectDir}/.auto-claude-integration`,
     });
+
+    // Create default WaveOrchestrator and ResourceManager if not provided
+    const resourceManager = config.resourceManager || new ResourceManager({ maxConcurrent: 2 });
+
+    const waveOrchestrator = config.waveOrchestrator || (() => {
+      // Create default provider factory with Anthropic (most likely to be available)
+      const providerFactory = new ProviderFactory({
+        defaultProvider: ProviderType.ANTHROPIC,
+        providers: {},
+        enableFallback: true,
+      });
+
+      const sdk = new SDKIntegration(providerFactory);
+      const promptValidator = new PromptValidator();
+      const responseParser = new ResponseParser();
+
+      return new WaveOrchestrator({
+        resourceManager,
+        promptValidator,
+        responseParser,
+        sdk,
+      });
+    })();
+
     this.taskHandler = new TaskAPIHandler({
       projectDir: config.projectDir,
       stateManager,
+      waveOrchestrator,
+      resourceManager,
       debug: config.debug,
     });
 
-    // P1: Forward task-updated events from TaskAPIHandler
+    // Forward task-updated and task-progress events from TaskAPIHandler
     this.taskHandler.on("task-updated", (task: AutoClaudeTask) => {
       this.emit("task:updated", task);
+    });
+
+    this.taskHandler.on("task-progress", (event: TaskProgressEvent) => {
+      this.emit("task:progress", event);
     });
 
     if (this.config.debug) {
@@ -140,8 +177,7 @@ export class ElectronIPCAdapter extends EventEmitter {
    * Start task execution
    * IPC: task:start
    *
-   * P1: Delegates to TaskAPIHandler for state management
-   * Future (P1-002): Execute wave via WaveOrchestrator, emit real progress
+   * P1-002: Executes wave via WaveOrchestrator with real progress events
    *
    * @param taskId - Task ID to start
    * @throws Error if task not found or already executing
@@ -151,51 +187,12 @@ export class ElectronIPCAdapter extends EventEmitter {
       console.log(`[ElectronIPCAdapter] startTask() called for: ${taskId}`);
     }
 
-    // P1: Start task via TaskAPIHandler (updates state, persists)
+    // Start task via TaskAPIHandler (updates state, executes wave asynchronously)
+    // Progress events are forwarded automatically via event listeners
     await this.taskHandler.startTask(taskId);
 
-    // P1: Emit fake progress events for demo
-    // Future (P1-002): Real progress from WaveOrchestrator
-    await this.emitFakeProgress(taskId);
-
-    // P1: Mark task as completed
-    await this.taskHandler.updateTask(taskId, {
-      status: "completed",
-      progress: 100,
-    });
-
     if (this.config.debug) {
-      console.log(`[ElectronIPCAdapter] Task completed: ${taskId}`);
-    }
-  }
-
-  /**
-   * P0: Emit fake progress events for demo
-   * Future: Real progress events from WaveOrchestrator
-   *
-   * @param taskId - Task ID
-   */
-  private async emitFakeProgress(taskId: string): Promise<void> {
-    const progressSteps = [0, 25, 50, 75, 100];
-
-    for (const progress of progressSteps) {
-      // Wait 500ms between updates
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Emit progress event
-      const event: TaskProgressEvent = {
-        taskId,
-        progress,
-        message: `Processing... ${progress}%`,
-        waveNumber: 1,
-        totalWaves: 1,
-      };
-
-      this.emit("task:progress", event);
-
-      if (this.config.debug) {
-        console.log(`[ElectronIPCAdapter] Progress: ${taskId} - ${progress}%`);
-      }
+      console.log(`[ElectronIPCAdapter] Task started (executing in background): ${taskId}`);
     }
   }
 
