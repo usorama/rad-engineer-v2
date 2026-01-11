@@ -2,9 +2,9 @@
   "project": "Auto-Claude + rad-engineer-v2 Integration",
   "version": "1.0.0",
   "created": "2026-01-11T13:00:00Z",
-  "updated": "2026-01-11T18:00:00Z",
+  "updated": "2026-01-11T18:30:00Z",
   "totalTasks": 78,
-  "completedTasks": 19,
+  "completedTasks": 21,
   "phases": {
     "phase0": {
       "name": "Proof of Concept",
@@ -759,15 +759,25 @@
       "phase": "3",
       "title": "Roadmap UI Integration",
       "description": "Implement roadmap API handlers, integrate with /plan skill",
-      "status": "pending",
+      "status": "completed",
       "dependencies": [
         "P2-006"
       ],
       "estimatedHours": 15,
-      "actualHours": null,
+      "actualHours": 6,
       "assignee": "claude",
-      "evidence": [],
-      "notes": "",
+      "evidence": [
+        "File created: src/ui-adapter/RoadmapAPIHandler.ts (604 lines)",
+        "Test created: test/ui-adapter/RoadmapAPI.test.ts (884 lines, 34 tests)",
+        "Test results: 34/34 tests passing (100%)",
+        "Coverage: 100% line coverage for RoadmapAPIHandler",
+        "TypeScript: PASS (0 errors)",
+        "APIs implemented: roadmap:generate, roadmap:add-feature, roadmap:convert-feature-to-spec",
+        "Integration: IntakeHandler, ExecutionPlanGenerator, ValidationUtils",
+        "Event emissions: roadmap-updated, roadmap-progress, feature-added, feature-updated, feature-deleted",
+        "StateManager persistence: .auto-claude-integration/roadmap-checkpoint.json"
+      ],
+      "notes": "Completed 2026-01-11T18:30:00Z. RoadmapAPIHandler integrated with /plan skill. Full CRUD for roadmaps and features. 34 tests passing, 100% coverage.",
       "subtasks": [
         "Create RoadmapAPIHandler.ts in rad-engineer/src/ui-adapter/",
         "Implement roadmap:generate API",
@@ -838,15 +848,25 @@
       "phase": "3",
       "title": "Context View Integration",
       "description": "Implement context API, integrate with DecisionLearningStore",
-      "status": "pending",
+      "status": "completed",
       "dependencies": [
         "P2-006"
       ],
       "estimatedHours": 10,
-      "actualHours": null,
+      "actualHours": 4,
       "assignee": "claude",
-      "evidence": [],
-      "notes": "",
+      "evidence": [
+        "File created: src/ui-adapter/ContextAPIHandler.ts (447 lines)",
+        "Test created: test/ui-adapter/ContextAPI.test.ts (619 lines, 30 tests)",
+        "Test results: 30/30 tests passing (100%)",
+        "Coverage: 100% for ContextAPIHandler",
+        "TypeScript: PASS (0 errors)",
+        "APIs implemented: getMemories, searchMemories, getADR, getStatistics",
+        "Integration: DecisionLearningStore for ADRs and learning history",
+        "Event emissions: memories-updated, learning-updated",
+        "Search filters: component, activity, domain, reasoning method, date range, hasOutcome"
+      ],
+      "notes": "Completed 2026-01-11T18:30:00Z. ContextAPIHandler integrated with DecisionLearningStore. Full memory and ADR display. 30 tests passing, 100% coverage.",
       "subtasks": [
         "Create ContextAPIHandler.ts in rad-engineer/src/ui-adapter/",
         "Implement context:get-memories API",
