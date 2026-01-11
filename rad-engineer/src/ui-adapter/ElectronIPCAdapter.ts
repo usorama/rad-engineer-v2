@@ -21,6 +21,7 @@
 import { EventEmitter } from "events";
 import { FormatTranslator } from "./FormatTranslator.js";
 import { TaskAPIHandler } from "./TaskAPIHandler.js";
+import { EventBroadcaster } from "./EventBroadcaster.js";
 import { StateManager } from "@/advanced/StateManager.js";
 import { WaveOrchestrator } from "@/advanced/WaveOrchestrator.js";
 import { ResourceManager } from "@/core/ResourceManager.js";
@@ -36,6 +37,7 @@ import type {
   TaskProgressEvent,
   TaskWaveMapping,
 } from "./types.js";
+import type { BrowserWindow } from "electron";
 
 /**
  * ElectronIPCAdapter - Main adapter class
@@ -69,6 +71,7 @@ export class ElectronIPCAdapter extends EventEmitter {
   private readonly translator: FormatTranslator;
   private readonly taskHandler: TaskAPIHandler;
   private readonly taskMappings: Map<string, TaskWaveMapping>;
+  private readonly eventBroadcaster?: EventBroadcaster;
 
   constructor(config: IPCAdapterConfig) {
     super();
@@ -112,17 +115,40 @@ export class ElectronIPCAdapter extends EventEmitter {
       debug: config.debug,
     });
 
-    // Forward task-updated and task-progress events from TaskAPIHandler
-    this.taskHandler.on("task-updated", (task: AutoClaudeTask) => {
-      this.emit("task:updated", task);
-    });
+    // Initialize EventBroadcaster if getWindows provided
+    if (config.getWindows) {
+      this.eventBroadcaster = new EventBroadcaster({
+        getWindows: config.getWindows,
+        debug: config.debug,
+      });
 
-    this.taskHandler.on("task-progress", (event: TaskProgressEvent) => {
-      this.emit("task:progress", event);
-    });
+      // Forward task-updated events to EventBroadcaster
+      this.taskHandler.on("task-updated", (task: AutoClaudeTask) => {
+        this.emit("task:updated", task);
+        this.eventBroadcaster?.broadcastTaskObject(task);
+      });
+
+      // Forward task-progress events to EventBroadcaster
+      this.taskHandler.on("task-progress", (event: TaskProgressEvent) => {
+        this.emit("task:progress", event);
+        this.eventBroadcaster?.broadcastTaskUpdate(event);
+      });
+    } else {
+      // Fallback: Just forward events without broadcasting
+      this.taskHandler.on("task-updated", (task: AutoClaudeTask) => {
+        this.emit("task:updated", task);
+      });
+
+      this.taskHandler.on("task-progress", (event: TaskProgressEvent) => {
+        this.emit("task:progress", event);
+      });
+    }
 
     if (this.config.debug) {
       console.log(`[ElectronIPCAdapter] Initialized with projectDir: ${config.projectDir}`);
+      if (this.eventBroadcaster) {
+        console.log("[ElectronIPCAdapter] EventBroadcaster enabled for multi-window support");
+      }
     }
   }
 
@@ -272,5 +298,25 @@ export class ElectronIPCAdapter extends EventEmitter {
    */
   getProjectDir(): string {
     return this.config.projectDir;
+  }
+
+  /**
+   * Get EventBroadcaster instance (for testing)
+   *
+   * @returns EventBroadcaster if initialized, null otherwise
+   */
+  getEventBroadcaster(): EventBroadcaster | null {
+    return this.eventBroadcaster || null;
+  }
+
+  /**
+   * Cleanup resources
+   *
+   * Should be called before destroying the adapter
+   */
+  cleanup(): void {
+    if (this.eventBroadcaster) {
+      this.eventBroadcaster.cleanup();
+    }
   }
 }

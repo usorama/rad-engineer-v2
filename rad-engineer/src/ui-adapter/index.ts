@@ -5,6 +5,7 @@
  * - ElectronIPCAdapter: Main adapter for IPC communication
  * - TaskAPIHandler: Task CRUD operations with StateManager persistence
  * - SettingsAPIHandler: Settings & profile management with secure storage
+ * - EventBroadcaster: Real-time event broadcasting with backpressure handling
  * - FormatTranslator: Format conversion utilities
  * - Types: TypeScript interfaces for UI integration
  */
@@ -19,6 +20,16 @@ export type {
   AppSettings,
   ProviderType,
 } from "./SettingsAPIHandler.js";
+export {
+  EventBroadcaster,
+  EventType,
+} from "./EventBroadcaster.js";
+export type {
+  EventBroadcasterConfig,
+  AgentOutputEvent,
+  TerminalOutputEvent,
+  TaskStatusEvent,
+} from "./EventBroadcaster.js";
 export { FormatTranslator } from "./FormatTranslator.js";
 export type {
   AutoClaudeTask,

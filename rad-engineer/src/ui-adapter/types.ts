@@ -87,6 +87,8 @@ export interface IPCAdapterConfig {
   waveOrchestrator?: import("@/advanced/WaveOrchestrator.js").WaveOrchestrator;
   /** ResourceManager instance (optional - creates default if not provided) */
   resourceManager?: import("@/core/ResourceManager.js").ResourceManager;
+  /** Function to get all renderer windows for event broadcasting */
+  getWindows?: () => import("electron").BrowserWindow[];
   /** Optional: Enable debug logging */
   debug?: boolean;
 }
