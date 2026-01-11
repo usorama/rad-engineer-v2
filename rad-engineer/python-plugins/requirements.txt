@@ -1,0 +1,23 @@
+# Python Plugin Dependencies for rad-engineer-v2
+# Auto-Claude Integration - Phase 2
+
+# Core dependencies (all plugins)
+typing-extensions>=4.5.0
+
+# QA Loop Plugin dependencies
+# No external dependencies - uses subprocess for typecheck/lint/test
+
+# Spec Generator Plugin dependencies
+# No external dependencies - mock implementation for testing
+# Full implementation requires: anthropic, openai (for AI agents)
+
+# AI Merge Plugin dependencies
+anthropic>=0.18.0  # For Claude API
+openai>=1.0.0     # For OpenAI API (optional, for GPT-4 support)
+
+# Development dependencies (testing only)
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+
+# Optional: For production deployments
+# python-dotenv>=1.0.0  # For .env file support
