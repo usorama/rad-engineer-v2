@@ -2,9 +2,9 @@
   "project": "Auto-Claude + rad-engineer-v2 Integration",
   "version": "1.0.0",
   "created": "2026-01-11T13:00:00Z",
-  "updated": "2026-01-11T19:00:00Z",
+  "updated": "2026-01-11T19:30:00Z",
   "totalTasks": 78,
-  "completedTasks": 23,
+  "completedTasks": 25,
   "phases": {
     "phase0": {
       "name": "Proof of Concept",
@@ -903,15 +903,24 @@
       "phase": "3",
       "title": "Git Worktree UI",
       "description": "Implement worktree API handlers, visual worktree management",
-      "status": "pending",
+      "status": "completed",
       "dependencies": [
         "P2-006"
       ],
       "estimatedHours": 10,
-      "actualHours": null,
+      "actualHours": 3,
       "assignee": "claude",
-      "evidence": [],
-      "notes": "",
+      "evidence": [
+        "File created: src/ui-adapter/WorktreeAPIHandler.ts (411 lines)",
+        "Test created: test/ui-adapter/WorktreeAPI.test.ts (528 lines, 18 tests)",
+        "Test results: 18/18 tests passing (100%)",
+        "Coverage: 100% for WorktreeAPIHandler",
+        "TypeScript: PASS (0 errors)",
+        "APIs implemented: worktree:list, worktree:create, worktree:delete",
+        "Features: Porcelain format parsing, branch validation, auto-path generation",
+        "Uses execFileNoThrow for safe git command execution"
+      ],
+      "notes": "Completed 2026-01-11T19:30:00Z. WorktreeAPIHandler with git worktree management. 18 tests passing, 100% coverage.",
       "subtasks": [
         "Create WorktreeAPIHandler.ts in rad-engineer/src/ui-adapter/",
         "Implement worktree:list API",
@@ -928,15 +937,24 @@
       "phase": "3",
       "title": "Changelog Generation",
       "description": "Implement changelog API, parse git history with conventional commits",
-      "status": "pending",
+      "status": "completed",
       "dependencies": [
         "P2-006"
       ],
       "estimatedHours": 5,
-      "actualHours": null,
+      "actualHours": 2,
       "assignee": "claude",
-      "evidence": [],
-      "notes": "",
+      "evidence": [
+        "File created: src/ui-adapter/ChangelogAPIHandler.ts (395 lines)",
+        "Test created: test/ui-adapter/ChangelogAPI.test.ts (292 lines, 25 tests)",
+        "Test results: 25/25 tests passing (100%)",
+        "Coverage: 100% for ChangelogAPIHandler",
+        "TypeScript: PASS (0 errors)",
+        "APIs implemented: parseConventionalCommit, parseGitLog, groupCommitsByType, suggestVersion, generateChangelog",
+        "Features: Conventional commit parsing (feat/fix/breaking), semver suggestion (major/minor/patch), markdown changelog generation",
+        "Commit grouping: Breaking, Features, Fixes, Performance, Refactoring"
+      ],
+      "notes": "Completed 2026-01-11T19:30:00Z. ChangelogAPIHandler with conventional commit parsing and semver suggestion. 25 tests passing, 100% coverage.",
       "subtasks": [
         "Create ChangelogAPIHandler.ts in rad-engineer/src/ui-adapter/",
         "Implement changelog:generate API",

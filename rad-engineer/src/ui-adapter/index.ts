@@ -6,6 +6,7 @@
  * - TaskAPIHandler: Task CRUD operations with StateManager persistence
  * - SettingsAPIHandler: Settings & profile management with secure storage
  * - TerminalAPIHandler: Terminal PTY operations with task association
+ * - ChangelogAPIHandler: Automated changelog generation from git history
  * - EventBroadcaster: Real-time event broadcasting with backpressure handling
  * - FormatTranslator: Format conversion utilities
  * - Types: TypeScript interfaces for UI integration
@@ -29,6 +30,14 @@ export type {
   TerminalSession,
   TerminalManager,
 } from "./TerminalAPIHandler.js";
+export { ChangelogAPIHandler } from "./ChangelogAPIHandler.js";
+export type {
+  ChangelogAPIHandlerConfig,
+  ConventionalCommit,
+  GitCommit,
+  VersionSuggestion,
+  BumpType,
+} from "./ChangelogAPIHandler.js";
 export {
   EventBroadcaster,
   EventType,
