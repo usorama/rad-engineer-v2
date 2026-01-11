@@ -11,8 +11,59 @@ import { WaveOrchestrator } from "@/advanced/WaveOrchestrator.js";
 import { ResourceManager } from "@/core/index.js";
 import { PromptValidator } from "@/core/index.js";
 import { ResponseParser } from "@/core/index.js";
+import { SDKIntegration } from "@/sdk/index.js";
+import { ProviderFactory } from "@/sdk/providers/ProviderFactory.js";
+import { ProviderType } from "@/sdk/providers/types.js";
 import type { ResourceMetrics } from "@/sdk/types.js";
 import type { Task } from "@/advanced/index.js";
+
+/**
+ * Create a mock SDKIntegration for testing
+ */
+function createMockSDK(): SDKIntegration {
+  // Create ProviderFactory with test configuration
+  const providerFactory = new ProviderFactory({
+    defaultProvider: ProviderType.GLM,
+    providers: {
+      "test-glm": {
+        providerType: ProviderType.GLM,
+        apiKey: "test-api-key",
+        baseUrl: "https://test.api.com",
+        model: "glm-4.7",
+        timeout: 60000,
+        temperature: 1.0,
+        maxTokens: 4096,
+        topP: 1.0,
+        stream: false,
+      },
+    },
+    enableFallback: false,
+  });
+
+  const sdk = new SDKIntegration(providerFactory);
+  sdk.testAgent = async () => ({
+    success: true,
+    agentResponse: JSON.stringify({
+      success: true,
+      filesModified: ["/mock/test.ts"],
+      testsWritten: ["/mock/test.test.ts"],
+      summary: "Task completed successfully",
+      errors: [],
+      nextSteps: [],
+    }),
+    tokensUsed: {
+      promptTokens: 100,
+      completionTokens: 50,
+      totalTokens: 150,
+    },
+    duration: 1000,
+    toolsInvoked: [],
+    error: null,
+    providerUsed: "glm",
+    modelUsed: "glm-4.7",
+  });
+  return sdk;
+}
 
 describe("WaveOrchestrator: ResourceManager Integration", () => {
   let orchestrator: WaveOrchestrator;
@@ -41,11 +92,13 @@ describe("WaveOrchestrator: ResourceManager Integration", () => {
 
     const promptValidator = new PromptValidator();
     const responseParser = new ResponseParser();
+    const sdk = createMockSDK();
 
     orchestrator = new WaveOrchestrator({
       resourceManager,
       promptValidator,
       responseParser,
+      sdk,
     });
   });
 

@@ -19,6 +19,8 @@
 
 import type { StateManager, WaveState } from "./StateManager.js";
 import type { Task, WaveResult } from "./WaveOrchestrator.js";
+import type { ProviderFactory } from "../sdk/providers/ProviderFactory.js";
+import type { RoutingDecision } from "../adaptive/types.js";
 
 /**
  * Retry options for exponential backoff
@@ -30,6 +32,18 @@ export interface RetryOptions {
   baseDelay?: number;
   /** Maximum delay in milliseconds (default: 30000ms) */
   maxDelay?: number;
+}
+
+/**
+ * Context for provider-aware retry logic
+ */
+export interface RetryContext {
+  /** Current provider being used */
+  provider?: string;
+  /** Current model being used */
+  model?: string;
+  /** Task/query being executed */
+  task?: string;
 }
 
 /**
@@ -117,9 +131,11 @@ export class ErrorRecoveryEngine {
   private readonly circuitBreakers: Map<string, CircuitBreakerState>;
   private readonly defaultRetryOptions: Required<RetryOptions>;
   private readonly defaultCircuitConfig: CircuitBreakerConfig;
+  private readonly providerFactory?: ProviderFactory;
 
-  constructor(config?: { stateManager?: StateManager }) {
+  constructor(config?: { stateManager?: StateManager; providerFactory?: ProviderFactory }) {
     this.stateManager = config?.stateManager;
+    this.providerFactory = config?.providerFactory;
     this.circuitBreakers = new Map();
 
     // Default retry options
@@ -206,16 +222,23 @@ export class ErrorRecoveryEngine {
    * 1. Validate retry options
    * 2. Execute function
    * 3. On failure, calculate backoff delay
-   * 4. Wait for backoff period
-   * 5. Retry up to maxAttempts
-   * 6. Throw error if all attempts fail
+   * 4. If EVALS routing is enabled, record failure and get alternative provider
+   * 5. Update context with new provider for next retry
+   * 6. Wait for backoff period
+   * 7. Retry up to maxAttempts
+   * 8. Throw error if all attempts fail
    *
-   * @param fn - Function to retry
+   * @param fn - Function to retry (receives RetryContext)
    * @param options - Retry options
+   * @param context - Optional retry context for provider fallback
    * @returns Function result
    * @throws ErrorRecoveryException if all retries exhausted
    */
-  async retryWithBackoff<T>(fn: () => Promise<T>, options?: RetryOptions): Promise<T> {
+  async retryWithBackoff<T>(
+    fn: (context?: RetryContext) => Promise<T>,
+    options?: RetryOptions,
+    context?: RetryContext
+  ): Promise<T> {
     // Validate options
     if (options) {
       this.validateRetryOptions(options);
@@ -229,16 +252,49 @@ export class ErrorRecoveryEngine {
     };
 
     let lastError: Error | unknown;
+    let currentContext: RetryContext = context || {};
 
     // Attempt execution with retries
     for (let attempt = 0; attempt < retryOptions.maxAttempts; attempt++) {
       try {
-        return await fn();
+        return await fn(currentContext);
       } catch (error) {
         lastError = error;
 
         // Don't retry on last attempt
         if (attempt < retryOptions.maxAttempts - 1) {
+          // If EVALS routing is enabled and we have provider context, record failure and get alternative
+          if (
+            this.providerFactory?.isEvalsRoutingEnabled() &&
+            currentContext.provider &&
+            currentContext.task
+          ) {
+            try {
+              // Record failure to EVALS store
+              await this.recordProviderFailure(
+                currentContext.provider,
+                currentContext.model || "default",
+                currentContext.task,
+                error
+              );
+
+              // Get alternative provider from EVALS routing
+              const { decision } = await this.providerFactory.routeProvider(currentContext.task);
+
+              // Update context with new provider for next retry
+              currentContext = {
+                ...currentContext,
+                provider: decision.provider,
+                model: decision.model,
+              };
+            } catch (routingError) {
+              // If routing fails, log but continue with original provider
+              console.warn(
+                `[ErrorRecoveryEngine] Failed to get alternative provider: ${routingError}`
+              );
+            }
+          }
+
           const delay = this.calculateBackoff(attempt, retryOptions);
           await new Promise((resolve) => setTimeout(resolve, delay));
         }
@@ -249,8 +305,37 @@ export class ErrorRecoveryEngine {
     throw new ErrorRecoveryException(
       ErrorRecoveryError.RETRY_EXHAUSTED,
       `All ${retryOptions.maxAttempts} retry attempts failed`,
-      { lastError, attempts: retryOptions.maxAttempts }
+      { lastError, attempts: retryOptions.maxAttempts, finalContext: currentContext }
     );
+  }
+
+  /**
+   * Record provider failure to EVALS performance store
+   *
+   * @param provider - Provider that failed
+   * @param model - Model that failed
+   * @param task - Task/query that failed
+   * @param error - Error that occurred
+   */
+  private async recordProviderFailure(
+    provider: string,
+    model: string,
+    task: string,
+    error: Error | unknown
+  ): Promise<void> {
+    // This is a placeholder - in a full implementation, this would:
+    // 1. Extract features from the task
+    // 2. Update the performance store with failure data
+    // 3. Trigger re-ranking of providers
+
+    // For now, we'll log the failure
+    console.warn(
+      `[ErrorRecoveryEngine] Recording provider failure: ${provider}/${model}`,
+      { task, error }
+    );
+
+    // TODO: Integrate with PerformanceStore.updateStats()
+    // when EVALS store is fully accessible from ErrorRecoveryEngine
   }
 
   /**

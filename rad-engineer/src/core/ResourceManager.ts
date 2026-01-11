@@ -291,16 +291,42 @@ export class ResourceManager {
     }
 
     // Get memory pressure (using vm_stat on macOS)
+    // FIXED BUGS:
+    // - Parse actual page size from vm_stat header (not hardcoded 4096)
+    // - Get actual total memory via sysctl hw.memsize (not hardcoded 16GB)
+    // - Count all available pages (free + inactive + speculative + purgeable)
     const memoryResult = await execFileNoThrow("vm_stat", []);
     let memory_pressure = 50; // Default
     if (memoryResult.success) {
-      const freeMatch = memoryResult.stdout.match(/Pages free:\s+(\d+)/);
-      if (freeMatch) {
-        const freePages = parseInt(freeMatch[1], 10);
-        const pageSize = 4096; // 4KB pages on macOS
-        const freeMB = (freePages * pageSize) / (1024 * 1024);
-        const totalMB = 16384; // Assume 16GB total
-        memory_pressure = 100 - (freeMB / totalMB) * 100;
+      // Parse page size from vm_stat header (e.g., "page size of 16384 bytes")
+      const pageSizeMatch = memoryResult.stdout.match(/page size of (\d+) bytes/);
+      const pageSize = pageSizeMatch ? parseInt(pageSizeMatch[1], 10) : 16384;
+
+      // Get actual total memory via sysctl hw.memsize
+      const memSizeResult = await execFileNoThrow("sysctl", ["hw.memsize"]);
+      if (memSizeResult.success) {
+        const totalBytes = parseInt(memSizeResult.stdout.split(": ")[1], 10);
+        const totalMB = totalBytes / (1024 * 1024);
+
+        // Parse available memory pages
+        const freeMatch = memoryResult.stdout.match(/Pages free:\s+(\d+)/);
+        const inactiveMatch = memoryResult.stdout.match(/Pages inactive:\s+(\d+)/);
+        const speculativeMatch = memoryResult.stdout.match(/Pages speculative:\s+(\d+)/);
+        const purgeableMatch = memoryResult.stdout.match(/Pages purgeable:\s+(\d+)/);
+
+        if (freeMatch) {
+          const freePages = parseInt(freeMatch[1], 10);
+          const inactivePages = inactiveMatch ? parseInt(inactiveMatch[1], 10) : 0;
+          const speculativePages = speculativeMatch ? parseInt(speculativeMatch[1], 10) : 0;
+          const purgeablePages = purgeableMatch ? parseInt(purgeableMatch[1], 10) : 0;
+
+          // Calculate available memory
+          const availablePages = freePages + inactivePages + speculativePages + purgeablePages;
+          const availableMB = (availablePages * pageSize) / (1024 * 1024);
+
+          // Calculate memory pressure as percentage used
+          memory_pressure = 100 - (availableMB / totalMB) * 100;
+        }
       }
     }
 

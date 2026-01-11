@@ -10,21 +10,40 @@
 import { describe, test, expect, beforeEach } from "bun:test";
 import { SDKIntegration } from "@/sdk/SDKIntegration";
 import { PromptValidator } from "@/core/PromptValidator";
+import { ProviderFactory } from "@/sdk/providers/ProviderFactory.js";
+import { ProviderType } from "@/sdk/providers/types.js";
 
 describe("PromptValidator + SDKIntegration Integration", () => {
   let sdk: SDKIntegration;
   let validator: PromptValidator;
 
   beforeEach(() => {
-    sdk = new SDKIntegration();
+    // Create ProviderFactory with test configuration
+    const providerFactory = new ProviderFactory({
+      defaultProvider: ProviderType.GLM,
+      providers: {
+        "test-glm": {
+          providerType: ProviderType.GLM,
+          apiKey: "test-api-key",
+          baseUrl: "https://test.api.com",
+          model: "glm-4.7",
+          timeout: 60000,
+          temperature: 1.0,
+          maxTokens: 4096,
+          topP: 1.0,
+          stream: false,
+        },
+      },
+      enableFallback: false,
+    });
+    sdk = new SDKIntegration(providerFactory);
     validator = new PromptValidator();
   });
 
   test("SDKIntegration validates prompt before spawn", async () => {
     // Initialize SDK
     const initResult = await sdk.initSDK({
-      apiKey: process.env.ANTHROPIC_API_KEY || "sk-test-key",
-      model: "claude-3-5-sonnet-20241022",
+      model: "glm-4.7",
     });
 
     expect(initResult.sdkInitialized).toBe(true);
@@ -45,8 +64,7 @@ describe("PromptValidator + SDKIntegration Integration", () => {
   test("SDKIntegration spawns agent after valid prompt", async () => {
     // Initialize SDK
     const initResult = await sdk.initSDK({
-      apiKey: process.env.ANTHROPIC_API_KEY || "sk-test-key",
-      model: "claude-3-5-sonnet-20241022",
+      model: "glm-4.7",
     });
 
     expect(initResult.sdkInitialized).toBe(true);
