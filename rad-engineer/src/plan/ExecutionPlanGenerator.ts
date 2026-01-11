@@ -177,28 +177,28 @@ export class ExecutionPlanGenerator {
     const complexity = requirements.complexity;
     const storyCount = requirements.estimatedStories;
 
-    // Wave structure based on complexity
+    // Wave structure based on complexity (using integers to avoid floating point issues)
     if (complexity === 'simple') {
       // Simple: 2 waves
       waves.push(
-        this.createFoundationWave(0.1, storyCount),
-        this.createFeatureWave(0.2, storyCount)
+        this.createFoundationWave(1, storyCount),
+        this.createFeatureWave(2, storyCount, 1)
       );
     } else if (complexity === 'medium') {
       // Medium: 3 waves
       waves.push(
-        this.createFoundationWave(0.1, storyCount),
-        this.createFeatureWave(0.2, storyCount),
-        this.createQAWave(0.3, storyCount)
+        this.createFoundationWave(1, storyCount),
+        this.createFeatureWave(2, storyCount, 1),
+        this.createQAWave(3, storyCount, 2)
       );
     } else {
       // Complex: 5 waves
       waves.push(
-        this.createFoundationWave(0.1, storyCount),
-        this.createFeatureWave(0.2, storyCount),
-        this.createFeatureWave(0.3, storyCount),
-        this.createQAWave(0.4, storyCount),
-        this.createDocumentationWave(0.5, storyCount)
+        this.createFoundationWave(1, storyCount),
+        this.createFeatureWave(2, storyCount, 1),
+        this.createFeatureWave(3, storyCount, 2),
+        this.createQAWave(4, storyCount, 3),
+        this.createDocumentationWave(5, storyCount, 4)
       );
     }
 
@@ -208,18 +208,18 @@ export class ExecutionPlanGenerator {
   /**
    * Create foundation wave
    */
-  private createFoundationWave(number: number, totalStories: number): Wave {
+  private createFoundationWave(waveNum: number, totalStories: number): Wave {
     const storyCount = Math.max(1, Math.floor(totalStories * 0.2));
     const stories = this.createStories(
-      `wave-${number}`,
+      `wave-${waveNum}`,
       storyCount,
       'foundation',
       0
     );
 
     return {
-      id: `wave-${number}`,
-      number,
+      id: `wave-${waveNum}`,
+      number: waveNum,
       phase: 0,
       name: 'Foundation Setup',
       dependencies: [],
@@ -233,21 +233,21 @@ export class ExecutionPlanGenerator {
   /**
    * Create feature wave
    */
-  private createFeatureWave(number: number, totalStories: number): Wave {
+  private createFeatureWave(waveNum: number, totalStories: number, dependsOn: number): Wave {
     const storyCount = Math.max(1, Math.floor(totalStories * 0.5));
     const stories = this.createStories(
-      `wave-${number}`,
+      `wave-${waveNum}`,
       storyCount,
       'feature',
-      number - 0.1
+      dependsOn
     );
 
     return {
-      id: `wave-${number}`,
-      number,
+      id: `wave-${waveNum}`,
+      number: waveNum,
       phase: 1,
       name: 'Core Feature Implementation',
-      dependencies: number > 0.1 ? [`wave-${number - 0.1}`] : [],
+      dependencies: dependsOn > 0 ? [`wave-${dependsOn}`] : [],
       estimatedMinutes: Math.max(60, storyCount * 45),
       parallelization: 'full',
       maxConcurrent: this.options.maxConcurrent ?? 2,
@@ -258,21 +258,21 @@ export class ExecutionPlanGenerator {
   /**
    * Create QA wave
    */
-  private createQAWave(number: number, totalStories: number): Wave {
+  private createQAWave(waveNum: number, totalStories: number, dependsOn: number): Wave {
     const storyCount = Math.max(1, Math.floor(totalStories * 0.2));
     const stories = this.createStories(
-      `wave-${number}`,
+      `wave-${waveNum}`,
       storyCount,
       'qa',
-      number - 0.1
+      dependsOn
     );
 
     return {
-      id: `wave-${number}`,
-      number,
+      id: `wave-${waveNum}`,
+      number: waveNum,
       phase: 2,
       name: 'Testing & QA',
-      dependencies: [`wave-${number - 0.1}`],
+      dependencies: [`wave-${dependsOn}`],
       estimatedMinutes: Math.max(30, storyCount * 20),
       parallelization: 'partial',
       maxConcurrent: this.options.maxConcurrent ?? 2,
@@ -283,21 +283,21 @@ export class ExecutionPlanGenerator {
   /**
    * Create documentation wave
    */
-  private createDocumentationWave(number: number, totalStories: number): Wave {
+  private createDocumentationWave(waveNum: number, totalStories: number, dependsOn: number): Wave {
     const storyCount = Math.max(1, Math.floor(totalStories * 0.1));
     const stories = this.createStories(
-      `wave-${number}`,
+      `wave-${waveNum}`,
       storyCount,
       'documentation',
-      number - 0.1
+      dependsOn
     );
 
     return {
-      id: `wave-${number}`,
-      number,
+      id: `wave-${waveNum}`,
+      number: waveNum,
       phase: 3,
       name: 'Documentation & Polish',
-      dependencies: [`wave-${number - 0.1}`],
+      dependencies: [`wave-${dependsOn}`],
       estimatedMinutes: Math.max(30, storyCount * 30),
       parallelization: 'sequential',
       maxConcurrent: 1,
