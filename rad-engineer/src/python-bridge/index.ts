@@ -21,3 +21,41 @@ export type {
   PluginResult,
   ProcessHealth,
 } from "./PythonPluginBridge.js";
+
+export {
+  SpecGeneratorPlugin,
+} from "./SpecGenPluginIntegration.js";
+
+export type {
+  ComplexityLevel,
+  ComplexityAssessment,
+  ComplexityAssessmentInput,
+  SpecGenerationInput,
+  SpecGenerationResult,
+  PhaseListInput,
+  PhaseListResult,
+  SpecGenPluginConfig,
+} from "./SpecGenPluginIntegration.js";
+
+export {
+  AIMergeIntegration,
+  detectMergeConflicts,
+  extractGitConflictMarkers,
+} from "./AIMergePluginIntegration.js";
+
+export type {
+  AIMergeConfig,
+  ResolveConflictInput,
+  ResolveOptions,
+  ChangeType,
+  ConflictSeverity,
+  MergeStrategy,
+  MergeDecision,
+  AIProvider,
+  SemanticChange,
+  ConflictRegion,
+  TaskSnapshot,
+  MergeResult,
+  ConflictContext,
+  GitConflictMarkers,
+} from "./AIMergePluginIntegration.js";
