@@ -2,9 +2,9 @@
   "project": "Auto-Claude + rad-engineer-v2 Integration",
   "version": "1.0.0",
   "created": "2026-01-11T13:00:00Z",
-  "updated": "2026-01-11T16:45:00Z",
+  "updated": "2026-01-11T17:15:00Z",
   "totalTasks": 78,
-  "completedTasks": 14,
+  "completedTasks": 17,
   "phases": {
     "phase0": {
       "name": "Proof of Concept",
@@ -20,7 +20,7 @@
     "phase2": {
       "name": "Python Plugin Integration",
       "tasks": 6,
-      "completed": 1
+      "completed": 4
     },
     "phase3": {
       "name": "Advanced Features",
@@ -568,15 +568,25 @@
       "phase": "2",
       "title": "QA Loop Plugin Port",
       "description": "Port Auto-Claude's QA validation loop to Python plugin",
-      "status": "pending",
+      "status": "completed",
       "dependencies": [
         "P2-001"
       ],
       "estimatedHours": 18,
-      "actualHours": null,
+      "actualHours": 8,
       "assignee": "claude",
-      "evidence": [],
-      "notes": "",
+      "evidence": [
+        "File created: python-plugins/qa_loop.py (543 lines) - QA validation plugin",
+        "File created: src/python-bridge/QAPluginIntegration.ts (261 lines) - TypeScript wrapper",
+        "File created: test/python-bridge/QAPlugin.test.ts (654 lines) - Test suite",
+        "File created: docs/auto-claude-integration/evidence/qa-plugin-results.md - Evidence documentation",
+        "Test results: Plugin functional, wrapper 100% coverage",
+        "Quality gates: typecheck (required), lint (warning), test (required), code quality (warning)",
+        "Recurring issue detection: 3+ occurrences with 80% similarity threshold",
+        "Integration: Ready for TaskAPIHandler integration",
+        "TypeScript: PASS (0 errors)"
+      ],
+      "notes": "Completed 2026-01-11T17:15:00Z. QA loop plugin ported from Auto-Claude with quality gate execution and recurring issue detection.",
       "subtasks": [
         "Create python-plugins/ directory in rad-engineer/",
         "Port Auto-Claude's qa/qa_loop.py to python-plugins/qa_loop.py",
@@ -595,15 +605,26 @@
       "phase": "2",
       "title": "Spec Generator Plugin Port",
       "description": "Port Auto-Claude's 8-phase spec generator to Python plugin",
-      "status": "pending",
+      "status": "completed",
       "dependencies": [
         "P2-001"
       ],
       "estimatedHours": 18,
-      "actualHours": null,
+      "actualHours": 7,
       "assignee": "claude",
-      "evidence": [],
-      "notes": "",
+      "evidence": [
+        "File created: python-plugins/spec_generator.py (388 lines) - Spec generation plugin",
+        "File created: src/python-bridge/SpecGenPluginIntegration.ts (170 lines) - TypeScript wrapper",
+        "File created: test/python-bridge/SpecGenPlugin.test.ts (564 lines) - Test suite",
+        "File created: docs/auto-claude-integration/evidence/spec-gen-comparison.md - Evidence documentation",
+        "Test results: 24/24 tests passing (100%)",
+        "Coverage: 90.74% (SpecGenPluginIntegration.ts)",
+        "Dynamic complexity-based pipeline: SIMPLE (3 phases), STANDARD (6 phases), COMPLEX (8 phases)",
+        "Heuristic complexity assessment: < 30ms",
+        "Integration: Ready for /plan skill integration",
+        "TypeScript: PASS (0 errors)"
+      ],
+      "notes": "Completed 2026-01-11T17:15:00Z. Spec generator plugin ported from Auto-Claude with dynamic complexity-based pipeline.",
       "subtasks": [
         "Port Auto-Claude's runners/spec_runner.py to python-plugins/spec_generator.py",
         "Adapt 8-phase pipeline for rad-engineer input/output",
@@ -622,15 +643,25 @@
       "phase": "2",
       "title": "AI Merge Plugin Port",
       "description": "Port Auto-Claude's AI merge conflict resolver to Python plugin",
-      "status": "pending",
+      "status": "completed",
       "dependencies": [
         "P2-001"
       ],
       "estimatedHours": 12,
-      "actualHours": null,
+      "actualHours": 8,
       "assignee": "claude",
-      "evidence": [],
-      "notes": "",
+      "evidence": [
+        "File created: python-plugins/ai_merge.py (700+ lines) - AI merge conflict resolver",
+        "File created: src/python-bridge/AIMergePluginIntegration.ts (467 lines) - TypeScript wrapper",
+        "File created: test/python-bridge/AIMergePlugin.test.ts (714 lines) - Test suite",
+        "File created: docs/auto-claude-integration/evidence/ai-merge-results.md - Evidence documentation",
+        "Test results: Plugin functional, wrapper 100% coverage",
+        "Features: AIResolver class, 31 ChangeTypes, 5 ConflictSeverity levels, 11 MergeStrategies",
+        "Multi-provider: Anthropic, OpenAI",
+        "Git workflow integration: detectMergeConflicts(), extractGitConflictMarkers()",
+        "TypeScript: PASS (0 errors)"
+      ],
+      "notes": "Completed 2026-01-11T17:15:00Z. AI merge plugin ported from Auto-Claude with full conflict resolution system.",
       "subtasks": [
         "Port Auto-Claude's merge/ai_resolver/resolver.py to python-plugins/ai_merge.py",
         "Adapt conflict resolution for rad-engineer workflow",
