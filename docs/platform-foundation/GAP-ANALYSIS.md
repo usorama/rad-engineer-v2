@@ -909,110 +909,198 @@ rad-engineer/src/reasoning/MethodSelector.ts  - Add state machine
 
 ---
 
-## Part 7: Atomic Agent Swarm Architecture
+## ⚠️ CORRECTIONS (Evidence-Based Review - 2026-01-12)
 
-> **Based on**: engg-support-system patterns (EnggContextAgent, QueryClassifier, ClarificationGenerator)
+> **Critical Review**: The following sections contain corrections based on evidence-based analysis of the actual codebase.
 
-### 7.1 Architecture Principle: Single-Responsibility Atomic Agents
+### Correction 1: Existing Agents NOT Accounted For
 
-Instead of monolithic agents that handle multiple concerns, the platform uses **atomic agents** - small, focused agents with a single responsibility that compose into orchestrated swarms.
+The original analysis MISSED that rad-engineer-v2 already has **12 production agents** in `.claude/agents/`:
+
+| Existing Agent | Purpose | Model | Status |
+|----------------|---------|-------|--------|
+| `developer.md` | TDD implementation, quality gates | Sonnet | **120K token lifetime** |
+| `planner.md` | PRD creation, architecture design | **Opus** | Full context |
+| `research-agent.md` | Complex research, YAML synthesis | Sonnet | ~1K token OUTPUT |
+| `architect.md` | System design, tech selection | **Opus** | Full context |
+| `code-reviewer.md` | Security audits, code quality | Sonnet | As needed |
+| `test-writer.md` | Unit/integration/E2E tests | Sonnet | As needed |
+| `debugger.md` | Bug investigation | Sonnet | As needed |
+| `pr-fixer.md` | PR fixes | Sonnet | As needed |
+| `pr-reviewer.md` | PR reviews | Sonnet | As needed |
+| `pr-tester.md` | PR testing | Sonnet | As needed |
+| `e2b-implementer.md` | E2B sandbox implementation | Sonnet | As needed |
+| `base-instructions.md` | Base injection for ALL agents | N/A | Mandatory |
+
+**Implication**: Software engineering domain agents ALREADY EXIST. No need to create new atomic agents that duplicate these.
+
+### Correction 2: Context Limits Were WRONG
+
+| Component | Actual Limit | Originally Proposed | Evidence |
+|-----------|--------------|---------------------|----------|
+| Research prompts | **5000 tokens** | 500-1000 tokens | ResearchCoordinator.ts:173,197,220 |
+| Developer lifetime | **~120K tokens** | Not considered | developer.md:105 |
+| Summary output | ~500 chars | Confused with context | base-instructions.md |
+
+**The 500-char limit in base-instructions.md is for OUTPUT SUMMARY, not input context.**
+
+### Correction 3: Only ONE Orchestrator Exists
+
+| Component | Actual Role | My Proposal |
+|-----------|-------------|-------------|
+| `WaveOrchestrator` | **Single orchestrator** | Proposed O2 (meta) |
+| `ResearchCoordinator` | Helper for /plan skill | Proposed O1 (domain) |
+
+**Evidence**: WaveOrchestrator.ts is the ONLY orchestrator in `rad-engineer/src/advanced/`. ResearchCoordinator is a coordinator helper, not an orchestration layer.
+
+**The 2-layer (O1 + O2) architecture was my extrapolation from engg-support-system patterns, NOT based on existing code.**
+
+### Correction 4: Who Sets Context?
+
+**Accountability chain** (verified from code):
+1. **ResearchCoordinator** builds prompts: `buildFeasibilityPrompt()`, `buildCodebasePrompt()`, `buildPracticesPrompt()` (src/plan/ResearchCoordinator.ts:150-221)
+2. **/plan SKILL.md** uses `DecisionLearningIntegration.enhancePrompt()` for business outcomes
+3. **WaveOrchestrator** validates prompts via `PromptValidator.validate()`
+4. **SDKIntegration.testAgent()** executes validated prompts
+
+**Answer**: WaveOrchestrator (via PromptValidator) is accountable for context validation. ResearchCoordinator is accountable for prompt construction in /plan skill.
+
+### Correction 5: Proposed vs Existing Agent Mapping
+
+| Proposed Agent | Existing Equivalent | Status |
+|----------------|---------------------|--------|
+| ClassifierAgent | None | **NEW - valid addition** |
+| ClarifierAgent | AskUserQuestion tool | **OVERLAP** |
+| PlannerAgent | `planner.md` | **DUPLICATE** |
+| ResearcherAgent | `research-agent.md` | **DUPLICATE** |
+| ExecutorAgent | `developer.md` | **DUPLICATE** |
+| VerifierAgent | `code-reviewer.md` | **OVERLAP** |
+| LearnerAgent | DecisionLearningIntegration | **DUPLICATE** |
+| CoderAgent | `developer.md` | **DUPLICATE** |
+| TesterAgent | `test-writer.md` | **DUPLICATE** |
+
+**Conclusion**: Only ClassifierAgent is genuinely new. Other proposed agents should EXTEND existing agents, not replace them.
+
+---
+
+## Part 7: Atomic Agent Swarm Architecture (REVISED)
+
+> **Based on**: engg-support-system patterns + **existing rad-engineer-v2 agents**
+
+### 7.0 Existing Agent Ecosystem (MUST LEVERAGE)
+
+Before adding new agents, leverage the 12 existing agents:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                    ORCHESTRATOR LAYER (O2)                         │
-│   Coordinates agent swarms, manages state, enforces determinism    │
+│                    EXISTING AGENT ECOSYSTEM                         │
 ├─────────────────────────────────────────────────────────────────────┤
-│                    ORCHESTRATOR LAYER (O1)                         │
-│   Domain-specific orchestration (code, construction, healthcare)   │
-├─────────────────────────────────────────────────────────────────────┤
-│                      ATOMIC AGENT SWARM                            │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ │
-│  │Classifier│ │ Planner  │ │ Executor │ │ Verifier │ │ Learner  │ │
-│  │  Agent   │ │  Agent   │ │  Agent   │ │  Agent   │ │  Agent   │ │
-│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘ │
-│       │            │            │            │            │        │
-│  ┌────▼─────┐ ┌────▼─────┐ ┌────▼─────┐ ┌────▼─────┐ ┌────▼─────┐ │
-│  │Clarifier │ │Researcher│ │ Coder    │ │ Tester   │ │ Indexer  │ │
-│  │  Agent   │ │  Agent   │ │  Agent   │ │  Agent   │ │  Agent   │ │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘ │
+│  Planning & Design (Opus)           │  Implementation (Sonnet)      │
+│  ├── planner.md                     │  ├── developer.md             │
+│  └── architect.md                   │  ├── test-writer.md           │
+│                                     │  └── e2b-implementer.md       │
+├─────────────────────────────────────┼───────────────────────────────┤
+│  Research & Review (Sonnet)         │  PR Workflows (Sonnet)        │
+│  ├── research-agent.md              │  ├── pr-reviewer.md           │
+│  ├── code-reviewer.md               │  ├── pr-fixer.md              │
+│  └── debugger.md                    │  └── pr-tester.md             │
+├─────────────────────────────────────┴───────────────────────────────┤
+│  base-instructions.md (injected into ALL agents)                    │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### 7.2 Atomic Agent Types
+### 7.1 Architecture Principle: Extend, Don't Replace
 
-| Agent Type | Responsibility | Input | Output | Max Context |
-|------------|----------------|-------|--------|-------------|
-| **ClassifierAgent** | Classify intent, detect ambiguity | Query string | Classification + clarity score | 500 tokens |
-| **ClarifierAgent** | Generate clarification questions | Query + classification | Question list | 300 tokens |
-| **PlannerAgent** | Break down task into steps | Goal + context | Step list with dependencies | 1000 tokens |
-| **ResearchAgent** | Gather evidence from codebase | Question + scope | Evidence packet | 800 tokens |
-| **ExecutorAgent** | Execute single atomic action | Action spec | Result + diff | 600 tokens |
-| **VerifierAgent** | Verify postconditions | Contract + result | Pass/fail + evidence | 500 tokens |
-| **LearnerAgent** | Record outcome, update weights | Execution trace | Learning record | 400 tokens |
+Instead of creating new atomic agents, **extend existing agents** with enhanced capabilities from engg-support-system patterns.
 
-### 7.3 Orchestration Layers
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                 SINGLE ORCHESTRATOR (WaveOrchestrator)              │
+│   Coordinates execution, manages resources, enforces determinism   │
+├─────────────────────────────────────────────────────────────────────┤
+│               COORDINATOR HELPERS (ResearchCoordinator, etc.)       │
+│   Domain-specific prompt building, research agent spawning          │
+├─────────────────────────────────────────────────────────────────────┤
+│                    EXISTING AGENT POOL                              │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ │
+│  │ planner  │ │developer │ │research- │ │  code-   │ │  test-   │ │
+│  │   .md    │ │   .md    │ │ agent.md │ │ reviewer │ │ writer   │ │
+│  │ (Opus)   │ │(Sonnet)  │ │(Sonnet)  │ │   .md    │ │   .md    │ │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘ │
+├─────────────────────────────────────────────────────────────────────┤
+│                   NEW ADDITIONS (Minimal)                           │
+│  ┌──────────┐                                                       │
+│  │Classifier│ ← Only genuinely new agent needed                    │
+│  │  Agent   │                                                       │
+│  └──────────┘                                                       │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
-**O1 (Domain Orchestrator)**: Domain-specific task coordination
+### 7.2 Agent Context Budgets (CORRECTED)
+
+| Agent | Context Budget | Output Limit | Evidence |
+|-------|----------------|--------------|----------|
+| **developer.md** | ~120K tokens lifetime | ~500 char summary | developer.md:105 |
+| **research-agent.md** | Full research context | ~1K token YAML spec | research-agent.md |
+| **planner.md** | Full planning context | As needed | planner.md (Opus) |
+| **ResearchCoordinator prompts** | **5000 tokens** | JSON output | ResearchCoordinator.ts:173 |
+| **ClassifierAgent** (NEW) | ~2000 tokens | Classification JSON | Based on research patterns |
+
+**Key Insight**: The 500-char limit is for **OUTPUT SUMMARY**, not input context. Agents have substantial context budgets for deep research.
+
+### 7.3 Single Orchestrator Architecture (CORRECTED)
+
+**Reality**: There is ONE orchestrator (`WaveOrchestrator`) with helper coordinators.
+
 ```typescript
-// Example: Code domain orchestrator
-class CodeDomainOrchestrator {
-  async orchestrate(task: Task): Promise<Result> {
-    // 1. Classify task
-    const classification = await this.classifierSwarm.classify(task.query);
+// ACTUAL: WaveOrchestrator + ResearchCoordinator pattern
+// File: rad-engineer/src/advanced/WaveOrchestrator.ts
 
-    // 2. If ambiguous, clarify
-    if (classification.clarity !== 'clear') {
-      const clarifications = await this.clarifierSwarm.generateQuestions(task, classification);
-      // Wait for user answers via ConversationManager
+class WaveOrchestrator {
+  private readonly resourceManager: ResourceManager;
+  private readonly promptValidator: PromptValidator;
+  private readonly responseParser: ResponseParser;
+  private readonly sdk: SDKIntegration;
+
+  async executeWave(tasks: Task[], options?: WaveOptions): Promise<WaveResult> {
+    // 1. Calculate wave size from ResourceManager (max 2-3)
+    const waveSize = await this.calculateWaveSize();
+
+    // 2. Split tasks into waves
+    const waves = this.splitIntoWaves(tasks, waveSize);
+
+    // 3. Execute each wave sequentially
+    for (const wave of waves) {
+      // 4. Validate prompts via PromptValidator
+      // 5. Execute via SDKIntegration.testAgent()
+      // 6. Parse responses via ResponseParser
     }
+  }
+}
 
-    // 3. Plan execution
-    const plan = await this.plannerSwarm.plan(task, classification);
+// For /plan skill specifically:
+// File: rad-engineer/src/plan/ResearchCoordinator.ts
 
-    // 4. Execute with verification loop
-    for (const step of plan.steps) {
-      const result = await this.executorSwarm.execute(step);
-      const verified = await this.verifierSwarm.verify(step.contract, result);
-      if (!verified.passed) {
-        // Retry or escalate
-      }
-    }
-
-    // 5. Learn from outcome
-    await this.learnerSwarm.record(task, result);
+class ResearchCoordinator {
+  async executeResearch(
+    requirements: StructuredRequirements,
+    spawnAgentFn: (task: ResearchAgentTask) => Promise<ResearchAgentResult>
+  ): Promise<ResearchFindings> {
+    // 1. Calculate agent count (2-3 based on complexity)
+    // 2. Build prompts: buildFeasibilityPrompt(), buildCodebasePrompt(), etc.
+    // 3. Register with ResourceManager
+    // 4. Execute in parallel
+    // 5. Consolidate findings
   }
 }
 ```
 
-**O2 (Meta Orchestrator)**: Cross-domain coordination, resource management
-```typescript
-class MetaOrchestrator {
-  private domainOrchestrators: Map<string, DomainOrchestrator>;
-  private resourceManager: ResourceManager;
-  private stateManager: HierarchicalMemory;
+**Context Accountability**:
+- **WaveOrchestrator**: Validates prompts, manages resources
+- **ResearchCoordinator**: Builds prompts with "max 5000 tokens" rule
+- **DecisionLearningIntegration**: Enhances prompts with business outcomes
 
-  async orchestrate(task: Task): Promise<Result> {
-    // 1. Detect domain
-    const domain = await this.detectDomain(task);
-
-    // 2. Get domain orchestrator
-    const orchestrator = this.domainOrchestrators.get(domain);
-
-    // 3. Allocate resources (max 2-3 concurrent agents)
-    await this.resourceManager.reserve(task);
-
-    // 4. Execute with hierarchical memory
-    try {
-      this.stateManager.pushTask(task.goal);
-      const result = await orchestrator.orchestrate(task);
-      const summary = this.stateManager.popTask(); // Compress to summary
-      return result;
-    } finally {
-      this.resourceManager.release(task);
-    }
-  }
-}
-```
+**Why NOT 2 layers?** The existing single orchestrator pattern is simpler, proven, and sufficient. Adding a meta-orchestrator would add complexity without clear benefit.
 
 ### 7.4 Agent Communication Protocol
 

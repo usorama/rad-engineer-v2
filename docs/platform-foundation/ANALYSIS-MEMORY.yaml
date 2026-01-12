@@ -112,6 +112,16 @@ task:
       action: "implementation_plan_created"
       summary: "23 new files, 5 modified files, 6 phases (A-F), ~5000 lines. Each component has specific file path, integration points, and tests."
 
+    # V3 Analysis - Evidence-based corrections
+    - timestamp: "2026-01-12T010"
+      wave: 4
+      action: "evidence_based_review"
+      summary: "CORRECTIONS: Found 12 existing agents in .claude/agents/. Context limits were WRONG (actual: 5000 tokens/prompt, 120K lifetime vs proposed 500-1000). Only ONE orchestrator (WaveOrchestrator) exists, NOT 2 layers. 7 of 9 proposed agents DUPLICATE existing ones."
+    - timestamp: "2026-01-12T011"
+      wave: 4
+      action: "gap_analysis_updated"
+      summary: "Added CORRECTIONS section to GAP-ANALYSIS.md with evidence: existing agents table, context budget corrections, single orchestrator reality, agent mapping. Revised Part 7 architecture to 'Extend, Don't Replace'."
+
   decisions_made:
     - decision: "Platform has solid foundation (40% requirements satisfied)"
       evidence: "DecisionLearningStore, SecurityLayer, PromptValidator meet CCA patterns"
@@ -128,6 +138,15 @@ task:
       evidence: "Hierarchical memory enables dynamic adjustment: GLOBAL fixed, TASK scales with complexity, LOCAL compresses"
     - decision: "Implementation requires 23 new files across 5 new modules"
       evidence: "veracity/(4), agents/(8), orchestration/(4), memory/(3), conversation/(4)"
+    # V3 corrected decisions
+    - decision: "CORRECTED: 12 existing agents cover software engineering domain"
+      evidence: "developer.md, planner.md, research-agent.md, architect.md, code-reviewer.md, test-writer.md, debugger.md, pr-*.md in .claude/agents/"
+    - decision: "CORRECTED: Context limits are much larger than proposed"
+      evidence: "ResearchCoordinator.ts:173 shows 'max 5000 tokens', developer.md:105 shows '~120K tokens lifetime'"
+    - decision: "CORRECTED: Single orchestrator (WaveOrchestrator) not 2 layers"
+      evidence: "WaveOrchestrator.ts is ONLY orchestrator, ResearchCoordinator is helper not orchestration layer"
+    - decision: "CORRECTED: Extend existing agents, don't create duplicates"
+      evidence: "7 of 9 proposed atomic agents duplicate existing: PlannerAgent=planner.md, ExecutorAgent=developer.md, etc."
 
   blocking_questions: []
 
