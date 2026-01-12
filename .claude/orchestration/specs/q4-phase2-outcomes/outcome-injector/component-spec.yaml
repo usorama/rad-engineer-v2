@@ -1,0 +1,468 @@
+# Component Specification: OutcomeInjector
+# Q4 Phase 2 - Business Outcomes Integration
+#
+# All claims verified from Q4_RESEARCH_UPDATED.md and existing implementations
+# All failure modes have detection + recovery + timeout
+
+metadata:
+  component_name: "OutcomeInjector"
+  phase: "Q4 Phase 2 - Business Outcomes Integration"
+  version: "1.0.0"
+  status: "specification"
+  created: "2026-01-08"
+  dependencies:
+    - "BusinessOutcomeExtractor (for extracting outcomes from PRDs)"
+    - "DecisionLearningStore (for selecting best reasoning methods)"
+
+description: |
+  OutcomeInjector injects business outcomes and reasoning methods into agent prompts
+  to enable outcome-based decision making across the platform.
+
+  This is the CORE MECHANISM that makes the platform deterministic, self-learning,
+  and self-improving by:
+  1. Injecting business outcomes (KPIs, success criteria, impact metrics)
+  2. Selecting best reasoning method from DecisionLearningStore
+  3. Formatting injection for agent prompts without breaking them
+  4. Tracking injection effectiveness for learning
+
+  Key insight: "Injecting outcomes into Q&A, thinking, critical reasoning, and
+  decision making across every activity is the only reason we're calling this
+  platform deterministic, self-learning, self-improving."
+
+interface:
+  class_name: "OutcomeInjector"
+  file_location: "rad-engineer/src/reasoning/OutcomeInjector.ts"
+
+  methods:
+    - name: "injectOutcomes"
+      signature: "injectOutcomes(basePrompt: string, outcomes: BusinessOutcome[], context: InjectionContext): string"
+      description: "Injects business outcomes into agent prompt with proper formatting"
+      input:
+        - name: "basePrompt"
+          type: "string"
+          description: "Original agent prompt to enhance"
+        - name: "outcomes"
+          type: "BusinessOutcome[]"
+          description: "Business outcomes to inject (from BusinessOutcomeExtractor)"
+        - name: "context"
+          type: "InjectionContext"
+          description: "{ domain: Domain, complexity: number, component: string, activity: string }"
+      output:
+        type: "string"
+        description: "Enhanced prompt with outcomes injected"
+      failure_modes:
+        - error: "BASE_PROMPT_TOO_LARGE"
+          description: "Base prompt exceeds size limit after injection"
+          detection: "Check (basePrompt.length + injection.length) > MAX_PROMPT_SIZE"
+          recovery: "Truncate outcomes to fit within limit, prioritize must/should outcomes"
+          timeout: "N/A"
+        - error: "NO_OUTCOMES_PROVIDED"
+          description: "No outcomes to inject"
+          detection: "outcomes.length === 0"
+          recovery: "Return base prompt unchanged with warning logged"
+          timeout: "N/A"
+        - error: "INVALID_OUTCOME_FORMAT"
+          description: "Outcome data structure is invalid"
+          detection: "Type check fails for BusinessOutcome interface"
+          recovery: "Filter out invalid outcomes, log warnings, inject valid ones"
+          timeout: "N/A"
+      evidence_requirements:
+        - id: "EV-OUT-001"
+          claim: "Business outcomes can be extracted from PRDs"
+          source: "Q4_RESEARCH_UPDATED.md#Component-2-Business-Outcome-System"
+          verification_method: "Read BusinessOutcomeExtractor.ts:135-152 (extractOutcomes method)"
+          required_for: "Outcome data source"
+        - id: "EV-OUT-002"
+          claim: "Outcomes can be formatted for prompt injection"
+          source: "BusinessOutcomeExtractor.ts:301-342 (toInjectionFormat method)"
+          verification_method: "Read BusinessOutcomeExtractor.ts to verify format"
+          required_for: "Injection formatting"
+        - id: "EV-OUT-003"
+          claim: "/execute skill has learning injection pattern to extend"
+          source: "Q4_RESEARCH_UPDATED.md#Evidence-Based-Analysis"
+          verification_method: "Read /Users/umasankr/Projects/rad-engineer-v2/.claude/skills/execute/SKILL.md:49-75"
+          required_for: "Integration pattern"
+      implementation_notes: |
+        Must implement outcome prioritization:
+        1. Priority: must > should > could
+        2. Category: business > technical > user > quality
+        3. Relevance: Match domain and complexity from context
+
+        Injection format (from BusinessOutcomeExtractor.toInjectionFormat):
+        ## Business Outcomes
+
+        ### Business Outcomes
+        **Increase user retention by 20% within 6 months** [must]
+        - Description...
+
+        KPIs:
+        - User Retention Rate: Target 20% change within 6 months
+
+        Success Criteria:
+        - [ ] Increase user retention by 20% within 6 months
+
+    - name: "selectReasoningMethod"
+      signature: "selectReasoningMethod(context: DecisionContext): ReasoningMethod"
+      description: "Selects best reasoning method from DecisionLearningStore"
+      input:
+        - name: "context"
+          type: "DecisionContext"
+          description: "{ domain: Domain, complexity: number, constraints: string[], stakeholders: string[] }"
+      output:
+        type: "ReasoningMethod"
+        description: "{ name: string, category: MethodCategory, parameters: Record<string, unknown> }"
+      failure_modes:
+        - error: "INSUFFICIENT_DATA"
+          description: "Not enough historical decisions for recommendation"
+          detection: "DecisionLearningStore.getDecisions() returns < 10 similar decisions"
+          recovery: "Return default method (First Principles) and log warning"
+          timeout: "1 second"
+        - error: "STORE_UNAVAILABLE"
+          description: "DecisionLearningStore is not initialized"
+          detection: "DecisionLearningStore.getBestMethod() throws error"
+          recovery: "Return default method (First Principles) with error logged"
+          timeout: "2 seconds"
+      evidence_requirements:
+        - id: "EV-REASON-001"
+          claim: "DecisionLearningStore has getBestMethod for method selection"
+          source: "DecisionLearningStore.ts:341-404 (getBestMethod method)"
+          verification_method: "Read DecisionLearningStore.ts to verify implementation"
+          required_for: "Method selection logic"
+        - id: "EV-REASON-002"
+          claim: "50 BMAD elicitation methods available for use"
+          source: "Q4_RESEARCH_UPDATED.md#Evidence-Based-Analysis"
+          verification_method: "Read /Users/umasankr/Projects/rad-engineer-v2/bmad-research/src/core/workflows/advanced-elicitation/methods.csv"
+          required_for: "Method library"
+        - id: "EV-REASON-003"
+          claim: "First Principles is safe default for insufficient data"
+          source: "DecisionLearningStore.ts:354-359 (default fallback)"
+          verification_method: "Read DecisionLearningStore.ts to verify fallback logic"
+          required_for: "Fallback behavior"
+      implementation_notes: |
+        Method selection algorithm:
+        1. Query DecisionLearningStore for similar contexts (domain + complexity)
+        2. If < 10 similar decisions, return First Principles (safe default)
+        3. Calculate average success rate per method for similar decisions
+        4. Return method with highest success rate
+        5. If best method not in known methods, return First Principles
+
+        Known methods (from BMAD):
+        - Core: First Principles, 5 Whys, Socratic Questioning
+        - Advanced: Tree of Thoughts, Self-Consistency, Chain of Thought
+        - Risk: Pre-mortem Analysis, Failure Mode Analysis
+        - Competitive: Red Team vs Blue Team, Devil's Advocate
+
+    - name: "injectReasoningMethod"
+      signature: "injectReasoningMethod(basePrompt: string, method: ReasoningMethod): string"
+      description: "Injects reasoning method guidance into agent prompt"
+      input:
+        - name: "basePrompt"
+          type: "string"
+          description: "Agent prompt to enhance"
+        - name: "method"
+          type: "ReasoningMethod"
+          description: "Reasoning method to inject"
+      output:
+        type: "string"
+        description: "Enhanced prompt with reasoning method guidance"
+      failure_modes:
+        - error: "METHOD_FORMAT_INVALID"
+          description: "Reasoning method structure is invalid"
+          detection: "Type check fails for ReasoningMethod interface"
+          recovery: "Return base prompt unchanged with error logged"
+          timeout: "N/A"
+        - error: "PROMPT_SIZE_EXCEEDED"
+          description: "Injection exceeds prompt size limit"
+          detection: "(basePrompt.length + injection.length) > MAX_PROMPT_SIZE"
+          recovery: "Shorten method description to essential guidance only"
+          timeout: "N/A"
+      evidence_requirements:
+        - id: "EV-INJECT-001"
+          claim: "Reasoning methods have structured guidance patterns"
+          source: "methods.csv columns: category, method_name, description, output_pattern"
+          verification_method: "Read methods.csv to verify structure"
+          required_for: "Method injection format"
+        - id: "EV-INJECT-002"
+          claim: "Method guidance improves decision quality"
+          source: "Q4_RESEARCH_UPDATED.md#Metric-3-Decision-Quality-Score"
+          verification_method: "Read Q4_RESEARCH_UPDATED.md:389-422"
+          required_for: "Injection effectiveness"
+      implementation_notes: |
+        Injection format for reasoning methods:
+        ## Reasoning Method
+
+        Use **First Principles Analysis** for this task:
+        - Strip away assumptions to rebuild from fundamental truths
+        - Question: What are the fundamental truths about [domain]?
+        - Pattern: assumptions → truths → new approach
+
+        Focus on outcome-based reasoning:
+        1. START WITH OUTCOMES: What result do we want?
+        2. GATHER EVIDENCE: What proof exists?
+        3. CRITICALLY REASON: Does evidence support the approach?
+        4. CHOOSE BEST PATH: Even if inconvenient
+
+    - name: "trackInjectionEffectiveness"
+      signature: "trackInjectionEffectiveness(injectionId: string, outcome: DecisionOutcome): void"
+      description: "Tracks whether injected outcomes/methods led to successful decisions"
+      input:
+        - name: "injectionId"
+          type: "string"
+          description: "Unique identifier for this injection"
+        - name: "outcome"
+          type: "DecisionOutcome"
+          description: "{ success: boolean, quality: number, errors: string[], decisionId: string }"
+      output:
+        type: "void"
+      description: "Updates DecisionLearningStore with outcome data"
+      failure_modes:
+        - error: "INJECTION_NOT_FOUND"
+          description: "Injection ID not found in tracking"
+          detection: "Injection not in active injections map"
+          recovery: "Log warning and return (no-op)"
+          timeout: "N/A"
+        - error: "LEARN_FROM_OUTCOME_FAILED"
+          description: "Failed to update DecisionLearningStore"
+          detection: "DecisionLearningStore.learnFromOutcome() throws error"
+          recovery: "Log error and retry up to 3 times with exponential backoff"
+          timeout: "3 seconds"
+      evidence_requirements:
+        - id: "EV-TRACK-001"
+          claim: "DecisionLearningStore tracks outcomes for learning"
+          source: "DecisionLearningStore.ts:263-330 (learnFromOutcome method)"
+          verification_method: "Read DecisionLearningStore.ts to verify learning mechanism"
+          required_for: "Effectiveness tracking"
+        - id: "EV-TRACK-002"
+          claim: "Method selection improves over time"
+          source: "Q4_RESEARCH_UPDATED.md#Metric-2-Method-Selection-Improvement"
+          verification_method: "Read Q4_RESEARCH_UPDATED.md:357-387"
+          required_for: "Learning validation"
+      implementation_notes: |
+        Tracking workflow:
+        1. Generate injectionId when injecting outcomes/methods
+        2. Store mapping: injectionId -> { outcomes, method, timestamp }
+        3. When agent completes, caller provides outcome data
+        4. Call DecisionLearningStore.learnFromOutcome() with:
+           - decision.outcome.success: Did injection lead to success?
+           - decision.outcome.quality: How good was the result (0-1)?
+           - decision.reasoningMethod: Which method was used?
+        5. Store updates method effectiveness for future selections
+
+    - name: "validateInjection"
+      signature: "validateInjection(prompt: string, injection: string): ValidationResult"
+      description: "Validates that injection won't break agent prompt"
+      input:
+        - name: "prompt"
+          type: "string"
+          description: "Original agent prompt"
+        - name: "injection"
+          type: "string"
+          description: "Content to inject"
+      output:
+        type: "ValidationResult"
+        description: "{ valid: boolean, errors: string[], warnings: string[] }"
+      failure_modes:
+        - error: "INJECTION_BREAKS_STRUCTURE"
+          description: "Injection breaks prompt structure"
+          detection: "Post-injection prompt fails structure validation"
+          recovery: "Return error with specific structure violation"
+          timeout: "N/A"
+        - error: "INJECTION_TOO_LARGE"
+          description: "Injection causes total prompt to exceed size limit"
+          detection: "(prompt.length + injection.length) > MAX_PROMPT_SIZE"
+          recovery: "Return error with size breakdown"
+          timeout: "N/A"
+      evidence_requirements:
+        - id: "EV-VAL-001"
+          claim: "Prompts must not exceed 500 characters"
+          source: "agent-context-v2.md (token budget constraints)"
+          verification_method: "Read /Users/umasankr/Projects/rad-engineer-v2/.claude/rules/agent-context-v2.md"
+          required_for: "Size validation"
+        - id: "EV-VAL-002"
+          claim: "Prompt structure must be preserved"
+          source: "PromptValidator component spec"
+          verification_method: "Read prompt-validator/component-spec.yaml"
+          required_for: "Structure validation"
+      implementation_notes: |
+        Validation checks:
+        1. Size: (prompt.length + injection.length) <= 500 characters
+        2. Structure: Prompt still has task/files/output/rules sections
+        3. Format: No markdown injection, no delimiter attacks
+        4. Content: No forbidden patterns (conversation history, etc.)
+
+integration_points:
+  - component: "BusinessOutcomeExtractor"
+    location: "rad-engineer/src/plan/BusinessOutcomeExtractor.ts"
+    method: "extractOutcomes()"
+    integration_pattern: |
+      Injection workflow:
+      1. Call BusinessOutcomeExtractor.extractOutcomes(plan) to get outcomes
+      2. Call OutcomeInjector.injectOutcomes(prompt, outcomes, context)
+      3. Enhanced prompt is used for agent spawn
+    evidence:
+      - id: "INT-001"
+        claim: "BusinessOutcomeExtractor extracts outcomes from ExecutionPlan"
+        source: "BusinessOutcomeExtractor.ts:135-152"
+        verification_method: "Read BusinessOutcomeExtractor.ts to verify extraction"
+        required_for: "Outcome data flow"
+
+  - component: "DecisionLearningStore"
+    location: "rad-engineer/src/decision/DecisionLearningStore.ts"
+    method: "getBestMethod()"
+    integration_pattern: |
+      Method selection workflow:
+      1. Build DecisionContext from InjectionContext
+      2. Call DecisionLearningStore.getBestMethod(context)
+      3. Call OutcomeInjector.injectReasoningMethod(prompt, method)
+      4. Track outcome with trackInjectionEffectiveness()
+    evidence:
+      - id: "INT-002"
+        claim: "DecisionLearningStore recommends best reasoning method"
+        source: "DecisionLearningStore.ts:341-404"
+        verification_method: "Read DecisionLearningStore.ts to verify selection"
+        required_for: "Method selection flow"
+
+  - component: "/execute skill"
+    location: "/Users/umasankr/Projects/rad-engineer-v2/.claude/skills/execute/SKILL.md"
+    method: "Learning Injection (MANDATORY) section"
+    integration_pattern: |
+      Extend existing learning injection:
+      1. Current: Load learnings from domain files (lines 49-75)
+      2. Extend: Also inject outcomes and reasoning methods
+      3. Build enhanced prompt with both learnings + outcomes + methods
+    evidence:
+      - id: "INT-003"
+        claim: "/execute skill has learning injection to extend"
+        source: "/Users/umasankr/Projects/rad-engineer-v2/.claude/skills/execute/SKILL.md:49-75"
+        verification_method: "Read execute/SKILL.md to verify pattern"
+        required_for: "Skill integration"
+
+success_criteria:
+  - criterion: "Outcomes injected without breaking prompts"
+    measurement_method: |
+      ```bash
+      cd rad-engineer && bun test test/reasoning/OutcomeInjector.test.ts --grep 'inject.*outcome'
+      ```
+    threshold: "100% of valid outcome injections succeed, prompt structure preserved"
+    evidence: "Test output shows valid ValidationResult for all outcome injections"
+    status: "pending"
+    priority: "critical"
+
+  - criterion: "Reasoning methods selected from DecisionLearningStore"
+    measurement_method: |
+      ```bash
+      cd rad-engineer && bun test test/reasoning/OutcomeInjector.test.ts --grep 'select.*method'
+      ```
+    threshold: "100% of method calls return ReasoningMethod, fallback to First Principles when < 10 decisions"
+    evidence: "Test output shows method selection with proper fallback"
+    status: "pending"
+    priority: "critical"
+
+  - criterion: "Injection effectiveness tracked for learning"
+    measurement_method: |
+      ```bash
+      cd rad-engineer && bun test test/reasoning/OutcomeInjector.test.ts --grep 'track.*effectiveness'
+      ```
+    threshold: "100% of tracked injections update DecisionLearningStore"
+    evidence: "Test output shows learnFromOutcome called with correct data"
+    status: "pending"
+    priority: "high"
+
+  - criterion: "Prompt size limits respected after injection"
+    measurement_method: |
+      ```bash
+      cd rad-engineer && bun test test/reasoning/OutcomeInjector.test.ts --grep 'size'
+      ```
+    threshold: "100% of injections respect 500 character limit, outcomes truncated if needed"
+    evidence: "Test output shows size validation with truncation"
+    status: "pending"
+    priority: "high"
+
+  - criterion: "Method selection improves over time"
+    measurement_method: |
+      ```bash
+      cd rad-engineer && bun test test/reasoning/OutcomeInjector.test.ts --grep 'improve'
+      ```
+    threshold: "Method effectiveness scores increase after 50 tracked decisions"
+    evidence: "Test output shows methodEffectiveness Map with increasing values"
+    status: "pending"
+    priority: "medium"
+
+constraints:
+  hard_constraints:
+    - constraint: "Max 500 characters total after injection"
+      reason: "Token budget limit from agent-context-v2.md"
+      source: "EV-VAL-001"
+    - constraint: "Must preserve prompt structure (task/files/output/rules)"
+      reason: "Agent prompt must remain valid"
+      source: "EV-VAL-002"
+    - constraint: "Must track injection outcomes for learning"
+      reason: "Platform self-improvement requirement"
+      source: "EV-TRACK-001"
+    - constraint: "Must use DecisionLearningStore for method selection"
+      reason: "Deterministic method selection based on evidence"
+      source: "EV-REASON-001"
+
+  soft_constraints:
+    - constraint: "Prioritize must outcomes over should/could"
+      reason: "Outcome priority when size limited"
+      source: "injectOutcomes implementation notes"
+      note: "Implementation should truncate intelligently"
+    - constraint: "First Principles as safe fallback"
+      reason: "Proven core reasoning method"
+      source: "EV-REASON-003"
+      note: "Used when insufficient data"
+    - constraint: "Method guidance format matches BMAD patterns"
+      reason: "Consistent with 50 proven methods"
+      source: "methods.csv structure"
+      note: "Use output_pattern column for guidance"
+
+prohibitions:
+  - prohibition: "NEVER inject outcomes that break prompt structure"
+    reason: "Agent will fail to execute"
+    source: "EV-VAL-002"
+  - prohibition: "NEVER exceed 500 character limit"
+    reason: "Causes context overflow in agents"
+    source: "EV-VAL-001"
+  - prohibition: "NEVER use reasoning methods not in DecisionLearningStore"
+    reason: "Unproven methods may reduce decision quality"
+    source: "EV-REASON-002"
+  - prohibition: "NEVER skip injection effectiveness tracking"
+    reason: "Breaks self-improvement loop"
+    source: "EV-TRACK-001"
+
+test_coverage_requirements:
+  minimum_coverage: 80
+  target_coverage: 85
+  critical_path_coverage: 95
+
+  critical_paths:
+    - path: "Outcome injection"
+      reason: "Core functionality"
+      required_coverage: 95
+    - path: "Method selection"
+      reason: "Deterministic decision making"
+      required_coverage: 95
+    - path: "Size validation"
+      reason: "Prevents context overflow"
+      required_coverage: 90
+
+types:
+  InjectionContext:
+    domain: "Domain (from adaptive/types.ts)"
+    complexity: "number (0-1)"
+    component: "string"
+    activity: "string"
+
+  ValidationResult:
+    valid: "boolean"
+    errors: "string[]"
+    warnings: "string[]"
+
+---
+
+**Specification Status**: ✅ Complete
+**Evidence Requirements**: 12
+**Integration Points**: 3
+**Success Criteria**: 5
+**Next Phase**: Test specification generation

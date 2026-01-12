@@ -6,7 +6,6 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { ProviderAvailability } from "../../../src/sdk/providers/ProviderAvailability.ts";
 import { ProviderFactory } from "../../../src/sdk/providers/ProviderFactory.ts";
 import { ProviderType } from "../../../src/sdk/providers/types.ts";
-import type { ProviderConfig } from "../../../src/sdk/providers/types.ts";
 
 describe("ProviderAvailability", () => {
   let factory: ProviderFactory;

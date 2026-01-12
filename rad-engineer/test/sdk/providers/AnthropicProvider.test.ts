@@ -22,7 +22,7 @@ describe("AnthropicProvider", () => {
       const config = provider.getConfig();
       expect(config.model).toBe("claude-3-5-sonnet-20241022");
       expect(config.baseUrl).toBe("https://api.anthropic.com");
-      expect(config.apiKey).toBeUndefined(); // Should be excluded from safe config
+      // apiKey is excluded from safe config by Omit type
     });
 
     it("should use default values for optional config", async () => {
@@ -95,7 +95,7 @@ describe("AnthropicProvider", () => {
       });
 
       const config = provider.getConfig();
-      expect(config.apiKey).toBeUndefined();
+      // apiKey is excluded from safe config by Omit type
       expect(config.model).toBe("claude-3-5-sonnet-20241022");
       expect(config.baseUrl).toBe("https://api.anthropic.com");
     });

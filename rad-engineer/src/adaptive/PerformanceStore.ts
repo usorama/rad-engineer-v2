@@ -190,7 +190,7 @@ export class PerformanceStore {
     domain: Domain,
     oldStats: ProviderStats,
     newDataPoint: { success: boolean; quality: number }
-  ): ProviderStats {
+  ): PerformanceStore {
     const stats = this.getStats(provider, model, domain);
     if (!stats) {
       throw new Error(`Stats not found for ${provider}/${model}/${domain}`);

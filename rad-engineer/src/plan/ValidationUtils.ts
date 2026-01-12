@@ -43,7 +43,7 @@ export class ValidationUtils {
 
     // Sort by severity
     issues.sort((a, b) => {
-      const severityOrder = { error: 0, warning: 1, info: 2 };
+      const severityOrder = { critical: 0, error: 1, warning: 2, info: 3 };
       return severityOrder[a.severity] - severityOrder[b.severity];
     });
 

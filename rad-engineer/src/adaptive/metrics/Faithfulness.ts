@@ -77,8 +77,8 @@ export class FaithfulnessMetric {
       const contextWords = this.tokenize(ctx);
 
       // Calculate overlap
-      const overlap = claimWords.filter((w) => contextWords.has(w));
-      const overlapRatio = overlap.length / claimWords.length;
+      const overlap = Array.from(claimWords).filter((w) => contextWords.has(w));
+      const overlapRatio = overlap.length / claimWords.size;
 
       // High overlap suggests claim is supported
       if (overlapRatio >= 0.6) {

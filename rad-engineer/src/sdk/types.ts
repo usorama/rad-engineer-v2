@@ -14,8 +14,8 @@ export { Anthropic };
  * Configuration for SDK initialization
  */
 export interface SDKConfig {
-  /** Anthropic API key from environment variable */
-  apiKey: string;
+  /** Anthropic API key from environment variable (optional for local providers) */
+  apiKey?: string;
   /** Model identifier (e.g., 'claude-3-5-sonnet-20241022') */
   model: string;
   /** Custom base URL (e.g., 'https://api.z.ai/api/anthropic' for GLM) */

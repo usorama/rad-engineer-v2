@@ -15,6 +15,7 @@
 
 import { describe, it, expect, beforeAll } from "bun:test";
 import { ProviderAutoDetector } from "../../src/config/ProviderAutoDetector.js";
+import type { ProviderInfo } from "../../src/config/ProviderAutoDetector.js";
 import { ProviderFactory } from "../../src/sdk/providers/ProviderFactory.js";
 import { SDKIntegration } from "../../src/sdk/SDKIntegration.js";
 import { EvalsFactory } from "../../src/adaptive/EvalsFactory.js";
@@ -27,7 +28,7 @@ describe("EVALS Full Pipeline Integration", () => {
   let sdk: SDKIntegration;
   let evalsSystem: EvalsSystem;
   let tempStatePath: string;
-  let detectedProvider: any;
+  let detectedProvider: ProviderInfo;
 
   beforeAll(() => {
     // Generate unique temp path for this test run
@@ -68,6 +69,9 @@ describe("EVALS Full Pipeline Integration", () => {
     expect(detectionResult.defaultProvider).toBeDefined();
 
     // Store detected provider for later verification
+    if (!detectionResult.defaultProvider) {
+      throw new Error("No default provider detected");
+    }
     detectedProvider = detectionResult.defaultProvider;
 
     console.log(`\nDefault provider: ${detectedProvider.name}\n`);
@@ -192,9 +196,8 @@ describe("EVALS Full Pipeline Integration", () => {
     console.log("✅ EVALS routing enabled in SDKIntegration");
 
     // NOTE: For integration testing, we need to bypass resource monitor
-    // The system has 945 processes which exceeds the threshold of 400
+    // The system has many processes which may exceed the threshold of 400
     // In production, this threshold prevents system overload
-    const resourceMonitor = sdk.getResourceMonitor();
     console.log(`Resource check (may exceed threshold in test environment):`);
 
     // Initialize SDK with configuration
@@ -236,7 +239,7 @@ describe("EVALS Full Pipeline Integration", () => {
     console.log(`  Provider: ${routed.decision.provider} ✅`);
     console.log(`  Model: ${routed.decision.model} ✅`);
     console.log(`  Confidence: ${routed.decision.confidence.toFixed(3)}`);
-    console.log(`  Strategy: ${routed.decision.strategy}`);
+    console.log(`  Exploration: ${routed.decision.exploration}`);
 
     // Verify routing used our detected provider (by name, not type)
     // The detectedProvider.name is "glm-proxy" which is the registered provider name
@@ -251,7 +254,7 @@ describe("EVALS Full Pipeline Integration", () => {
     console.log("\n✅ API call successful:");
     console.log(`  Provider: ${response.metadata.provider} ✅`);
     console.log(`  Model: ${response.metadata.model} ✅`);
-    console.log(`  Duration: ${response.metadata.duration}ms`);
+    console.log(`  Finish Reason: ${response.metadata.finishReason}`);
     console.log(`  Tokens: ${response.usage.totalTokens} total`);
     console.log(`  Response: "${response.content.substring(0, 100)}..."`);
 
@@ -269,8 +272,8 @@ describe("EVALS Full Pipeline Integration", () => {
       response.metadata.provider,
       response.metadata.model,
       [], // No context files
-      0.003, // Estimated cost
-      response.metadata.duration
+      0.003 // Estimated cost
+      // Duration is not available in response metadata
     );
 
     console.log("\n📈 EVALS Feedback Recorded:");
@@ -290,9 +293,9 @@ describe("EVALS Full Pipeline Integration", () => {
 
     console.log("\n📈 EVALS System Statistics:");
     console.log(`  Store Summary:`);
-    console.log(`    - Total stats: ${stats.store.totalStats}`);
-    console.log(`    - Total queries: ${stats.store.totalQueries}`);
-    console.log(`    - Total providers: ${stats.store.totalProviders}`);
+    console.log(`    - Version: ${stats.store.version}`);
+    console.log(`    - Timestamp: ${new Date(stats.store.timestamp).toISOString()}`);
+    console.log(`    - Stats count: ${stats.store.statsCount}`);
 
     console.log(`\n  Evaluation Stats:`);
     console.log(`    - Total evaluations: ${stats.evaluation.totalEvaluations}`);
@@ -368,11 +371,11 @@ describe("EVALS Full Pipeline Integration", () => {
           response.metadata.provider,
           response.metadata.model,
           [],
-          0.003,
-          response.metadata.duration
+          0.003
+          // Duration is not available in response metadata
         );
 
-        console.log(`  Duration: ${response.metadata.duration}ms`);
+        console.log(`  Finish Reason: ${response.metadata.finishReason}`);
         console.log(`  Tokens: ${response.usage.totalTokens}`);
         console.log(`  Quality: ${evalResult.metrics.overall.toFixed(3)}`);
         console.log(`  Response: "${response.content.substring(0, 50)}..."`);

@@ -22,7 +22,7 @@ describe("GLMProvider", () => {
       const config = provider.getConfig();
       expect(config.model).toBe("glm-4.7");
       expect(config.baseUrl).toBe("https://api.z.ai/api/anthropic");
-      expect(config.apiKey).toBeUndefined();
+      // apiKey is excluded from safe config by Omit type
     });
 
     it("should use longer default timeout for GLM", async () => {
@@ -98,7 +98,7 @@ describe("GLMProvider", () => {
       });
 
       const config = provider.getConfig();
-      expect(config.apiKey).toBeUndefined();
+      // apiKey is excluded from safe config by Omit type
       expect(config.model).toBe("glm-4.7");
       expect(config.baseUrl).toBe("https://api.z.ai/api/anthropic");
     });

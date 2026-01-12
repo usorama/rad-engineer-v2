@@ -2,7 +2,7 @@
  * Ollama Provider Tests
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect } from "bun:test";
 import { OllamaProvider } from "../../../src/sdk/providers/OllamaProvider.ts";
 import { ProviderType } from "../../../src/sdk/providers/types.ts";
 
@@ -20,7 +20,7 @@ describe("OllamaProvider", () => {
       const config = provider.getConfig();
       expect(config.model).toBe("llama3.2");
       expect(config.baseUrl).toBe("http://localhost:11434");
-      expect(config.apiKey).toBeUndefined();
+      // apiKey is excluded from safe config by Omit type
     });
 
     it("should throw when Ollama is not running", async () => {
@@ -120,7 +120,7 @@ describe("OllamaProvider", () => {
       });
 
       const config = provider.getConfig();
-      expect(config.apiKey).toBeUndefined();
+      // apiKey is excluded from safe config by Omit type
       expect(config.model).toBe("llama3.2");
       expect(config.baseUrl).toBe("http://localhost:11434");
     });

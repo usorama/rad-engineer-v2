@@ -2,7 +2,25 @@
 
 > **Vision**: Engineer and engineering platform that can engineer digital solutions from ideation to production and beyond, fully autonomously using Claude Code and Claude Agent SDK
 
+## 📖 START HERE: Platform Foundation
+
+**ALWAYS READ FIRST**: `docs/platform-foundation/`
+
+This folder contains critical context documents:
+1. `PROJECT-MANIFEST.md` - Vision, objectives, outcomes, progress
+2. `RESEARCH-SUMMARY.md` - Meta's CCA architecture + VAC innovation for deterministic engineering
+
+Read these at session start to understand what we're building and the research backing it.
+
+---
+
 **Current Focus**: Phase 1 - /execute skill + Claude Agent SDK orchestration (~15% of full platform)
+
+**Active Integration Project**: Auto-Claude UI + rad-engineer-v2 Backend
+> ⚠️ **IMPORTANT**: For Auto-Claude integration workflows, protocols, and execution instructions, refer to:
+> `rad-engineer/docs/auto-claude-integration/CLAUDE.md`
+>
+> That file contains: parallel/sequential execution decisions, DoD, success criteria, verification protocols, and 78-task roadmap.
 
 ---
 
@@ -254,6 +272,7 @@ PENALTY: If you make unverified claims, user will be disappointed
 
 ## 🔗 Quick Links
 
+- **Platform Foundation**: `docs/platform-foundation/` ⭐ (read first)
 - **Progress**: `.claude/orchestration/specs/PROGRESS.md`
 - **Implementation**: `rad-engineer/`
 - **Full Vision**: `.claude/orchestration/docs/planning/AUTONOMOUS_ENGINEERING_PLATFORM_ANALYSIS.md`

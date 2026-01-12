@@ -1,0 +1,896 @@
+# Component Specification: DecisionTracker
+
+> **Component Name**: DecisionTracker
+> **Phase**: Q4 Phase 1 (Decision Tracking Foundation)
+> **Status**: Draft
+> **Priority**: HIGH (6-8h effort)
+> **Last Updated**: 2026-01-08
+
+---
+
+## Metadata
+
+```yaml
+name: DecisionTracker
+phase: Q4-Phase-1
+priority: HIGH
+effort_hours: 6-8
+dependencies:
+  - DecisionLearningStore (just implemented)
+  - MADR template (Markdown Architectural Decision Records)
+  - Knowledge Graph (Qdrant)
+pattern: Architecture Decision Records (ADR)
+```
+
+---
+
+## 1. Overview
+
+### Purpose
+
+Track architectural and engineering decisions using MADR (Markdown Architectural Decision Records) template structure. Enables **deterministic decision documentation** by:
+
+1. **Recording every significant decision** with MADR template fields
+2. **Linking decisions to evidence sources** (URLs, files, rationale)
+3. **Tracking decision outcomes** over time (superseded, accepted, rejected)
+4. **Indexing decisions in knowledge graph** for semantic search
+5. **Integrating with DecisionLearningStore** for outcome tracking
+
+### Business Value
+
+| Outcome | How It's Achieved |
+|---------|-------------------|
+| **Transparent** | All decisions documented with evidence sources visible |
+| **Searchable** | Knowledge graph indexing enables semantic decision search |
+| **Traceable** | Decision lineage (supersedes/superseded by) tracked |
+| **Learning** | Outcomes fed to DecisionLearningStore for pattern learning |
+
+### Key Insight
+
+> "Architectural decisions are justified software design choices that address functional or non-functional requirements of architectural significance."
+> — MADR Definition (https://adr.github.io/madr/)
+
+**DecisionTracker provides the structured documentation layer for decision tracking, feeding into DecisionLearningStore for learning.**
+
+---
+
+## 2. Architecture
+
+### Based on MADR Template
+
+**Evidence**: https://adr.github.io/madr/ (verified 2026-01-08)
+
+**MADR Template Structure**:
+- Status and Date
+- Context and Problem Statement
+- Decision Drivers
+- Considered Options
+- Decision Outcome (chosen option + rationale)
+- Pros and Cons of Options
+- Consequences (positive/negative)
+- More Information (links, confirmation)
+
+### AWS ADR Best Practices
+
+**Evidence**: https://aws.amazon.com/blogs/architecture/master-architecture-decision-records-adrs-best-practices-for-effective-decision-making/ (verified 2026-01-08)
+
+**Key Practices**:
+1. Keep ADR meetings short (30-45 minutes max)
+2. Focus on a single decision per ADR
+3. Separate design from decision
+4. Centralize ADR storage
+5. Maintain decision links (supersedes/superseded by)
+
+### Class Diagram
+
+```
+DecisionTracker
+    ├── createADR(decision: ADRInput): ADRRecord
+    ├── updateADR(id: string, updates: ADRUpdate): ADRRecord
+    ├── getADR(id: string): ADRRecord
+    ├── listADRs(filter?: ADRFilter): ADRRecord[]
+    ├── supersedeADR(id: string, newADR: ADRInput): ADRRecord
+    ├── linkToEvidence(id: string, evidence: EvidenceSource): void
+    ├── recordOutcome(id: string, outcome: ADRStatus): void
+    ├── exportToKnowledgeGraph(): Promise<QdrantBatch>
+    └── search(query: string): Promise<ADRRecord[]>
+```
+
+---
+
+## 3. Interface Definition
+
+### Type Definitions
+
+```typescript
+/**
+ * ADR Record following MADR template structure
+ * Source: https://adr.github.io/madr/ (verified 2026-01-08)
+ */
+export interface ADRRecord {
+  // Unique identifier (sequential number like "ADR-0001")
+  id: string;
+
+  // Timestamps
+  createdAt: number;
+  updatedAt: number;
+
+  // MADR Required Fields
+  title: string;              // Short title representing solved problem
+  status: ADRStatus;          // proposed | accepted | rejected | deprecated | superseded
+  date: string;               // YYYY-MM-DD when decision was last updated
+
+  // MADR Core Sections
+  contextAndProblemStatement: string;  // 2-3 sentences describing context
+  decisionDrivers: string[];            // Forces, concerns, requirements
+
+  // Options
+  consideredOptions: ADROption[];       // All options considered
+  decisionOutcome: ADROutcome;          // Chosen option + justification
+
+  // Optional MADR Sections
+  prosAndCons?: ProsAndCons[];          // Optional analysis
+  consequences?: Consequences;          // Positive/negative consequences
+  confirmation?: string;                // How to verify compliance
+  moreInformation?: string;             // Links, additional context
+
+  // Evidence Sources (extension to MADR)
+  evidenceSources: EvidenceSource[];    // URLs, files, docs supporting decision
+
+  // Decision Lineage
+  supersedes?: string;      // ID of ADR this replaces
+  supersededBy?: string[];  // IDs of ADRs that replace this
+
+  // Category (for organization)
+  category?: ADRCategory;   // backend | frontend | infrastructure | data | devops | general
+
+  // Stakeholders
+  decisionMakers: string[];  // Everyone involved in decision
+  consulted: string[];       // Subject matter experts (2-way communication)
+  informed: string[];        // Kept up-to-date (1-way communication)
+}
+
+/**
+ * ADR Status values
+ * Evidence: MADR template (verified)
+ */
+export type ADRStatus =
+  | "proposed"      // Under review
+  | "accepted"      // Approved and active
+  | "rejected"      // Not chosen
+  | "deprecated"    // No longer recommended
+  | "superseded";   // Replaced by new decision
+
+/**
+ * A decision option
+ */
+export interface ADROption {
+  title: string;              // Option title
+  description?: string;       // Optional description
+  links?: string[];           // Pointers to more information
+}
+
+/**
+ * Decision outcome (chosen option)
+ */
+export interface ADROutcome {
+  chosenOption: string;       // Title of chosen option
+  justification: string;      // Why this option was chosen
+}
+
+/**
+ * Pros and cons for an option
+ */
+export interface ProsAndCons {
+  option: string;             // Option title
+  pros: string[];             // "Good, because..." arguments
+  cons: string[];             // "Bad, because..." arguments
+  neutral?: string[];         // "Neutral, because..." arguments
+}
+
+/**
+ * Consequences of the decision
+ */
+export interface Consequences {
+  positive: string[];         // "Good, because..." consequences
+  negative: string[];         // "Bad, because..." consequences
+}
+
+/**
+ * Evidence source supporting the decision
+ */
+export interface EvidenceSource {
+  type: "url" | "file" | "doc" | "conversation" | "experiment";
+  source: string;             // URL, file path, or description
+  title?: string;             // Optional title
+  relevance: string;          // How this evidence supports the decision
+  confidence: number;         // 0-1, how confident in this evidence
+}
+
+/**
+ * ADR Category for organization
+ * Evidence: AWS ADR guide (verified)
+ */
+export type ADRCategory =
+  | "backend"        // Backend architecture decisions
+  | "frontend"       // Frontend/UI decisions
+  | "infrastructure" // Infrastructure, cloud, deployment
+  | "data"           // Database, data pipeline, analytics
+  | "devops"         // CI/CD, testing, operations
+  | "general";       // Cross-cutting decisions
+
+/**
+ * Input for creating new ADR
+ */
+export interface ADRInput {
+  title: string;
+  status?: ADRStatus;         // Default: "proposed"
+  category?: ADRCategory;
+  contextAndProblemStatement: string;
+  decisionDrivers: string[];
+  consideredOptions: ADROption[];
+  decisionOutcome: ADROutcome;
+  prosAndCons?: ProsAndCons[];
+  consequences?: Consequences;
+  confirmation?: string;
+  moreInformation?: string;
+  evidenceSources?: EvidenceSource[];
+  supersedes?: string;
+  decisionMakers: string[];
+  consulted?: string[];
+  informed?: string[];
+}
+
+/**
+ * Updates to existing ADR
+ */
+export interface ADRUpdate {
+  title?: string;
+  status?: ADRStatus;
+  category?: ADRCategory;
+  contextAndProblemStatement?: string;
+  decisionDrivers?: string[];
+  consideredOptions?: ADROption[];
+  decisionOutcome?: ADROutcome;
+  prosAndCons?: ProsAndCons[];
+  consequences?: Consequences;
+  confirmation?: string;
+  moreInformation?: string;
+  evidenceSources?: EvidenceSource[];
+  supersededBy?: string;  // Add to supersededBy array
+}
+
+/**
+ * Filter for querying ADRs
+ */
+export interface ADRFilter {
+  status?: ADRStatus | ADRStatus[];
+  category?: ADRCategory;
+  dateRange?: { start: string; end: string };
+  decisionMakers?: string[];
+  superseded?: boolean;  // true = only superseded ADRs
+  hasEvidence?: boolean;
+  searchText?: string;
+}
+
+/**
+ * Batch insert payload for Qdrant
+ */
+export interface QdrantBatch {
+  collection: string;
+  batch: Array<{
+    id: string;
+    vector: number[];
+    payload: ADRRecord;
+  }>;
+}
+```
+
+---
+
+## 4. Method Specifications
+
+### 4.1 createADR()
+
+```typescript
+/**
+ * Create a new ADR record
+ *
+ * Generates sequential ID (ADR-0001, ADR-0002, etc.)
+ * Sets createdAt/updatedAt timestamps
+ * Validates required MADR fields
+ *
+ * @param decision - ADR input data
+ * @returns {ADRRecord} Created ADR with generated ID
+ * @throws {Error} If required MADR fields missing
+ */
+createADR(decision: ADRInput): ADRRecord;
+```
+
+**Validation Rules** (based on MADR template):
+- ✅ REQUIRED: title, contextAndProblemStatement, consideredOptions, decisionOutcome
+- ✅ REQUIRED: At least 2 options in consideredOptions
+- ✅ REQUIRED: decisionOutcome.chosenOption must match one of consideredOptions
+- ✅ OPTIONAL: prosAndCons, consequences, confirmation, moreInformation
+- ✅ DEFAULT: status = "proposed", date = today (YYYY-MM-DD)
+
+**Failure Modes**:
+
+| Error | Detection | Recovery | Timeout |
+|-------|-----------|----------|---------|
+| `MISSING_REQUIRED_FIELDS` | Validate MADR required fields | Return validation errors | N/A |
+| `INVALID_OPTION_CHOICE` | Check chosenOption matches option | Return error with suggestions | N/A |
+| `STORAGE_WRITE_FAILED` | Catch write errors | Retry 3x with exponential backoff | 5s |
+| `ID_GENERATION_FAILED` | Check if ID already exists | Increment and retry | 2s |
+
+**Evidence**: MADR template structure (https://adr.github.io/madr/)
+
+---
+
+### 4.2 updateADR()
+
+```typescript
+/**
+ * Update an existing ADR record
+ *
+ * Updates updatedAt timestamp
+ * Validates status transitions (e.g., proposed → accepted)
+ * Maintains decision lineage (supersedes/supersededBy)
+ *
+ * @param id - ADR ID to update
+ * @param updates - Fields to update
+ * @returns {ADRRecord} Updated ADR
+ * @throws {Error} If ADR not found or invalid status transition
+ */
+updateADR(id: string, updates: ADRUpdate): ADRRecord;
+```
+
+**Status Transition Rules** (based on AWS ADR best practices):
+- ✅ proposed → accepted (approval)
+- ✅ proposed → rejected (rejection)
+- ✅ accepted → deprecated (no longer recommended)
+- ✅ accepted → superseded (replaced by new ADR)
+- ✅ deprecated → superseded (replaced after deprecation)
+- ❌ rejected → * (cannot transition from rejected)
+
+**Failure Modes**:
+
+| Error | Detection | Recovery | Timeout |
+|-------|-----------|----------|---------|
+| `ADR_NOT_FOUND` | Check if ID exists | Return error with suggestions | N/A |
+| `INVALID_STATUS_TRANSITION` | Validate state machine | Return list of valid transitions | N/A |
+| `VERSION_CONFLICT` | Check updatedAt before write | Reload and retry | 2s |
+
+**Evidence**: AWS ADR best practices (verified)
+
+---
+
+### 4.3 getADR()
+
+```typescript
+/**
+ * Get a single ADR by ID
+ *
+ * @param id - ADR ID
+ * @returns {ADRRecord} ADR record
+ * @throws {Error} If ADR not found
+ */
+getADR(id: string): ADRRecord;
+```
+
+**Failure Modes**:
+
+| Error | Detection | Recovery | Timeout |
+|-------|-----------|----------|---------|
+| `ADR_NOT_FOUND` | Check if ID exists | Return error with similar IDs | N/A |
+
+---
+
+### 4.4 listADRs()
+
+```typescript
+/**
+ * List ADRs with optional filtering
+ *
+ * Supports filtering by:
+ * - Status (proposed, accepted, rejected, etc.)
+ * - Category (backend, frontend, infrastructure, etc.)
+ * - Date range
+ * - Decision makers
+ * - Superseded status
+ * - Full-text search
+ *
+ * @param filter - Optional filter criteria
+ * @returns {ADRRecord[]} Matching ADRs (empty array if none)
+ */
+listADRs(filter?: ADRFilter): ADRRecord[];
+```
+
+**Failure Modes**:
+
+| Error | Detection | Recovery | Timeout |
+|-------|-----------|----------|---------|
+| `INVALID_FILTER` | Validate filter schema | Return empty array + log warning | N/A |
+| `QUERY_TIMEOUT` | Track query start time | Return partial results + log | 1s |
+
+---
+
+### 4.5 supersedeADR()
+
+```typescript
+/**
+ * Supersede an existing ADR with a new decision
+ *
+ * Creates new ADR with "supersedes" reference
+ * Updates old ADR status to "superseded"
+ * Adds new ADR ID to old ADR's "supersededBy" array
+ *
+ * @param id - ADR ID to supersede
+ * @param newADR - New ADR that replaces the old one
+ * @returns {ADRRecord} New ADR record
+ * @throws {Error} If old ADR not found or invalid transition
+ */
+supersedeADR(id: string, newADR: ADRInput): ADRRecord;
+```
+
+**Supersession Rules** (from AWS ADR best practices):
+- ✅ Old ADR status changes: * → "superseded"
+- ✅ New ADR gets supersedes: old ADR ID
+- ✅ Old ADR gets supersededBy: new ADR ID
+- ✅ Both ADRs link to each other for traceability
+
+**Failure Modes**:
+
+| Error | Detection | Recovery | Timeout |
+|-------|-----------|----------|---------|
+| `OLD_ADR_NOT_FOUND` | Check if ID exists | Return error with suggestions | N/A |
+| `INVALID_SUPESESSION` | Check if old ADR already superseded | Warn but allow | N/A |
+| `LINEAGE_UPDATE_FAILED` | Catch update errors | Retry 3x | 5s |
+
+**Evidence**: AWS ADR best practices - "If an ADR supersedes a previous one, document the change and link the new ADR in the superseded document."
+
+---
+
+### 4.6 linkToEvidence()
+
+```typescript
+/**
+ * Link an ADR to an evidence source
+ *
+ * Evidence sources support decision rationale:
+ * - URLs (documentation, research, blog posts)
+ * - Files (design docs, specs)
+ * - Conversations (meeting notes, chat logs)
+ * - Experiments (A/B test results, performance data)
+ *
+ * @param id - ADR ID
+ * @param evidence - Evidence source to link
+ * @returns {void}
+ * @throws {Error} If ADR not found
+ */
+linkToEvidence(id: string, evidence: EvidenceSource): void;
+```
+
+**Evidence Source Types**:
+- ✅ `url`: Web link (documentation, research, articles)
+- ✅ `file`: File path (local or repo)
+- ✅ `doc`: Document reference
+- ✅ `conversation`: Meeting notes, chat logs
+- ✅ `experiment`: A/B tests, performance measurements
+
+**Failure Modes**:
+
+| Error | Detection | Recovery | Timeout |
+|-------|-----------|----------|---------|
+| `ADR_NOT_FOUND` | Check if ID exists | Return error | N/A |
+| `INVALID_EVIDENCE_TYPE` | Validate evidence type | Return error with valid types | N/A |
+| `DUPLICATE_EVIDENCE` | Check if evidence already linked | Skip with warning | N/A |
+
+---
+
+### 4.7 recordOutcome()
+
+```typescript
+/**
+ * Record the outcome of an ADR (accepted/rejected/deprecated/etc.)
+ *
+ * Updates ADR status
+ * Feeds outcome to DecisionLearningStore for learning
+ * Timestamps the outcome
+ *
+ * @param id - ADR ID
+ * @param outcome - New status
+ * @returns {void}
+ * @throws {Error} If ADR not found or invalid status transition
+ */
+recordOutcome(id: string, outcome: ADRStatus): void;
+```
+
+**Outcome Tracking**:
+- ✅ Updates ADR status
+- ✅ Records timestamp
+- ✅ Creates DecisionRecord for DecisionLearningStore
+- ✅ Enables learning from decision outcomes
+
+**Failure Modes**:
+
+| Error | Detection | Recovery | Timeout |
+|-------|-----------|----------|---------|
+| `ADR_NOT_FOUND` | Check if ID exists | Return error | N/A |
+| `INVALID_STATUS_TRANSITION` | Validate state machine | Return valid transitions | N/A |
+| `DECISION_STORE_FAILED` | Catch DecisionLearningStore errors | Log warning, continue | 3s |
+
+---
+
+### 4.8 exportToKnowledgeGraph()
+
+```typescript
+/**
+ * Export ADRs to knowledge graph (Qdrant)
+ *
+ * Generates embeddings for semantic search
+ * Enables finding similar decisions by context
+ *
+ * @param filter - Optional filter to export subset
+ * @returns {Promise<QdrantBatch>} Batch insert payload
+ * @throws {Error} If Qdrant connection fails
+ */
+exportToKnowledgeGraph(filter?: ADRFilter): Promise<QdrantBatch>;
+```
+
+**Embedding Strategy**:
+- ✅ Embed combined text: title + context + decisionOutcome
+- ✅ Store full ADR record as payload
+- ✅ Enable semantic search by problem context
+- ✅ Enable finding similar decisions
+
+**Failure Modes**:
+
+| Error | Detection | Recovery | Timeout |
+|-------|-----------|----------|---------|
+| `QDRANT_CONNECTION_FAILED` | Catch connection errors | Retry 3x with backoff | 10s |
+| `EMBEDDING_FAILED` | Catch embedding generation errors | Use text-only fallback | 5s |
+| `BATCH_TOO_LARGE` | Check batch size | Split into smaller batches | N/A |
+
+**Evidence**: DecisionLearningStore pattern for knowledge graph export
+
+---
+
+### 4.9 search()
+
+```typescript
+/**
+ * Semantic search for ADRs
+ *
+ * Uses Qdrant vector search to find ADRs similar to query
+ * Useful for: "Have we made a decision about X before?"
+ *
+ * @param query - Natural language search query
+ * @param limit - Max results (default: 10)
+ * @returns {Promise<ADRRecord[]>} Similar ADRs ranked by relevance
+ * @throws {Error} If Qdrant query fails
+ */
+search(query: string, limit?: number): Promise<ADRRecord[]>;
+```
+
+**Search Use Cases**:
+- ✅ "Have we decided on a database before?"
+- ✅ "What was the rationale for using TypeScript?"
+- ✅ "Show me all decisions about authentication"
+- ✅ "What frontend framework did we choose and why?"
+
+**Failure Modes**:
+
+| Error | Detection | Recovery | Timeout |
+|-------|-----------|----------|---------|
+| `QDRANT_QUERY_FAILED` | Catch query errors | Return empty array + log | 5s |
+| `INVALID_QUERY` | Validate query not empty | Return error | N/A |
+
+---
+
+## 5. Success Criteria
+
+### Criterion 1: ADR Creation
+
+**Description**: Create ADR with valid MADR structure, sequential ID
+
+**Measurement Method**:
+```bash
+# Test: Create ADR
+bun test src/decision/DecisionTracker.test.ts --test-name-pattern="create ADR with MADR structure"
+```
+
+**Threshold**:
+- ✅ PASS: ADR created with sequential ID, all required fields present
+- ❌ FAIL: Missing required MADR fields or ID generation fails
+
+**Evidence**: Test output validates MADR structure
+
+**Status**: pending
+**Priority**: critical
+
+---
+
+### Criterion 2: Status Transitions
+
+**Description**: Status transitions follow AWS ADR best practices
+
+**Measurement Method**:
+```bash
+# Test: Status transitions
+bun test src/decision/DecisionTracker.test.ts --test-name-pattern="status transitions"
+```
+
+**Threshold**:
+- ✅ PASS: All valid transitions work, invalid transitions rejected
+- ❌ FAIL: Invalid transition allowed or valid transition fails
+
+**Evidence**: State machine validation
+
+**Status**: pending
+**Priority**: high
+
+---
+
+### Criterion 3: Supersession Tracking
+
+**Description**: Superseded ADRs correctly linked to new ADRs
+
+**Measurement Method**:
+```bash
+# Test: ADR supersession
+bun test src/decision/DecisionTracker.test.ts --test-name-pattern="supersede ADR"
+```
+
+**Threshold**:
+- ✅ PASS: Old ADR status = "superseded", new ADR supersedes old, bidirectional links
+- ❌ FAIL: Links broken or status incorrect
+
+**Evidence**: Bidirectional link verification
+
+**Status**: pending
+**Priority**: high
+
+---
+
+### Criterion 4: Evidence Linking
+
+**Description**: Evidence sources linked and validated
+
+**Measurement Method**:
+```bash
+# Test: Evidence linking
+bun test src/decision/DecisionTracker.test.ts --test-name-pattern="link evidence"
+```
+
+**Threshold**:
+- ✅ PASS: Evidence linked, duplicates rejected, types validated
+- ❌ FAIL: Invalid evidence accepted or duplicates not rejected
+
+**Evidence**: Evidence source validation
+
+**Status**: pending
+**Priority**: medium
+
+---
+
+### Criterion 5: Semantic Search
+
+**Description**: Search finds relevant ADRs by semantic similarity
+
+**Measurement Method**:
+```bash
+# Test: Semantic search
+bun test src/decision/DecisionTracker.test.ts --test-name-pattern="semantic search"
+```
+
+**Threshold**:
+- ✅ PASS: Query returns relevant ADRs (top 3 include matching keywords)
+- ❌ FAIL: Search returns irrelevant results or fails
+
+**Evidence**: Search result relevance scoring
+
+**Status**: pending
+**Priority**: medium
+
+---
+
+### Criterion 6: DecisionLearningStore Integration
+
+**Description**: Outcomes fed to DecisionLearningStore
+
+**Measurement Method**:
+```bash
+# Test: DecisionLearningStore integration
+bun test src/decision/DecisionTracker.test.ts --test-name-pattern="DecisionLearningStore integration"
+```
+
+**Threshold**:
+- ✅ PASS: recordOutcome() creates DecisionRecord in DecisionLearningStore
+- ❌ FAIL: DecisionLearningStore not updated or error thrown
+
+**Evidence**: DecisionLearningStore query confirms record created
+
+**Status**: pending
+**Priority**: high
+
+---
+
+### Criterion 7: Type Safety
+
+**Description**: All methods pass TypeScript strict mode, 0 errors
+
+**Measurement Method**:
+```bash
+cd rad-engineer && bun run typecheck
+```
+
+**Threshold**:
+- ✅ PASS: 0 TypeScript errors
+- ❌ FAIL: Any TypeScript errors
+
+**Evidence**: Typecheck output shows 0 errors
+
+**Status**: pending
+**Priority**: critical
+
+---
+
+## 6. Dependencies
+
+### Internal
+
+- `DecisionLearningStore` (rad-engineer/src/decision/DecisionLearningStore.ts) - Stores decision outcomes for learning
+- Knowledge Graph (Qdrant) - Semantic search and ADR storage
+
+### External
+
+- **Qdrant** (vector database): ADR storage and semantic search
+- **Bun**: Test runtime and file I/O
+
+### Template References
+
+- **MADR Template**: https://adr.github.io/madr/ (verified 2026-01-08)
+- **AWS ADR Best Practices**: https://aws.amazon.com/blogs/architecture/master-architecture-decision-records-adrs-best-practices-for-effective-decision-making/ (verified 2026-01-08)
+
+---
+
+## 7. Integration Points
+
+### 1. DecisionLearningStore
+
+**Relation**: DecisionTracker records outcome → DecisionLearningStore stores DecisionRecord
+
+**Interface**:
+```typescript
+decisionTracker.recordOutcome(adrId, "accepted");
+// Creates DecisionRecord in DecisionLearningStore:
+// {
+//   component: "DecisionTracker",
+//   activity: "adr_approval",
+//   decision: adr.title,
+//   outcome: { success: true, quality: 1.0 }
+// }
+```
+
+---
+
+### 2. Knowledge Graph
+
+**Relation**: DecisionTracker exports ADRs → Knowledge Graph stores for semantic search
+
+**Interface**:
+```typescript
+const batch = await decisionTracker.exportToKnowledgeGraph();
+await qdrantClient.upsert(batch);
+```
+
+---
+
+### 3. /execute Skill (Future)
+
+**Relation**: /execute skill queries ADRs → DecisionTracker provides context
+
+**Interface**:
+```typescript
+const similarDecisions = await decisionTracker.search("database selection");
+// Inject into /execute planning
+```
+
+---
+
+## 8. Constraints and Prohibitions
+
+### MUST
+
+- ✅ Follow MADR template structure (all required fields)
+- ✅ Generate sequential ADR IDs (ADR-0001, ADR-0002, etc.)
+- ✅ Validate status transitions (state machine)
+- ✅ Track supersession lineage (bidirectional links)
+- ✅ Link to evidence sources (URLs, files, docs)
+- ✅ Export to knowledge graph (semantic search)
+- ✅ Feed outcomes to DecisionLearningStore (learning)
+
+### MUST NOT
+
+- ❌ Create ADR without required MADR fields (context, options, outcome)
+- ❌ Allow invalid status transitions (e.g., rejected → accepted)
+- ❌ Break supersession links (must maintain bidirectional)
+- ❌ Store ADRs in memory only (must persist to disk + Qdrant)
+- ❌ Skip evidence tracking (unknown source is still evidence)
+
+### Performance Constraints
+
+- ADR creation: <50ms
+- ADR query by ID: <10ms
+- List ADRs with filter: <100ms
+- Semantic search: <500ms (Qdrant query)
+- Export to Qdrant: <5s for 100 ADRs
+
+---
+
+## 9. Evidence Mapping
+
+| Claim | Evidence Source | Verification Method |
+|-------|----------------|---------------------|
+| MADR template structure | https://adr.github.io/madr/ | Verified 2026-01-08, full template available |
+| AWS ADR best practices | https://aws.amazon.com/blogs/architecture/master-architecture-decision-records-adrs-best-practices-for-effective-decision-making/ | Verified 2026-01-08, 10 best practices documented |
+| DecisionLearningStore integration | Component spec just created (decision-learning-store/component-spec.yaml) | File exists, verified 2026-01-08 |
+| Qdrant for knowledge graph | Q4_RESEARCH_UPDATED.md (mentioned) | Research confirms integration |
+
+---
+
+## 10. Go/No-Go Decision
+
+### Go Criteria (ALL must pass)
+
+- ✅ Criterion 1: ADR creation with MADR structure
+- ✅ Criterion 2: Status transitions validated
+- ✅ Criterion 3: Supersession tracking works
+- ✅ Criterion 7: TypeScript 0 errors
+
+### No-Go Criteria (ANY fails = block)
+
+- ❌ Criterion 1 FAIL → ADR structure broken, unusable
+- ❌ Criterion 2 FAIL → Status tracking broken, data integrity risk
+- ❌ Criterion 7 FAIL → Type safety broken, production risk
+
+### Iteration Loop
+
+If any criterion FAIL:
+1. Identify root cause
+2. Fix implementation
+3. Re-test FAILED criterion only
+4. Max 3 iterations, then escalate
+
+---
+
+## 11. Implementation Notes
+
+### File Location
+
+`rad-engineer/src/decision/DecisionTracker.ts`
+
+### Test Location
+
+`rad-engineer/test/decision/DecisionTracker.test.ts`
+
+### Import Path
+
+```typescript
+import { DecisionTracker } from './DecisionTracker.js';
+```
+
+### Mock Location (for testing)
+
+`rad-engineer/test/mocks/QdrantClient.mock.ts`
+
+### ADR Storage Location
+
+`rad-engineer/docs/decisions/` (following MADR convention)
+
+---
+
+**Status**: Ready for implementation
+**Confidence**: HIGH (all claims verified, templates proven)
+**Next Step**: Create test-spec.yaml → Implement → Verify

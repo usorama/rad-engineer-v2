@@ -112,7 +112,7 @@ export class ProviderConfigManager {
     const expanded: ProviderConfig = {
       ...config,
       apiKey: config.apiKey ? this.expandEnvValue(config.apiKey) : undefined,
-      baseUrl: config.baseUrl ? this.expandEnvValue(config.baseUrl) : undefined,
+      baseUrl: config.baseUrl ? this.expandEnvValue(config.baseUrl) : config.baseUrl,
     };
 
     return expanded;

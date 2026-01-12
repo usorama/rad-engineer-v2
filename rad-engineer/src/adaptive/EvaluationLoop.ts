@@ -99,13 +99,12 @@ export class EvaluationLoop {
       response
     );
 
-    // Calculate overall score
-    const overall = this.calculateOverall({
-      answerRelevancy: relevancy,
-      faithfulness,
-      contextualPrecision: precision,
-      contextualRecall: recall,
-    });
+    // Calculate overall score (compute inline to avoid circular dependency)
+    const overall =
+      relevancy * this.config.weights.relevancy +
+      faithfulness * this.config.weights.faithfulness +
+      precision * this.config.weights.precision +
+      recall * this.config.weights.recall;
 
     const metrics: QualityMetrics = {
       answerRelevancy: relevancy,

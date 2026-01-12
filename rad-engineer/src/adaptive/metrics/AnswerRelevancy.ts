@@ -55,7 +55,7 @@ export class AnswerRelevancyMetric {
    * Calculate embedding similarity (placeholder)
    * In production, would use actual embeddings with fixed seed
    */
-  private embeddingSimilarity(query: string, response: string): number {
+  private async embeddingSimilarity(query: string, response: string): Promise<number> {
     // Placeholder: return Jaccard similarity
     return this.calculate(query, response);
   }

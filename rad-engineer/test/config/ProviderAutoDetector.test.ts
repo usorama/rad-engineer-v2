@@ -10,8 +10,6 @@ import {
   autoDetectProviders,
   getDefaultProvider,
   detectAllProviders,
-  type ProviderInfo,
-  type DetectionResult,
 } from "../../src/config/ProviderAutoDetector";
 import { ProviderType } from "../../src/sdk/providers/types";
 

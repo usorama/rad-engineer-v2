@@ -1,7 +1,7 @@
 /**
  * Spec Generator Plugin Integration
  *
- * TypeScript wrapper for Auto-Claude's spec generator plugin.
+ * TypeScript wrapper for rad-engineer's spec generator plugin.
  * Provides complexity assessment and spec generation capabilities.
  *
  * Features:
@@ -127,7 +127,7 @@ export interface SpecGenPluginConfig extends Partial<PluginConfig> {
 /**
  * Spec Generator Plugin
  *
- * Wrapper around Auto-Claude's spec generator plugin.
+ * Wrapper around rad-engineer's spec generator plugin.
  * Provides TypeScript interface for complexity assessment and spec generation.
  */
 export class SpecGeneratorPlugin {

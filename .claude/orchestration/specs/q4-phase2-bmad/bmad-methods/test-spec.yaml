@@ -1,0 +1,777 @@
+# BMAD Methods Integration - Test Specification
+
+**Component**: BMADMethods (or ReasoningMethods)
+**Phase**: Q4 Phase 2 - Integration
+**Status**: Specified
+**Test Framework**: Bun Test
+**Coverage Target**: ≥95%
+
+---
+
+## 1. Test Strategy
+
+### 1.1 Testing Philosophy
+- **Evidence-based testing**: Test against actual BMAD methods from CSV
+- **Deterministic tests**: Same input = same output
+- **Fast feedback**: All tests run in < 5 seconds
+- **Clear failure messages**: Exact expectations vs actual
+
+### 1.2 Test Categories
+1. **Unit Tests**: Individual class methods
+2. **Integration Tests**: Cross-component interactions
+3. **Edge Case Tests**: Boundary conditions and errors
+4. **Performance Tests**: Speed and resource limits
+
+---
+
+## 2. Test File Structure
+
+```
+test/reasoning/
+├── BMADMethods.test.ts         # Main class tests
+├── MethodCatalog.test.ts       # Catalog tests
+├── MethodSelector.test.ts      # Selection algorithm tests
+└── fixtures/
+    └── methods-test.csv        # Test data (subset of full methods)
+```
+
+---
+
+## 3. Unit Tests
+
+### 3.1 MethodCatalog Tests
+
+**File**: `test/reasoning/MethodCatalog.test.ts`
+
+#### Test Suite: CSV Loading
+```typescript
+describe('MethodCatalog: CSV Loading', () => {
+  test('should load all 50 methods from CSV', () => {
+    const catalog = new MethodCatalog('path/to/methods.csv');
+    expect(catalog.getAllMethods().length).toBe(50);
+  });
+
+  test('should parse method fields correctly', () => {
+    const catalog = new MethodCatalog('path/to/methods.csv');
+    const method = catalog.getMethod('first-principles');
+
+    expect(method?.name).toBe('First Principles Analysis');
+    expect(method?.category).toBe('core');
+    expect(method?.description).toContain('assumptions');
+    expect(method?.outputPattern).toBe('assumptions → truths → new approach');
+  });
+
+  test('should validate required fields', () => {
+    const catalog = new MethodCatalog('path/to/methods.csv');
+    const methods = catalog.getAllMethods();
+
+    methods.forEach(method => {
+      expect(method.id).toBeTruthy();
+      expect(method.name).toBeTruthy();
+      expect(method.category).toBeTruthy();
+      expect(method.description).toBeTruthy();
+      expect(method.outputPattern).toBeTruthy();
+    });
+  });
+
+  test('should throw on missing CSV file', () => {
+    expect(() => new MethodCatalog('nonexistent.csv'))
+      .toThrow('CSV_FILE_NOT_FOUND');
+  });
+
+  test('should throw on invalid CSV format', () => {
+    expect(() => new MethodCatalog('path/to/invalid.csv'))
+      .toThrow('CSV_FORMAT_INVALID');
+  });
+});
+```
+
+#### Test Suite: Method Lookup
+```typescript
+describe('MethodCatalog: Method Lookup', () => {
+  let catalog: MethodCatalog;
+
+  beforeEach(() => {
+    catalog = new MethodCatalog('path/to/methods.csv');
+  });
+
+  test('should get method by ID', () => {
+    const method = catalog.getMethod('first-principles');
+    expect(method).toBeDefined();
+    expect(method?.id).toBe('first-principles');
+  });
+
+  test('should return undefined for unknown method', () => {
+    const method = catalog.getMethod('unknown-method');
+    expect(method).toBeUndefined();
+  });
+
+  test('should get all methods', () => {
+    const methods = catalog.getAllMethods();
+    expect(methods.length).toBe(50);
+    expect(methods[0]).toHaveProperty('id');
+    expect(methods[0]).toHaveProperty('name');
+  });
+
+  test('should filter by category', () => {
+    const coreMethods = catalog.getByCategory('core');
+    expect(coreMethods.length).toBe(5);
+    coreMethods.forEach(method => {
+      expect(method.category).toBe('core');
+    });
+  });
+
+  test('should filter by domain', () => {
+    const codeMethods = catalog.getByDomain('code');
+    expect(codeMethods.length).toBeGreaterThan(0);
+    codeMethods.forEach(method => {
+      expect(method.domains).toContain('code');
+    });
+  });
+});
+```
+
+### 3.2 MethodSelector Tests
+
+**File**: `test/reasoning/MethodSelector.test.ts`
+
+#### Test Suite: Method Selection
+```typescript
+describe('MethodSelector: Method Selection', () => {
+  let selector: MethodSelector;
+  let catalog: MethodCatalog;
+  let decisionStore: DecisionLearningStore;
+
+  beforeEach(() => {
+    catalog = new MethodCatalog('path/to/methods.csv');
+    decisionStore = new DecisionLearningStore();
+    selector = new MethodSelector(catalog, decisionStore);
+  });
+
+  test('should select method for code domain', () => {
+    const context: MethodSelectionContext = {
+      domain: 'code',
+      complexity: 5,
+      stakeholders: ['developer'],
+      constraints: ['technical'],
+      timeAvailable: 300
+    };
+
+    const method = selector.selectMethod(context);
+    expect(method).toBeDefined();
+    expect(method.domains).toContain('code');
+  });
+
+  test('should select method for creative domain', () => {
+    const context: MethodSelectionContext = {
+      domain: 'creative',
+      complexity: 7,
+      stakeholders: ['designer', 'pm'],
+      constraints: ['time'],
+      timeAvailable: 600
+    };
+
+    const method = selector.selectMethod(context);
+    expect(method).toBeDefined();
+    expect(method.domains).toContain('creative');
+  });
+
+  test('should select quick method for limited time', () => {
+    const context: MethodSelectionContext = {
+      domain: 'code',
+      complexity: 5,
+      stakeholders: ['developer'],
+      constraints: [],
+      timeAvailable: 60 // only 1 minute
+    };
+
+    const method = selector.selectMethod(context);
+    expect(method.timeRequired).toBe('quick');
+  });
+
+  test('should select solo method for single stakeholder', () => {
+    const context: MethodSelectionContext = {
+      domain: 'reasoning',
+      complexity: 5,
+      stakeholders: ['developer'],
+      constraints: [],
+      timeAvailable: 300
+    };
+
+    const method = selector.selectMethod(context);
+    expect(method.stakeholders).toBe('solo');
+  });
+
+  test('should select team method for multiple stakeholders', () => {
+    const context: MethodSelectionContext = {
+      domain: 'collaboration',
+      complexity: 8,
+      stakeholders: ['pm', 'engineer', 'designer'],
+      constraints: [],
+      timeAvailable: 1200
+    };
+
+    const method = selector.selectMethod(context);
+    expect(method.stakeholders).toBe('team');
+  });
+
+  test('should match complexity level', () => {
+    const context: MethodSelectionContext = {
+      domain: 'reasoning',
+      complexity: 8,
+      stakeholders: ['developer'],
+      constraints: [],
+      timeAvailable: 600
+    };
+
+    const method = selector.selectMethod(context);
+    expect(method.complexity).toBeGreaterThanOrEqual(7);
+    expect(method.complexity).toBeLessThanOrEqual(9);
+  });
+});
+```
+
+#### Test Suite: Edge Cases
+```typescript
+describe('MethodSelector: Edge Cases', () => {
+  let selector: MethodSelector;
+
+  beforeEach(() => {
+    const catalog = new MethodCatalog('path/to/methods.csv');
+    const decisionStore = new DecisionLearningStore();
+    selector = new MethodSelector(catalog, decisionStore);
+  });
+
+  test('should fallback to First Principles if no match', () => {
+    const context: MethodSelectionContext = {
+      domain: 'unknown',
+      complexity: 10,
+      stakeholders: ['alien'],
+      constraints: ['impossible'],
+      timeAvailable: 1
+    };
+
+    const method = selector.selectMethod(context);
+    expect(method.name).toBe('First Principles Analysis');
+  });
+
+  test('should handle empty stakeholders array', () => {
+    const context: MethodSelectionContext = {
+      domain: 'code',
+      complexity: 5,
+      stakeholders: [],
+      constraints: [],
+      timeAvailable: 300
+    };
+
+    const method = selector.selectMethod(context);
+    expect(method).toBeDefined();
+    expect(method.stakeholders).toBe('solo');
+  });
+
+  test('should handle zero time available', () => {
+    const context: MethodSelectionContext = {
+      domain: 'code',
+      complexity: 5,
+      stakeholders: ['developer'],
+      constraints: [],
+      timeAvailable: 0
+    };
+
+    const method = selector.selectMethod(context);
+    expect(method).toBeDefined();
+    expect(method.name).toBe('First Principles Analysis'); // fastest default
+  });
+
+  test('should handle extreme complexity', () => {
+    const context: MethodSelectionContext = {
+      domain: 'reasoning',
+      complexity: 10,
+      stakeholders: ['expert'],
+      constraints: [],
+      timeAvailable: 3600
+    };
+
+    const method = selector.selectMethod(context);
+    expect(method.complexity).toBeGreaterThanOrEqual(8);
+  });
+
+  test('should handle unknown domain', () => {
+    const context: MethodSelectionContext = {
+      domain: 'unknown' as Domain,
+      complexity: 5,
+      stakeholders: ['developer'],
+      constraints: [],
+      timeAvailable: 300
+    };
+
+    const method = selector.selectMethod(context);
+    expect(method).toBeDefined();
+  });
+});
+```
+
+### 3.3 BMADMethods Tests
+
+**File**: `test/reasoning/BMADMethods.test.ts`
+
+#### Test Suite: Public API
+```typescript
+describe('BMADMethods: Public API', () => {
+  let bmadMethods: BMADMethods;
+  let decisionStore: DecisionLearningStore;
+
+  beforeEach(() => {
+    decisionStore = new DecisionLearningStore();
+    bmadMethods = new BMADMethods(decisionStore);
+  });
+
+  test('should select method based on context', () => {
+    const context: MethodSelectionContext = {
+      domain: 'code',
+      complexity: 5,
+      stakeholders: ['developer'],
+      constraints: ['technical'],
+      timeAvailable: 300
+    };
+
+    const method = bmadMethods.selectMethod(context);
+    expect(method).toBeDefined();
+    expect(method).toHaveProperty('id');
+    expect(method).toHaveProperty('name');
+    expect(method).toHaveProperty('category');
+  });
+
+  test('should return all 50 methods', () => {
+    const methods = bmadMethods.getAllMethods();
+    expect(methods.length).toBe(50);
+  });
+
+  test('should return methods by category', () => {
+    const coreMethods = bmadMethods.getMethodsByCategory('core');
+    expect(coreMethods.length).toBe(5);
+    coreMethods.forEach(method => {
+      expect(method.category).toBe('core');
+    });
+  });
+
+  test('should return methods by domain', () => {
+    const codeMethods = bmadMethods.getMethodsByDomain('code');
+    expect(codeMethods.length).toBeGreaterThan(0);
+    codeMethods.forEach(method => {
+      expect(method.domains).toContain('code');
+    });
+  });
+
+  test('should track method outcomes', () => {
+    const methodId = 'first-principles';
+    const outcome: DecisionOutcome = {
+      success: true,
+      quality: 0.9,
+      errors: [],
+      decisionId: 'test-decision-1'
+    };
+
+    bmadMethods.trackMethodOutcome(methodId, outcome);
+    // Verify tracked in DecisionLearningStore
+    const history = decisionStore.getMethodHistory(methodId);
+    expect(history.length).toBeGreaterThan(0);
+  });
+});
+```
+
+---
+
+## 4. Integration Tests
+
+### 4.1 OutcomeInjector Integration
+
+**File**: `test/reasoning/BMADMethods.integration.test.ts`
+
+#### Test Suite: OutcomeInjector Integration
+```typescript
+describe('BMADMethods: OutcomeInjector Integration', () => {
+  let bmadMethods: BMADMethods;
+  let outcomeInjector: OutcomeInjector;
+  let decisionStore: DecisionLearningStore;
+
+  beforeEach(() => {
+    decisionStore = new DecisionLearningStore();
+    bmadMethods = new BMADMethods(decisionStore);
+    outcomeInjector = new OutcomeInjector(decisionStore);
+  });
+
+  test('should inject selected method into prompt', () => {
+    const basePrompt = 'Implement a feature';
+    const context: DecisionContext = {
+      domain: 'code',
+      complexity: 5,
+      constraints: ['technical'],
+      stakeholders: ['developer']
+    };
+
+    const method = bmadMethods.selectMethod(context);
+    const enhanced = outcomeInjector.injectReasoningMethod(basePrompt, method);
+
+    expect(enhanced).toContain('## Reasoning Method');
+    expect(enhanced).toContain(method.name);
+    expect(enhanced.length).toBeLessThanOrEqual(500); // MAX_PROMPT_SIZE
+  });
+
+  test('should format method correctly', () => {
+    const basePrompt = 'Analyze this problem';
+    const method: ReasoningMethod = {
+      id: 'test-method',
+      name: 'Test Method',
+      category: 'core',
+      description: 'A test method',
+      outputPattern: 'input → output',
+      domains: ['code'],
+      complexity: 5,
+      timeRequired: 'quick',
+      stakeholders: 'solo',
+      parameters: {}
+    };
+
+    const enhanced = outcomeInjector.injectReasoningMethod(basePrompt, method);
+
+    expect(enhanced).toContain('Test Method');
+    expect(enhanced).toContain('input → output');
+    expect(enhanced).toContain('START WITH OUTCOMES');
+  });
+
+  test('should handle large prompts', () => {
+    const basePrompt = 'A'.repeat(400); // Near limit
+    const method: ReasoningMethod = {
+      id: 'test',
+      name: 'Test',
+      category: 'core',
+      description: 'Test',
+      outputPattern: 'test',
+      domains: ['code'],
+      complexity: 1,
+      timeRequired: 'quick',
+      stakeholders: 'solo',
+      parameters: {}
+    };
+
+    const enhanced = outcomeInjector.injectReasoningMethod(basePrompt, method);
+    expect(enhanced.length).toBeLessThanOrEqual(500);
+  });
+
+  test('should fallback on invalid method', () => {
+    const basePrompt = 'Test prompt';
+    const invalidMethod = null as unknown as ReasoningMethod;
+
+    const enhanced = outcomeInjector.injectReasoningMethod(basePrompt, invalidMethod);
+    expect(enhanced).toBe(basePrompt); // Returns unchanged
+  });
+});
+```
+
+### 4.2 DecisionLearningStore Integration
+
+#### Test Suite: Learning Integration
+```typescript
+describe('BMADMethods: DecisionLearningStore Integration', () => {
+  let bmadMethods: BMADMethods;
+  let decisionStore: DecisionLearningStore;
+
+  beforeEach(() => {
+    decisionStore = new DecisionLearningStore();
+    bmadMethods = new BMADMethods(decisionStore);
+  });
+
+  test('should improve selection based on history', () => {
+    const context: MethodSelectionContext = {
+      domain: 'code',
+      complexity: 5,
+      stakeholders: ['developer'],
+      constraints: [],
+      timeAvailable: 300
+    };
+
+    // First selection (no history)
+    const method1 = bmadMethods.selectMethod(context);
+
+    // Track successful outcome
+    bmadMethods.trackMethodOutcome(method1.id, {
+      success: true,
+      quality: 0.95,
+      errors: [],
+      decisionId: 'decision-1'
+    });
+
+    // Second selection (should prefer successful method)
+    const method2 = bmadMethods.selectMethod(context);
+
+    expect(method2.id).toBe(method1.id); // Same method preferred
+  });
+
+  test('should avoid methods with poor outcomes', () => {
+    const context: MethodSelectionContext = {
+      domain: 'code',
+      complexity: 5,
+      stakeholders: ['developer'],
+      constraints: [],
+      timeAvailable: 300
+    };
+
+    // Track poor outcome for First Principles
+    bmadMethods.trackMethodOutcome('first-principles', {
+      success: false,
+      quality: 0.3,
+      errors: ['incomplete analysis'],
+      decisionId: 'decision-2'
+    });
+
+    const method = bmadMethods.selectMethod(context);
+    expect(method.id).not.toBe('first-principles');
+  });
+
+  test('should handle insufficient data', () => {
+    const context: MethodSelectionContext = {
+      domain: 'code',
+      complexity: 5,
+      stakeholders: ['developer'],
+      constraints: [],
+      timeAvailable: 300
+    };
+
+    // No history, should use default selection
+    const method = bmadMethods.selectMethod(context);
+    expect(method).toBeDefined();
+  });
+});
+```
+
+---
+
+## 5. Performance Tests
+
+### 5.1 Speed Tests
+
+**File**: `test/reasoning/BMADMethods.performance.test.ts`
+
+```typescript
+describe('BMADMethods: Performance', () => {
+  let bmadMethods: BMADMethods;
+
+  beforeEach(() => {
+    bmadMethods = new BMADMethods();
+  });
+
+  test('should select method in < 100ms', () => {
+    const context: MethodSelectionContext = {
+      domain: 'code',
+      complexity: 5,
+      stakeholders: ['developer'],
+      constraints: [],
+      timeAvailable: 300
+    };
+
+    const start = Date.now();
+    bmadMethods.selectMethod(context);
+    const elapsed = Date.now() - start;
+
+    expect(elapsed).toBeLessThan(100);
+  });
+
+  test('should load catalog in < 500ms', () => {
+    const start = Date.now();
+    const catalog = new MethodCatalog('path/to/methods.csv');
+    const elapsed = Date.now() - start;
+
+    expect(elapsed).toBeLessThan(500);
+    expect(catalog.getAllMethods().length).toBe(50);
+  });
+
+  test('should handle 1000 selections in < 1 second', () => {
+    const context: MethodSelectionContext = {
+      domain: 'code',
+      complexity: 5,
+      stakeholders: ['developer'],
+      constraints: [],
+      timeAvailable: 300
+    };
+
+    const start = Date.now();
+    for (let i = 0; i < 1000; i++) {
+      bmadMethods.selectMethod(context);
+    }
+    const elapsed = Date.now() - start;
+
+    expect(elapsed).toBeLessThan(1000);
+  });
+});
+```
+
+### 5.2 Memory Tests
+
+```typescript
+describe('BMADMethods: Memory', () => {
+  test('should use < 10MB for catalog', () => {
+    const catalog = new MethodCatalog('path/to/methods.csv');
+
+    // Rough estimate: 50 methods × ~200 bytes = ~10KB
+    // With overhead, should still be < 10MB
+    const methods = catalog.getAllMethods();
+    const estimatedSize = JSON.stringify(methods).length;
+
+    expect(estimatedSize).toBeLessThan(10 * 1024 * 1024); // 10MB
+  });
+});
+```
+
+---
+
+## 6. Test Fixtures
+
+### 6.1 Test CSV Data
+
+**File**: `test/reasoning/fixtures/methods-test.csv`
+
+```csv
+num,category,method_name,description,output_pattern
+1,core,First Principles Analysis,Strip away assumptions to rebuild from fundamental truths,assumptions → truths → new approach
+2,core,5 Whys Deep Dive,Repeatedly ask why to drill down to root causes,why chain → root cause → solution
+3,advanced,Tree of Thoughts,Explore multiple reasoning paths simultaneously then evaluate and select the best,paths → evaluation → selection
+4,collaboration,Stakeholder Round Table,Convene multiple personas to contribute diverse perspectives,perspectives → synthesis → alignment
+5,risk,Pre-mortem Analysis,Imagine future failure then work backwards to prevent it,failure scenario → causes → prevention
+```
+
+---
+
+## 7. Test Coverage Requirements
+
+### 7.1 Coverage Targets
+- **Line Coverage**: ≥95%
+- **Branch Coverage**: ≥90%
+- **Function Coverage**: 100%
+
+### 7.2 Critical Paths (Must Cover)
+1. CSV loading and parsing
+2. Method selection algorithm
+3. Edge case handling
+4. Integration with OutcomeInjector
+5. Integration with DecisionLearningStore
+
+### 7.3 Coverage Verification
+```bash
+# Run tests with coverage
+bun test --coverage
+
+# Check coverage report
+open coverage/index.html
+
+# Verify minimum coverage
+bun test | grep "Coverage" | awk '{print $2}' | grep -E "^[9][0-9]|100"
+```
+
+---
+
+## 8. Test Execution
+
+### 8.1 Run All Tests
+```bash
+bun test test/reasoning/
+```
+
+### 8.2 Run Specific Test Suite
+```bash
+bun test test/reasoning/BMADMethods.test.ts
+bun test test/reasoning/MethodCatalog.test.ts
+bun test test/reasoning/MethodSelector.test.ts
+```
+
+### 8.3 Run Integration Tests
+```bash
+bun test test/reasoning/*.integration.test.ts
+```
+
+### 8.4 Run Performance Tests
+```bash
+bun test test/reasoning/*.performance.test.ts
+```
+
+### 8.5 Watch Mode
+```bash
+bun test --watch test/reasoning/
+```
+
+---
+
+## 9. Success Criteria
+
+### 9.1 All Tests Pass
+```bash
+bun test test/reasoning/
+# Expected: 0 failures, 0 errors
+```
+
+### 9.2 Coverage Met
+```bash
+bun test --coverage
+# Expected: ≥95% line coverage
+```
+
+### 9.3 Performance Met
+- Method selection: < 100ms
+- Catalog loading: < 500ms
+- 1000 selections: < 1 second
+
+### 9.4 Quality Checks
+```bash
+# Type check
+pnpm typecheck
+# Expected: 0 errors
+
+# Lint
+pnpm lint
+# Expected: 0 errors
+```
+
+---
+
+## 10. Continuous Integration
+
+### 10.1 CI Pipeline
+```yaml
+# .github/workflows/test-bmad-methods.yml
+name: BMAD Methods Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: oven-sh/setup-bun@v1
+      - run: bun install
+      - run: bun test test/reasoning/ --coverage
+      - uses: codecov/codecov-action@v3
+```
+
+### 10.2 Pre-commit Hook
+```bash
+#!/bin/bash
+# .git/hooks/pre-commit
+
+# Run BMAD methods tests
+bun test test/reasoning/
+
+# Check if tests passed
+if [ $? -ne 0 ]; then
+  echo "❌ BMAD Methods tests failed. Commit aborted."
+  exit 1
+fi
+
+echo "✅ BMAD Methods tests passed. Proceeding with commit."
+```
+
+---
+
+**Test Specification Version**: 1.0
+**Last Updated**: 2026-01-08
+**Status**: Ready for Implementation

@@ -12,7 +12,6 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import {
   IntakeHandler,
-  ResearchCoordinator,
   ExecutionPlanGenerator,
   ValidationUtils,
   type StructuredRequirements,

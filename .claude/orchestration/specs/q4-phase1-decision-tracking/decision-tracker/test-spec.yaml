@@ -1,0 +1,1143 @@
+# Test Specification: DecisionTracker
+
+> **Component**: DecisionTracker
+> **Phase**: Q4 Phase 1
+> **Status**: Draft
+> **Last Updated**: 2026-01-08
+
+---
+
+## 1. Test Requirements
+
+### Coverage Requirements
+
+| Metric | Target | Threshold |
+|--------|--------|-----------|
+| **Line Coverage** | ≥90% | PASS: ≥90%, FAIL: <80% |
+| **Branch Coverage** | ≥85% | PASS: ≥85%, FAIL: <75% |
+| **Function Coverage** | ≥95% | PASS: ≥95%, FAIL: <85% |
+
+### Test Count Requirements
+
+| Test Type | Minimum Count | Actual Count |
+|-----------|---------------|--------------|
+| Unit Tests | 25 | 0 (pending) |
+| Integration Tests | 3 | 0 (pending) |
+| Chaos Tests | 2 | 0 (pending) |
+
+### Test Framework
+
+- **Runtime**: Bun Test
+- **Assertion Library**: Bun's built-in `expect()`
+- **Mocking**: Manual mocks (no mocking library)
+
+---
+
+## 2. Unit Tests
+
+### 2.1 createADR()
+
+#### Test: create ADR with MADR structure
+
+**Input**:
+```typescript
+const adrInput: ADRInput = {
+  title: "Use TypeScript for Backend Services",
+  category: "backend",
+  contextAndProblemStatement: "We need to choose a language for backend services that provides type safety and good tooling support.",
+  decisionDrivers: [
+    "Type safety",
+    "Developer productivity",
+    "Performance",
+    "Ecosystem maturity"
+  ],
+  consideredOptions: [
+    { title: "TypeScript", description: "Typed JavaScript with compile-time checking" },
+    { title: "JavaScript", description: "Dynamic typing, widely adopted" },
+    { title: "Python", description: "Dynamic typing, readable syntax" }
+  ],
+  decisionOutcome: {
+    chosenOption: "TypeScript",
+    justification: "TypeScript provides type safety while maintaining JavaScript ecosystem compatibility."
+  },
+  prosAndCons: [
+    {
+      option: "TypeScript",
+      pros: ["Type safety catches errors at compile time", "Excellent IDE support"],
+      cons: ["Requires compilation step", "Learning curve for JS developers"]
+    },
+    {
+      option: "JavaScript",
+      pros: ["No compilation step", "Widely known"],
+      cons: ["No type safety", "Runtime errors only"]
+    },
+    {
+      option: "Python",
+      pros: ["Readable syntax", "Rich ecosystem"],
+      cons: ["Slower execution", "No type safety without extra tools"]
+    }
+  ],
+  consequences: {
+    positive: ["Reduced runtime errors", "Better IDE support", "Easier refactoring"],
+    negative: ["Build process complexity", "Type definition maintenance"]
+  },
+  confirmation: "Code review ensures all new services use TypeScript",
+  evidenceSources: [
+    {
+      type: "url",
+      source: "https://www.typescriptlang.org/",
+      relevance: "Official TypeScript documentation",
+      confidence: 1.0
+    }
+  ],
+  decisionMakers: ["Tech Lead", "Architecture Team"]
+};
+```
+
+**Expected**:
+- ADR created successfully
+- ID generated: "ADR-0001"
+- All required MADR fields present
+- createdAt and updatedAt set
+- Default status: "proposed"
+
+**Assertions**:
+```typescript
+const adr = tracker.createADR(adrInput);
+expect(adr.id).toBe("ADR-0001");
+expect(adr.title).toBe("Use TypeScript for Backend Services");
+expect(adr.status).toBe("proposed");
+expect(adr.createdAt).toBeGreaterThan(0);
+expect(adr.updatedAt).toBe(adr.createdAt);
+expect(adr.contextAndProblemStatement).toBeDefined();
+expect(adr.consideredOptions).toHaveLength(3);
+expect(adr.decisionOutcome.chosenOption).toBe("TypeScript");
+```
+
+---
+
+#### Test: reject ADR with missing required fields
+
+**Input**:
+```typescript
+const invalidInput = {
+  title: "Use TypeScript for Backend Services",
+  // Missing: contextAndProblemStatement
+  decisionDrivers: ["Type safety"],
+  consideredOptions: [],
+  decisionOutcome: { chosenOption: "TypeScript", justification: "..." },
+  decisionMakers: ["Tech Lead"]
+};
+```
+
+**Expected**:
+- Throws `MISSING_REQUIRED_FIELDS` error
+- No ADR created
+
+**Assertions**:
+```typescript
+expect(() => tracker.createADR(invalidInput)).toThrow("MISSING_REQUIRED_FIELDS");
+expect(tracker.listADRs()).toHaveLength(0);
+```
+
+---
+
+#### Test: reject ADR with chosenOption not in options
+
+**Input**:
+```typescript
+const invalidInput = {
+  title: "Database Selection",
+  contextAndProblemStatement: "Choose a database for the application",
+  decisionDrivers: ["Performance", "Scalability"],
+  consideredOptions: [
+    { title: "PostgreSQL" },
+    { title: "MongoDB" }
+  ],
+  decisionOutcome: {
+    chosenOption: "Redis",  // Not in options!
+    justification: "..."
+  },
+  decisionMakers: ["Tech Lead"]
+};
+```
+
+**Expected**:
+- Throws `INVALID_OPTION_CHOICE` error
+- No ADR created
+
+**Assertions**:
+```typescript
+expect(() => tracker.createADR(invalidInput)).toThrow("INVALID_OPTION_CHOICE");
+```
+
+---
+
+#### Test: require at least 2 options
+
+**Input**:
+```typescript
+const invalidInput = {
+  title: "Single Option Decision",
+  contextAndProblemStatement: "No real decision here",
+  decisionDrivers: ["Compliance"],
+  consideredOptions: [
+    { title: "Only Option" }  // Only 1 option!
+  ],
+  decisionOutcome: {
+    chosenOption: "Only Option",
+    justification: "..."
+  },
+  decisionMakers: ["Tech Lead"]
+};
+```
+
+**Expected**:
+- Throws `INSUFFICIENT_OPTIONS` error
+- No ADR created
+
+**Assertions**:
+```typescript
+expect(() => tracker.createADR(invalidInput)).toThrow("INSUFFICIENT_OPTIONS");
+```
+
+---
+
+#### Test: generate sequential ADR IDs
+
+**Input**:
+```typescript
+tracker.createADR({ title: "ADR 1", /* ... valid MADR fields ... */ });
+tracker.createADR({ title: "ADR 2", /* ... valid MADR fields ... */ });
+tracker.createADR({ title: "ADR 3", /* ... valid MADR fields ... */ });
+```
+
+**Expected**:
+- IDs: "ADR-0001", "ADR-0002", "ADR-0003"
+
+**Assertions**:
+```typescript
+const adrs = tracker.listADRs();
+expect(adrs).toHaveLength(3);
+expect(adrs[0].id).toBe("ADR-0001");
+expect(adrs[1].id).toBe("ADR-0002");
+expect(adrs[2].id).toBe("ADR-0003");
+```
+
+---
+
+### 2.2 updateADR()
+
+#### Test: update ADR status
+
+**Input**:
+```typescript
+const adr = tracker.createADR(/* valid input */);
+const updated = tracker.updateADR(adr.id, { status: "accepted" });
+```
+
+**Expected**:
+- Status updated to "accepted"
+- updatedAt timestamp changed
+- Other fields unchanged
+
+**Assertions**:
+```typescript
+expect(updated.status).toBe("accepted");
+expect(updated.updatedAt).toBeGreaterThan(adr.updatedAt);
+expect(updated.title).toBe(adr.title);
+```
+
+---
+
+#### Test: reject invalid status transition
+
+**Input**:
+```typescript
+const adr = tracker.createADR({
+  title: "Test ADR",
+  /* ... */
+  decisionMakers: ["Tech Lead"]
+});
+tracker.updateADR(adr.id, { status: "rejected" });
+
+// Try to transition from rejected to accepted
+expect(() => {
+  tracker.updateADR(adr.id, { status: "accepted" });
+}).toThrow("INVALID_STATUS_TRANSITION");
+```
+
+**Expected**:
+- Throws `INVALID_STATUS_TRANSITION` error
+- Status remains "rejected"
+
+**Assertions**:
+```typescript
+const current = tracker.getADR(adr.id);
+expect(current.status).toBe("rejected");
+```
+
+---
+
+#### Test: all valid status transitions work
+
+**Input**:
+```typescript
+const validTransitions = [
+  ["proposed", "accepted"],
+  ["proposed", "rejected"],
+  ["accepted", "deprecated"],
+  ["accepted", "superseded"],
+  ["deprecated", "superseded"]
+];
+
+for (const [from, to] of validTransitions) {
+  const adr = tracker.createADR({ title: `Test ${from}`, /* ... */ });
+  tracker.updateADR(adr.id, { status: from as ADRStatus });
+  const updated = tracker.updateADR(adr.id, { status: to as ADRStatus });
+  expect(updated.status).toBe(to);
+}
+```
+
+**Expected**:
+- All valid transitions succeed
+
+**Assertions**:
+```typescript
+// All transitions should complete without errors
+```
+
+---
+
+#### Test: throw error if ADR not found
+
+**Input**:
+```typescript
+expect(() => {
+  tracker.updateADR("ADR-9999", { status: "accepted" });
+}).toThrow("ADR_NOT_FOUND");
+```
+
+**Expected**:
+- Throws `ADR_NOT_FOUND` error
+
+**Assertions**:
+```typescript
+// Error thrown as expected
+```
+
+---
+
+### 2.3 getADR()
+
+#### Test: get ADR by ID
+
+**Input**:
+```typescript
+const created = tracker.createADR({ title: "Test ADR", /* ... */ });
+const retrieved = tracker.getADR(created.id);
+```
+
+**Expected**:
+- Returns same ADR
+- All fields match
+
+**Assertions**:
+```typescript
+expect(retrieved).toEqual(created);
+expect(retrieved.id).toBe(created.id);
+```
+
+---
+
+#### Test: throw error if ADR not found
+
+**Input**:
+```typescript
+expect(() => {
+  tracker.getADR("ADR-9999");
+}).toThrow("ADR_NOT_FOUND");
+```
+
+**Expected**:
+- Throws `ADR_NOT_FOUND` error
+
+**Assertions**:
+```typescript
+// Error thrown as expected
+```
+
+---
+
+### 2.4 listADRs()
+
+#### Test: list all ADRs (no filter)
+
+**Input**:
+```typescript
+tracker.createADR({ title: "ADR 1", /* ... */ });
+tracker.createADR({ title: "ADR 2", /* ... */ });
+tracker.createADR({ title: "ADR 3", /* ... */ });
+const adrs = tracker.listADRs();
+```
+
+**Expected**:
+- Returns all 3 ADRs
+- Sorted by createdAt (newest first)
+
+**Assertions**:
+```typescript
+expect(adrs).toHaveLength(3);
+expect(adrs[0].createdAt).toBeGreaterThanOrEqual(adrs[1].createdAt);
+```
+
+---
+
+#### Test: filter by status
+
+**Input**:
+```typescript
+const adr1 = tracker.createADR({ title: "ADR 1", /* ... */ });
+tracker.updateADR(adr1.id, { status: "accepted" });
+
+const adr2 = tracker.createADR({ title: "ADR 2", /* ... */ });
+tracker.updateADR(adr2.id, { status: "rejected" });
+
+const accepted = tracker.listADRs({ status: "accepted" });
+```
+
+**Expected**:
+- Returns only accepted ADRs
+- 1 result
+
+**Assertions**:
+```typescript
+expect(accepted).toHaveLength(1);
+expect(accepted[0].status).toBe("accepted");
+```
+
+---
+
+#### Test: filter by category
+
+**Input**:
+```typescript
+tracker.createADR({ title: "Backend ADR", category: "backend", /* ... */ });
+tracker.createADR({ title: "Frontend ADR", category: "frontend", /* ... */ });
+tracker.createADR({ title: "Backend ADR 2", category: "backend", /* ... */ });
+
+const backend = tracker.listADRs({ category: "backend" });
+```
+
+**Expected**:
+- Returns only backend ADRs
+- 2 results
+
+**Assertions**:
+```typescript
+expect(backend).toHaveLength(2);
+expect(backend.every(adr => adr.category === "backend")).toBe(true);
+```
+
+---
+
+#### Test: filter by date range
+
+**Input**:
+```typescript
+const now = new Date();
+const yesterday = new Date(now.getTime() - 86400000);
+const tomorrow = new Date(now.getTime() + 86400000);
+
+tracker.createADR({ title: "Old ADR", /* ... */ });  // Created yesterday
+tracker.createADR({ title: "New ADR", /* ... */ });  // Created now
+
+const recent = tracker.listADRs({
+  dateRange: {
+    start: yesterday.toISOString().split('T')[0],
+    end: tomorrow.toISOString().split('T')[0]
+  }
+});
+```
+
+**Expected**:
+- Returns ADRs in date range
+- Both ADRs
+
+**Assertions**:
+```typescript
+expect(recent).toHaveLength(2);
+```
+
+---
+
+#### Test: filter by multiple statuses
+
+**Input**:
+```typescript
+const adr1 = tracker.createADR({ title: "ADR 1", /* ... */ });
+tracker.updateADR(adr1.id, { status: "accepted" });
+
+const adr2 = tracker.createADR({ title: "ADR 2", /* ... */ });
+tracker.updateADR(adr2.id, { status: "rejected" });
+
+const adr3 = tracker.createADR({ title: "ADR 3", /* ... */ });
+tracker.updateADR(adr3.id, { status: "deprecated" });
+
+const filtered = tracker.listADRs({ status: ["accepted", "rejected"] });
+```
+
+**Expected**:
+- Returns only accepted and rejected ADRs
+- 2 results
+
+**Assertions**:
+```typescript
+expect(filtered).toHaveLength(2);
+expect(filtered.some(adr => adr.status === "accepted")).toBe(true);
+expect(filtered.some(adr => adr.status === "rejected")).toBe(true);
+```
+
+---
+
+### 2.5 supersedeADR()
+
+#### Test: supersede ADR with new decision
+
+**Input**:
+```typescript
+const oldADR = tracker.createADR({
+  title: "Use MongoDB for Data Storage",
+  decisionOutcome: { chosenOption: "MongoDB", justification: "..." },
+  /* ... */
+});
+
+const newADRInput: ADRInput = {
+  title: "Use PostgreSQL for Data Storage",
+  contextAndProblemStatement: "MongoDB doesn't support our transaction requirements",
+  decisionDrivers: ["ACID transactions", "Data consistency"],
+  consideredOptions: [
+    { title: "PostgreSQL" },
+    { title: "MySQL" }
+  ],
+  decisionOutcome: {
+    chosenOption: "PostgreSQL",
+    justification: "Better support for complex queries and ACID transactions"
+  },
+  decisionMakers: ["Tech Lead"]
+};
+
+const newADR = tracker.supersedeADR(oldADR.id, newADRInput);
+```
+
+**Expected**:
+- New ADR created with ID "ADR-0002"
+- New ADR has supersedes: "ADR-0001"
+- Old ADR status: "superseded"
+- Old ADR has supersededBy: ["ADR-0002"]
+
+**Assertions**:
+```typescript
+expect(newADR.id).toBe("ADR-0002");
+expect(newADR.supersedes).toBe("ADR-0001");
+
+const oldADRUpdated = tracker.getADR(oldADR.id);
+expect(oldADRUpdated.status).toBe("superseded");
+expect(oldADRUpdated.supersededBy).toEqual(["ADR-0002"]);
+```
+
+---
+
+#### Test: throw error if old ADR not found
+
+**Input**:
+```typescript
+expect(() => {
+  tracker.supersedeADR("ADR-9999", { title: "New", /* ... */ });
+}).toThrow("OLD_ADR_NOT_FOUND");
+```
+
+**Expected**:
+- Throws `OLD_ADR_NOT_FOUND` error
+
+**Assertions**:
+```typescript
+// Error thrown as expected
+```
+
+---
+
+#### Test: maintain supersession chain
+
+**Input**:
+```typescript
+const adr1 = tracker.createADR({ title: "V1", /* ... */ });
+const adr2 = tracker.supersedeADR(adr1.id, { title: "V2", /* ... */ });
+const adr3 = tracker.supersedeADR(adr2.id, { title: "V3", /* ... */ });
+```
+
+**Expected**:
+- adr1 supersededBy: ["ADR-0002"]
+- adr2 supersededBy: ["ADR-0003"], supersedes: "ADR-0001"
+- adr3 supersedes: "ADR-0002"
+
+**Assertions**:
+```typescript
+const v1 = tracker.getADR(adr1.id);
+const v2 = tracker.getADR(adr2.id);
+const v3 = tracker.getADR(adr3.id);
+
+expect(v1.supersededBy).toEqual(["ADR-0002"]);
+expect(v2.supersededBy).toEqual(["ADR-0003"]);
+expect(v2.supersedes).toBe("ADR-0001");
+expect(v3.supersedes).toBe("ADR-0002");
+```
+
+---
+
+### 2.6 linkToEvidence()
+
+#### Test: link URL evidence to ADR
+
+**Input**:
+```typescript
+const adr = tracker.createADR({ title: "Test ADR", /* ... */ });
+const evidence: EvidenceSource = {
+  type: "url",
+  source: "https://aws.amazon.com/blogs/architecture/",
+  title: "AWS ADR Best Practices",
+  relevance: "Provides guidance on ADR structure and process",
+  confidence: 1.0
+};
+
+tracker.linkToEvidence(adr.id, evidence);
+const updated = tracker.getADR(adr.id);
+```
+
+**Expected**:
+- Evidence added to ADR
+- evidenceSources array contains the evidence
+
+**Assertions**:
+```typescript
+expect(updated.evidenceSources).toHaveLength(1);
+expect(updated.evidenceSources[0]).toEqual(evidence);
+```
+
+---
+
+#### Test: reject duplicate evidence
+
+**Input**:
+```typescript
+const adr = tracker.createADR({ title: "Test ADR", /* ... */ });
+const evidence = { type: "url", source: "https://example.com", relevance: "...", confidence: 1.0 };
+
+tracker.linkToEvidence(adr.id, evidence);
+tracker.linkToEvidence(adr.id, evidence);  // Duplicate
+```
+
+**Expected**:
+- Second call skipped (no duplicate)
+- Only 1 evidence in array
+
+**Assertions**:
+```typescript
+const updated = tracker.getADR(adr.id);
+expect(updated.evidenceSources).toHaveLength(1);
+```
+
+---
+
+#### Test: throw error if ADR not found
+
+**Input**:
+```typescript
+expect(() => {
+  tracker.linkToEvidence("ADR-9999", { type: "url", source: "...", relevance: "...", confidence: 1.0 });
+}).toThrow("ADR_NOT_FOUND");
+```
+
+**Expected**:
+- Throws `ADR_NOT_FOUND` error
+
+**Assertions**:
+```typescript
+// Error thrown as expected
+```
+
+---
+
+### 2.7 recordOutcome()
+
+#### Test: record accepted outcome
+
+**Input**:
+```typescript
+const adr = tracker.createADR({ title: "Test ADR", /* ... */ });
+tracker.recordOutcome(adr.id, "accepted");
+const updated = tracker.getADR(adr.id);
+```
+
+**Expected**:
+- Status updated to "accepted"
+- DecisionLearningStore receives DecisionRecord
+
+**Assertions**:
+```typescript
+expect(updated.status).toBe("accepted");
+// Verify DecisionLearningStore integration (see integration tests)
+```
+
+---
+
+#### Test: record rejected outcome
+
+**Input**:
+```typescript
+const adr = tracker.createADR({ title: "Test ADR", /* ... */ });
+tracker.recordOutcome(adr.id, "rejected");
+const updated = tracker.getADR(adr.id);
+```
+
+**Expected**:
+- Status updated to "rejected"
+- DecisionLearningStore receives DecisionRecord
+
+**Assertions**:
+```typescript
+expect(updated.status).toBe("rejected");
+```
+
+---
+
+#### Test: throw error for invalid status transition
+
+**Input**:
+```typescript
+const adr = tracker.createADR({ title: "Test ADR", /* ... */ });
+tracker.updateADR(adr.id, { status: "rejected" });
+
+expect(() => {
+  tracker.recordOutcome(adr.id, "accepted");  // Invalid: rejected → accepted
+}).toThrow("INVALID_STATUS_TRANSITION");
+```
+
+**Expected**:
+- Throws `INVALID_STATUS_TRANSITION` error
+- Status remains "rejected"
+
+**Assertions**:
+```typescript
+const current = tracker.getADR(adr.id);
+expect(current.status).toBe("rejected");
+```
+
+---
+
+### 2.8 exportToKnowledgeGraph()
+
+#### Test: export ADRs with embeddings
+
+**Input**:
+```typescript
+tracker.createADR({ title: "ADR 1", /* ... */ });
+tracker.createADR({ title: "ADR 2", /* ... */ });
+
+const batch = await tracker.exportToKnowledgeGraph();
+```
+
+**Expected**:
+- All ADRs exported
+- Each ADR has embedding vector
+- Batch format valid for Qdrant
+
+**Assertions**:
+```typescript
+expect(batch.batch.length).toBeGreaterThanOrEqual(2);
+batch.batch.forEach(item => {
+  expect(item.vector).toBeDefined();
+  expect(item.vector.length).toBeGreaterThan(0);
+  expect(item.payload).toBeDefined();
+});
+```
+
+---
+
+#### Test: export filtered ADRs
+
+**Input**:
+```typescript
+const adr1 = tracker.createADR({ title: "Backend ADR", category: "backend", /* ... */ });
+const adr2 = tracker.createADR({ title: "Frontend ADR", category: "frontend", /* ... */ });
+
+const batch = await tracker.exportToKnowledgeGraph({ category: "backend" });
+```
+
+**Expected**:
+- Only backend ADRs exported
+- 1 result
+
+**Assertions**:
+```typescript
+expect(batch.batch).toHaveLength(1);
+expect(batch.batch[0].payload.category).toBe("backend");
+```
+
+---
+
+#### Test: handle Qdrant connection failure
+
+**Input**:
+```typescript
+// Mock Qdrant client to throw connection error
+mockQdrantClient.upsert.mockRejectedValue(new Error("Connection failed"));
+
+await expect(tracker.exportToKnowledgeGraph()).rejects.toThrow("QDRANT_CONNECTION_FAILED");
+```
+
+**Expected**:
+- Throws `QDRANT_CONNECTION_FAILED` error
+- Retries 3x with exponential backoff
+
+**Assertions**:
+```typescript
+expect(mockQdrantClient.upsert).toHaveBeenCalledTimes(3);
+```
+
+---
+
+### 2.9 search()
+
+#### Test: semantic search finds relevant ADRs
+
+**Input**:
+```typescript
+tracker.createADR({
+  title: "Use TypeScript for Backend",
+  contextAndProblemStatement: "Choosing a backend language with type safety",
+  decisionOutcome: { chosenOption: "TypeScript", justification: "..." },
+  /* ... */
+});
+
+tracker.createADR({
+  title: "Use React for Frontend",
+  contextAndProblemStatement: "Choosing a frontend framework",
+  decisionOutcome: { chosenOption: "React", justification: "..." },
+  /* ... */
+});
+
+const results = await tracker.search("backend language type safety");
+```
+
+**Expected**:
+- Returns ADR about TypeScript backend
+- Frontend ADR not in top results (or lower rank)
+
+**Assertions**:
+```typescript
+expect(results.length).toBeGreaterThan(0);
+expect(results[0].title).toContain("TypeScript");
+expect(results[0].title).not.toContain("React");
+```
+
+---
+
+#### Test: search with limit
+
+**Input**:
+```typescript
+for (let i = 0; i < 10; i++) {
+  tracker.createADR({ title: `ADR ${i}`, /* ... */ });
+}
+
+const results = await tracker.search("decision", 3);
+```
+
+**Expected**:
+- Returns max 3 results
+
+**Assertions**:
+```typescript
+expect(results.length).toBeLessThanOrEqual(3);
+```
+
+---
+
+#### Test: search returns empty array if no matches
+
+**Input**:
+```typescript
+const results = await tracker.search("nonexistent topic xyz123");
+```
+
+**Expected**:
+- Returns empty array
+- No error thrown
+
+**Assertions**:
+```typescript
+expect(results).toEqual([]);
+```
+
+---
+
+## 3. Integration Tests
+
+### 3.1 DecisionLearningStore integration
+
+**Test**: recordOutcome() creates DecisionRecord in DecisionLearningStore
+
+**Setup**:
+```typescript
+const decisionTracker = new DecisionTracker();
+const decisionLearningStore = new DecisionLearningStore();
+
+decisionTracker.setDecisionLearningStore(decisionLearningStore);
+
+const adr = decisionTracker.createADR({
+  title: "Use PostgreSQL",
+  contextAndProblemStatement: "Choose a database",
+  decisionDrivers: ["ACID transactions"],
+  consideredOptions: [{ title: "PostgreSQL" }, { title: "MongoDB" }],
+  decisionOutcome: { chosenOption: "PostgreSQL", justification: "..." },
+  decisionMakers: ["Tech Lead"]
+});
+
+decisionTracker.recordOutcome(adr.id, "accepted");
+```
+
+**Expected**:
+- DecisionLearningStore contains DecisionRecord
+- DecisionRecord references ADR
+
+**Assertions**:
+```typescript
+const decisions = decisionLearningStore.getDecisions({ component: "DecisionTracker" });
+expect(decisions).toHaveLength(1);
+expect(decisions[0].decision).toBe("Use PostgreSQL");
+expect(decisions[0].outcome?.success).toBe(true);
+```
+
+---
+
+### 3.2 Knowledge Graph end-to-end
+
+**Test**: Export ADRs → Qdrant stores → Semantic search works
+
+**Setup**:
+```typescript
+const decisionTracker = new DecisionTracker();
+const qdrantClient = new QdrantClient();
+
+// Create ADRs
+decisionTracker.createADR({
+  title: "Database Selection",
+  contextAndProblemStatement: "Choosing between SQL and NoSQL",
+  decisionOutcome: { chosenOption: "PostgreSQL", justification: "..." },
+  /* ... */
+});
+
+decisionTracker.createADR({
+  title: "Frontend Framework",
+  contextAndProblemStatement: "Choosing a UI framework",
+  decisionOutcome: { chosenOption: "React", justification: "..." },
+  /* ... */
+});
+
+// Export to Qdrant
+const batch = await decisionTracker.exportToKnowledgeGraph();
+await qdrantClient.upsert(batch);
+
+// Semantic search
+const results = await decisionTracker.search("database SQL NoSQL");
+```
+
+**Expected**:
+- Search returns database ADR
+- Frontend ADR not in top results
+
+**Assertions**:
+```typescript
+expect(results.length).toBeGreaterThan(0);
+expect(results[0].title).toContain("Database");
+```
+
+---
+
+### 3.3 Full ADR lifecycle
+
+**Test**: Create → Update → Supersede → Export → Search
+
+**Setup**:
+```typescript
+const tracker = new DecisionTracker();
+
+// 1. Create ADR
+const adr1 = tracker.createADR({
+  title: "Use MongoDB V1",
+  contextAndProblemStatement: "Initial database choice",
+  decisionDrivers: ["Schema flexibility"],
+  consideredOptions: [{ title: "MongoDB" }],
+  decisionOutcome: { chosenOption: "MongoDB", justification: "Flexible schema" },
+  decisionMakers: ["Tech Lead"]
+});
+
+// 2. Update status
+tracker.updateADR(adr1.id, { status: "accepted" });
+
+// 3. Record outcome
+tracker.recordOutcome(adr1.id, "accepted");
+
+// 4. Supersede with new ADR
+const adr2 = tracker.supersedeADR(adr1.id, {
+  title: "Use PostgreSQL V2",
+  contextAndProblemStatement: "MongoDB doesn't support transactions",
+  decisionDrivers: ["ACID transactions"],
+  consideredOptions: [{ title: "PostgreSQL" }],
+  decisionOutcome: { chosenOption: "PostgreSQL", justification: "Transaction support" },
+  decisionMakers: ["Tech Lead"]
+});
+
+// 5. Verify lineage
+const oldADR = tracker.getADR(adr1.id);
+expect(oldADR.status).toBe("superseded");
+expect(oldADR.supersededBy).toEqual([adr2.id]);
+
+// 6. Export and search
+await tracker.exportToKnowledgeGraph();
+const results = await tracker.search("database transaction");
+
+// 7. Search should find both ADRs, V2 ranked higher
+expect(results.some(r => r.id === adr1.id)).toBe(true);
+expect(results.some(r => r.id === adr2.id)).toBe(true);
+expect(results[0].id).toBe(adr2.id);  // V2 is more relevant
+```
+
+**Expected**:
+- Full lifecycle works end-to-end
+- Decision lineage maintained
+- Semantic search finds relevant decisions
+
+**Assertions**:
+```typescript
+// All assertions pass (see above)
+```
+
+---
+
+## 4. Chaos Tests
+
+### 4.1 Concurrent ADR creation
+
+**Test**: 100 concurrent create operations → No duplicate IDs, all ADRs stored
+
+**Setup**:
+```typescript
+const tracker = new DecisionTracker();
+const promises = Array.from({ length: 100 }, (_, i) =>
+  tracker.createADR({
+    title: `Concurrent ADR ${i}`,
+    contextAndProblemStatement: `Test ADR ${i}`,
+    decisionDrivers: ["Test"],
+    consideredOptions: [{ title: "Option A" }, { title: "Option B" }],
+    decisionOutcome: { chosenOption: "Option A", justification: "..." },
+    decisionMakers: ["Test"]
+  })
+);
+
+await Promise.all(promises);
+```
+
+**Expected**:
+- All 100 ADRs created
+- No duplicate IDs
+- IDs sequential (may have gaps due to concurrency)
+
+**Assertions**:
+```typescript
+const adrs = tracker.listADRs();
+expect(adrs).toHaveLength(100);
+const ids = new Set(adrs.map(a => a.id));
+expect(ids.size).toBe(100);  // No duplicates
+```
+
+---
+
+### 4.2 Storage failure during bulk export
+
+**Test**: Qdrant fails mid-batch → Graceful recovery, partial export
+
+**Setup**:
+```typescript
+const tracker = new DecisionTracker();
+
+for (let i = 0; i < 100; i++) {
+  tracker.createADR({ title: `ADR ${i}`, /* ... */ });
+}
+
+// Mock Qdrant to fail on 50th insert
+let insertCount = 0;
+mockQdrantClient.upsert.mockImplementation((batch) => {
+  insertCount += batch.batch.length;
+  if (insertCount >= 50) {
+    throw new Error("Qdrant connection failed");
+  }
+  return Promise.resolve();
+});
+
+await expect(tracker.exportToKnowledgeGraph()).rejects.toThrow();
+```
+
+**Expected**:
+- Export fails gracefully
+- No data corruption
+- Retry with backoff
+
+**Assertions**:
+```typescript
+// Verify no ADRs were lost or corrupted
+const adrs = tracker.listADRs();
+expect(adrs).toHaveLength(100);
+```
+
+---
+
+## 5. Success Criteria Mapping
+
+| Criterion | Test Coverage |
+|-----------|---------------|
+| Criterion 1: ADR creation with MADR structure | Unit Test 2.1.1 |
+| Criterion 2: Status transitions validated | Unit Test 2.2.1, 2.2.2, 2.2.3 |
+| Criterion 3: Supersession tracking works | Unit Test 2.5.1, 2.5.3 |
+| Criterion 4: Evidence linking | Unit Test 2.6.1, 2.6.2 |
+| Criterion 5: Semantic search | Unit Test 2.9.1, 2.9.3 |
+| Criterion 6: DecisionLearningStore integration | Integration Test 3.1 |
+| Criterion 7: TypeScript 0 errors | N/A (run `bun typecheck`) |
+
+---
+
+## 6. Verification Commands
+
+```bash
+# Run all tests
+cd rad-engineer && bun test
+
+# Run only DecisionTracker tests
+cd rad-engineer && bun test test/decision/DecisionTracker.test.ts
+
+# Check coverage
+cd rad-engineer && bun run test:coverage
+
+# Type check
+cd rad-engineer && bun run typecheck
+
+# Lint
+cd rad-engineer && bun run lint
+```
+
+---
+
+**Status**: Ready for implementation
+**Total Tests**: 25 unit + 3 integration + 2 chaos = 30 tests
+**Coverage Target**: ≥90% lines, ≥85% branches, ≥95% functions

@@ -1,5 +1,5 @@
 /**
- * QAPluginIntegration - TypeScript wrapper for Auto-Claude QA Loop plugin
+ * QAPluginIntegration - TypeScript wrapper for rad-engineer QA Loop plugin
  *
  * Provides post-execution QA validation using the ported qa_loop.py plugin.
  *

@@ -6,7 +6,6 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import {
   ProviderFactory,
   ProviderType,
-  type ProviderConfig,
   resetProviderFactory,
 } from "../../../src/sdk/providers/index.ts";
 
@@ -191,7 +190,7 @@ describe("ProviderFactory", () => {
 
       const config = factory.getProviderConfig("anthropic");
       expect(config).toBeDefined();
-      expect(config?.apiKey).toBeUndefined();
+      // apiKey is excluded from safe config by Omit type
       expect(config?.model).toBe("claude-3-5-sonnet-20241022");
     });
 

@@ -2,7 +2,7 @@
  * AI Merge Plugin Integration
  * ============================
  *
- * TypeScript wrapper for Auto-Claude's AI merge conflict resolver.
+ * TypeScript wrapper for rad-engineer's AI merge conflict resolver.
  * Provides type-safe interface for resolving git merge conflicts using AI.
  *
  * Features:

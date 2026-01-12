@@ -20,7 +20,7 @@ import { BanditRouter } from "../../src/adaptive/BanditRouter.js";
 import { EvaluationLoop } from "../../src/adaptive/EvaluationLoop.js";
 import { StateManager } from "../../src/adaptive/StateManager.js";
 import { EvalsFactory } from "../../src/adaptive/EvalsFactory.js";
-import type { EvalsSystem } from "../../src/adaptive/EvalsFactory.js";
+import type { Domain } from "../../src/adaptive/types.js";
 
 // Import ProviderFactory
 import { ProviderFactory } from "../../src/sdk/providers/ProviderFactory.js";
@@ -36,7 +36,7 @@ describe("EVALS Integration Tests", () => {
 
   beforeEach(() => {
     store = new PerformanceStore();
-    router = new BanditRouter(store, 0.1); // 10% exploration
+    router = new BanditRouter(store, { explorationRate: 0.1 }); // 10% exploration
     extractor = new QueryFeatureExtractor();
     evaluation = new EvaluationLoop(store);
     tempPath = `${tmpdir}/evals-integration-${Date.now()}.json`;
@@ -127,13 +127,11 @@ describe("EVALS Integration Tests", () => {
 
       // Run multiple routing decisions
       let anthropicCount = 0;
-      let glmCount = 0;
       const trials = 50;
 
       for (let i = 0; i < trials; i++) {
         const decision = await router.route(features);
         if (decision.provider === "anthropic") anthropicCount++;
-        if (decision.provider === "glm") glmCount++;
       }
 
       // Should prefer Anthropic (higher quality) most of the time
@@ -618,7 +616,7 @@ describe("EVALS Integration Tests", () => {
       // Seed the store with initial stats so routing works
       // Seed stats for all domains to cover different query types
       // Need at least 10 samples per domain to pass shouldExplore threshold
-      const domains = ["code", "analysis", "reasoning", "creative", "general"];
+      const domains: Domain[] = ["code", "analysis", "reasoning", "creative", "general"];
       for (const domain of domains) {
         for (let i = 0; i < 10; i++) {
           store.updateStats(
