@@ -1,12 +1,12 @@
 /**
- * ElectronIPCAdapter - Bridge between Auto-Claude UI and rad-engineer backend
+ * ElectronIPCAdapter - Bridge between rad-engineer UI and rad-engineer backend
  *
  * P1 Implementation: Real StateManager integration via TaskAPIHandler
  *
  * Responsibilities:
- * - Handle IPC calls from Auto-Claude frontend
+ * - Handle IPC calls from rad-engineer frontend
  * - Delegate CRUD operations to TaskAPIHandler
- * - Convert between Auto-Claude and rad-engineer formats
+ * - Convert between rad-engineer and rad-engineer formats
  * - Coordinate with WaveOrchestrator for task execution (P1-002)
  * - Emit progress events during execution
  *
@@ -81,7 +81,7 @@ export class ElectronIPCAdapter extends EventEmitter {
 
     // P1: Initialize StateManager and TaskAPIHandler
     const stateManager = new StateManager({
-      checkpointsDir: `${config.projectDir}/.auto-claude-integration`,
+      checkpointsDir: `${config.projectDir}/.rad-engineer-integration`,
     });
 
     // Create default WaveOrchestrator and ResourceManager if not provided
@@ -158,7 +158,7 @@ export class ElectronIPCAdapter extends EventEmitter {
    *
    * P1: Delegates to TaskAPIHandler for persistent storage
    *
-   * @returns Array of Auto-Claude tasks
+   * @returns Array of rad-engineer tasks
    */
   async getAllTasks(): Promise<AutoClaudeTask[]> {
     if (this.config.debug) {
@@ -175,7 +175,7 @@ export class ElectronIPCAdapter extends EventEmitter {
    * P1: Delegates to TaskAPIHandler for persistent storage
    *
    * @param spec - Task specification from frontend
-   * @returns Created Auto-Claude task
+   * @returns Created rad-engineer task
    */
   async createTask(spec: AutoClaudeTaskSpec): Promise<AutoClaudeTask> {
     if (this.config.debug) {

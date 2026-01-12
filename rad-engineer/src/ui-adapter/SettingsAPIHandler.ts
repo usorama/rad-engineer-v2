@@ -1,5 +1,5 @@
 /**
- * SettingsAPIHandler - Settings & Profile Management for Auto-Claude Integration
+ * SettingsAPIHandler - Settings & Profile Management for rad-engineer Integration
  *
  * Responsibilities:
  * - Settings CRUD operations
@@ -10,7 +10,7 @@
  * Security:
  * - API keys encrypted with AES-256-GCM before storage
  * - Encryption key derived from system-specific seed
- * - Settings stored in .auto-claude-integration/settings.json
+ * - Settings stored in .rad-engineer-integration/settings.json
  */
 
 import { EventEmitter } from "events";
@@ -149,7 +149,7 @@ export class SettingsAPIHandler extends EventEmitter {
   constructor(config: SettingsAPIHandlerConfig) {
     super();
     this.config = config;
-    this.settingsDir = join(config.projectDir, ".auto-claude-integration");
+    this.settingsDir = join(config.projectDir, ".rad-engineer-integration");
     this.settingsFile = join(this.settingsDir, "settings.json");
 
     // Derive encryption key from system-specific seed

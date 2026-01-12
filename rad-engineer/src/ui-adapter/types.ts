@@ -1,7 +1,7 @@
 /**
- * UI Adapter Types - Auto-Claude Integration
+ * UI Adapter Types - rad-engineer Integration
  *
- * Defines interfaces for communication between Auto-Claude frontend
+ * Defines interfaces for communication between rad-engineer frontend
  * and rad-engineer backend via Electron IPC
  */
 
@@ -9,7 +9,7 @@ import type { Wave } from "@/plan/types.js";
 import type { WaveState } from "@/advanced/StateManager.js";
 
 /**
- * Auto-Claude task status enum
+ * rad-engineer task status enum
  * Maps to rad-engineer wave execution states
  */
 export type AutoClaudeTaskStatus =
@@ -20,7 +20,7 @@ export type AutoClaudeTaskStatus =
   | "cancelled";   // Task cancelled by user
 
 /**
- * Auto-Claude task specification from frontend
+ * rad-engineer task specification from frontend
  * User input for creating a new task
  */
 export interface AutoClaudeTaskSpec {
@@ -35,7 +35,7 @@ export interface AutoClaudeTaskSpec {
 }
 
 /**
- * Auto-Claude task representation
+ * rad-engineer task representation
  * Full task object with metadata
  */
 export interface AutoClaudeTask {
@@ -96,11 +96,11 @@ export interface IPCAdapterConfig {
 }
 
 /**
- * Internal mapping between Auto-Claude task and rad-engineer wave
+ * Internal mapping between rad-engineer task and rad-engineer wave
  * Used by adapter to track conversions
  */
 export interface TaskWaveMapping {
-  /** Auto-Claude task ID */
+  /** rad-engineer task ID */
   taskId: string;
   /** rad-engineer Wave object */
   wave: Wave;

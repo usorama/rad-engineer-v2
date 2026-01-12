@@ -1,9 +1,9 @@
 /**
- * GitHubAPIHandler - GitHub Integration for Auto-Claude
+ * GitHubAPIHandler - GitHub Integration for rad-engineer
  *
  * Responsibilities:
  * - Fetch issues from GitHub repository
- * - Convert issues to Auto-Claude tasks
+ * - Convert issues to rad-engineer tasks
  * - Fetch pull requests
  * - Review PRs with AI Merge conflict resolution
  * - Sync GitHub state with local tasks
@@ -168,7 +168,7 @@ export interface GitHubAPIHandlerConfig {
 }
 
 /**
- * GitHubAPIHandler - Manages GitHub integration with Auto-Claude
+ * GitHubAPIHandler - Manages GitHub integration with rad-engineer
  *
  * @example
  * ```ts
@@ -224,7 +224,7 @@ export class GitHubAPIHandler extends EventEmitter {
     const headers = {
       Authorization: `token ${this.config.githubToken}`,
       Accept: "application/vnd.github.v3+json",
-      "User-Agent": "rad-engineer-auto-claude",
+      "User-Agent": "rad-engineer-rad-engineer",
       ...options.headers,
     };
 
@@ -338,7 +338,7 @@ export class GitHubAPIHandler extends EventEmitter {
   }
 
   /**
-   * Convert GitHub issue to Auto-Claude task
+   * Convert GitHub issue to rad-engineer task
    *
    * Process:
    * 1. Extract issue metadata (title, body, labels)
@@ -349,7 +349,7 @@ export class GitHubAPIHandler extends EventEmitter {
    * 6. Return created task
    *
    * @param issue - GitHub issue to convert
-   * @returns Created Auto-Claude task
+   * @returns Created rad-engineer task
    */
   async createTaskFromIssue(issue: GitHubIssue): Promise<AutoClaudeTask> {
     // Build task spec from issue

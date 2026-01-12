@@ -1,9 +1,9 @@
 /**
- * FormatTranslator - Convert between Auto-Claude and rad-engineer formats
+ * FormatTranslator - Convert between rad-engineer and rad-engineer formats
  *
  * Responsibilities:
- * - Convert Auto-Claude TaskSpec to rad-engineer Wave
- * - Convert rad-engineer Wave to Auto-Claude Task
+ * - Convert rad-engineer TaskSpec to rad-engineer Wave
+ * - Convert rad-engineer Wave to rad-engineer Task
  * - Map status between systems
  *
  * P0 Implementation: Basic stub conversions for demo
@@ -24,21 +24,21 @@ import type {
  * ```ts
  * const translator = new FormatTranslator();
  *
- * // Auto-Claude → rad-engineer
+ * // rad-engineer → rad-engineer
  * const wave = translator.toRadEngineerWave(autoClaudeTaskSpec);
  *
- * // rad-engineer → Auto-Claude
+ * // rad-engineer → rad-engineer
  * const task = translator.toAutoClaudeTask(wave);
  * ```
  */
 export class FormatTranslator {
   /**
-   * Convert Auto-Claude TaskSpec to rad-engineer Wave
+   * Convert rad-engineer TaskSpec to rad-engineer Wave
    *
    * P0: Creates a stub Wave with minimal fields
    * Future: Full Wave generation with stories, dependencies, etc.
    *
-   * @param spec - Auto-Claude task specification
+   * @param spec - rad-engineer task specification
    * @param taskId - Generated task ID
    * @returns rad-engineer Wave object
    */
@@ -78,14 +78,14 @@ export class FormatTranslator {
   }
 
   /**
-   * Convert rad-engineer Wave to Auto-Claude Task
+   * Convert rad-engineer Wave to rad-engineer Task
    *
    * P0: Maps basic fields with stub status
    * Future: Include wave execution details, progress tracking
    *
    * @param wave - rad-engineer Wave object
    * @param waveState - Optional wave execution state
-   * @returns Auto-Claude Task object
+   * @returns rad-engineer Task object
    */
   toAutoClaudeTask(wave: Wave, waveState?: WaveState): AutoClaudeTask {
     // Extract task ID from wave ID (remove "wave-" prefix)
@@ -126,11 +126,11 @@ export class FormatTranslator {
   }
 
   /**
-   * Map rad-engineer WaveState to Auto-Claude status
+   * Map rad-engineer WaveState to rad-engineer status
    *
    * @param waveState - Wave execution state
    * @param totalStories - Total stories in wave
-   * @returns Auto-Claude task status
+   * @returns rad-engineer task status
    */
   toAutoClaudeStatus(waveState: WaveState, totalStories: number): AutoClaudeTaskStatus {
     const { completedTasks, failedTasks } = waveState;

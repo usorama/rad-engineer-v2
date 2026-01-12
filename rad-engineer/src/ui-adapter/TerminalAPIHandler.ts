@@ -3,7 +3,7 @@
  *
  * Integration Approach: Thin Wrapper Pattern
  *
- * Auto-Claude's TerminalManager (workspaces/Auto-Claude/apps/frontend/src/main/terminal/terminal-manager.ts)
+ * rad-engineer's TerminalManager (workspaces/rad-engineer/apps/frontend/src/main/terminal/terminal-manager.ts)
  * is production-tested with comprehensive PTY management. This handler provides:
  *
  * 1. Task-Terminal Association Mapping (taskId → terminalId)
@@ -11,7 +11,7 @@
  * 3. rad-engineer API compatibility
  *
  * The actual PTY operations (create, write, resize, destroy, session restore)
- * are delegated to Auto-Claude's TerminalManager without modification.
+ * are delegated to rad-engineer's TerminalManager without modification.
  *
  * Responsibilities:
  * - CRUD operations for terminals
@@ -29,7 +29,7 @@ import type { EventBroadcaster, TerminalOutputEvent } from "./EventBroadcaster.j
 
 /**
  * Terminal creation options
- * Mirrors Auto-Claude TerminalCreateOptions
+ * Mirrors rad-engineer TerminalCreateOptions
  */
 export interface TerminalCreateOptions {
   /** Terminal ID */
@@ -46,7 +46,7 @@ export interface TerminalCreateOptions {
 
 /**
  * Terminal operation result
- * Mirrors Auto-Claude TerminalOperationResult
+ * Mirrors rad-engineer TerminalOperationResult
  */
 export interface TerminalOperationResult {
   /** Operation success status */
@@ -59,7 +59,7 @@ export interface TerminalOperationResult {
 
 /**
  * Terminal session data
- * Mirrors Auto-Claude TerminalSession
+ * Mirrors rad-engineer TerminalSession
  */
 export interface TerminalSession {
   /** Terminal ID */
@@ -84,7 +84,7 @@ export interface TerminalSession {
 
 /**
  * Terminal manager interface
- * Matches Auto-Claude TerminalManager public API
+ * Matches rad-engineer TerminalManager public API
  */
 export interface TerminalManager {
   create(options: TerminalCreateOptions): Promise<TerminalOperationResult>;
@@ -102,7 +102,7 @@ export interface TerminalManager {
  * Configuration for TerminalAPIHandler
  */
 export interface TerminalAPIHandlerConfig {
-  /** Auto-Claude TerminalManager instance */
+  /** rad-engineer TerminalManager instance */
   terminalManager: TerminalManager;
   /** EventBroadcaster for streaming output */
   eventBroadcaster: EventBroadcaster;
@@ -164,7 +164,7 @@ export class TerminalAPIHandler extends EventEmitter {
    * Create a new terminal and optionally associate with task
    *
    * Process:
-   * 1. Delegate creation to Auto-Claude TerminalManager
+   * 1. Delegate creation to rad-engineer TerminalManager
    * 2. If taskId provided, create task-terminal association
    * 3. Emit terminal-associated event
    *
@@ -176,7 +176,7 @@ export class TerminalAPIHandler extends EventEmitter {
     taskId: string | null,
     options: TerminalCreateOptions
   ): Promise<TerminalOperationResult> {
-    // Delegate to Auto-Claude TerminalManager
+    // Delegate to rad-engineer TerminalManager
     const result = await this.terminalManager.create(options);
 
     if (result.success && taskId) {
@@ -197,7 +197,7 @@ export class TerminalAPIHandler extends EventEmitter {
    * Destroy a terminal
    *
    * Process:
-   * 1. Delegate destruction to Auto-Claude TerminalManager
+   * 1. Delegate destruction to rad-engineer TerminalManager
    * 2. Remove task-terminal associations
    * 3. Emit terminal-disassociated event
    *
@@ -208,7 +208,7 @@ export class TerminalAPIHandler extends EventEmitter {
     // Get associated task before destroying
     const taskId = this.terminalTasks.get(terminalId);
 
-    // Delegate to Auto-Claude TerminalManager
+    // Delegate to rad-engineer TerminalManager
     const result = await this.terminalManager.destroy(terminalId);
 
     if (result.success) {
@@ -233,14 +233,14 @@ export class TerminalAPIHandler extends EventEmitter {
    * Write data to terminal
    *
    * Process:
-   * 1. Delegate write to Auto-Claude TerminalManager
+   * 1. Delegate write to rad-engineer TerminalManager
    * 2. Stream output event via EventBroadcaster (if terminal associated with task)
    *
    * @param terminalId - Terminal ID
    * @param data - Data to write
    */
   writeToTerminal(terminalId: string, data: string): void {
-    // Delegate to Auto-Claude TerminalManager
+    // Delegate to rad-engineer TerminalManager
     this.terminalManager.write(terminalId, data);
 
     // Stream output event if terminal is associated with task
@@ -267,14 +267,14 @@ export class TerminalAPIHandler extends EventEmitter {
    * Resize terminal
    *
    * Process:
-   * 1. Delegate resize to Auto-Claude TerminalManager
+   * 1. Delegate resize to rad-engineer TerminalManager
    *
    * @param terminalId - Terminal ID
    * @param cols - New column count
    * @param rows - New row count
    */
   resizeTerminal(terminalId: string, cols: number, rows: number): void {
-    // Delegate to Auto-Claude TerminalManager
+    // Delegate to rad-engineer TerminalManager
     this.terminalManager.resize(terminalId, cols, rows);
 
     if (this.config.debug) {
@@ -288,7 +288,7 @@ export class TerminalAPIHandler extends EventEmitter {
    * Restore terminal session
    *
    * Process:
-   * 1. Delegate restore to Auto-Claude TerminalManager
+   * 1. Delegate restore to rad-engineer TerminalManager
    * 2. If taskId provided, create task-terminal association
    * 3. Emit terminal-associated event
    *
@@ -304,7 +304,7 @@ export class TerminalAPIHandler extends EventEmitter {
     cols = 80,
     rows = 24
   ): Promise<TerminalOperationResult> {
-    // Delegate to Auto-Claude TerminalManager
+    // Delegate to rad-engineer TerminalManager
     const result = await this.terminalManager.restore(session, cols, rows);
 
     if (result.success && taskId) {
@@ -325,7 +325,7 @@ export class TerminalAPIHandler extends EventEmitter {
    * Get saved sessions for project
    *
    * Process:
-   * 1. Delegate to Auto-Claude TerminalManager
+   * 1. Delegate to rad-engineer TerminalManager
    *
    * @param projectPath - Project path
    * @returns Array of terminal sessions
@@ -338,7 +338,7 @@ export class TerminalAPIHandler extends EventEmitter {
    * Clear saved sessions for project
    *
    * Process:
-   * 1. Delegate to Auto-Claude TerminalManager
+   * 1. Delegate to rad-engineer TerminalManager
    *
    * @param projectPath - Project path
    */

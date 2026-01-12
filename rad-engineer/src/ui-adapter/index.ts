@@ -1,5 +1,5 @@
 /**
- * UI Adapter Module - Auto-Claude Integration
+ * UI Adapter Module - rad-engineer Integration
  *
  * Exports:
  * - ElectronIPCAdapter: Main adapter for IPC communication

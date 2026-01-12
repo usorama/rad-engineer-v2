@@ -1,5 +1,5 @@
 /**
- * RoadmapAPIHandler - Roadmap generation and feature management for Auto-Claude Integration
+ * RoadmapAPIHandler - Roadmap generation and feature management for rad-engineer Integration
  *
  * Responsibilities:
  * - Generate roadmaps via /plan skill integration
@@ -146,7 +146,7 @@ export interface RoadmapAPIHandlerConfig {
 export class RoadmapAPIHandler extends EventEmitter {
   private readonly config: RoadmapAPIHandlerConfig;
   private readonly stateManager: StateManager;
-  private readonly checkpointName = "auto-claude-roadmap";
+  private readonly checkpointName = "rad-engineer-roadmap";
   private featureIdCounter = 0;
 
   // Performance: Caching layer

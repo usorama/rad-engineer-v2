@@ -4,14 +4,14 @@
  * Phase 1: Replace stub implementations with real StateManager integration
  *
  * Responsibilities:
- * - CRUD operations for Auto-Claude tasks
+ * - CRUD operations for rad-engineer tasks
  * - Persistent storage via StateManager
  * - Event broadcasting for UI updates
  * - Task execution lifecycle (stub for P1-002 WaveOrchestrator integration)
  *
  * StateManager Integration:
  * - Checkpoint format: { tasks: AutoClaudeTask[], metadata: { version: string } }
- * - Checkpoint file: .auto-claude-integration/tasks-checkpoint.json
+ * - Checkpoint file: .rad-engineer-integration/tasks-checkpoint.json
  * - Auto-save on all mutations (create, update, delete)
  */
 
@@ -94,7 +94,7 @@ export class TaskAPIHandler extends EventEmitter {
   private readonly waveOrchestrator: Partial<WaveOrchestrator> | WaveOrchestrator;
   private readonly resourceManager: Partial<ResourceManager> | ResourceManager;
   private readonly formatTranslator: FormatTranslator;
-  private readonly checkpointName = "auto-claude-tasks";
+  private readonly checkpointName = "rad-engineer-tasks";
   private taskIdCounter = 0; // Counter for unique IDs within same millisecond
   private readonly runningWaves: Map<string, { waveId: string; abortController?: AbortController }> = new Map();
 
@@ -168,7 +168,7 @@ export class TaskAPIHandler extends EventEmitter {
    * 1. Load checkpoint from StateManager
    * 2. Return all tasks sorted by creation time (newest first)
    *
-   * @returns Array of Auto-Claude tasks
+   * @returns Array of rad-engineer tasks
    */
   async getAllTasks(): Promise<AutoClaudeTask[]> {
     try {
@@ -229,7 +229,7 @@ export class TaskAPIHandler extends EventEmitter {
    * 6. Emit task-updated event
    *
    * @param spec - Task specification from frontend
-   * @returns Created Auto-Claude task
+   * @returns Created rad-engineer task
    * @throws Error if task creation fails (after emitting error event)
    */
   async createTask(spec: AutoClaudeTaskSpec): Promise<AutoClaudeTask> {

@@ -1,5 +1,5 @@
 /**
- * ContextAPIHandler - Decision Learning & ADR Display for Auto-Claude Integration
+ * ContextAPIHandler - Decision Learning & ADR Display for rad-engineer Integration
  *
  * Responsibilities:
  * - Fetch memories (ADRs and learning history) from DecisionLearningStore
