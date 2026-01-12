@@ -376,7 +376,7 @@ describe("Phase 3 E2E Integration Tests", () => {
       // Testing feature management directly
 
       // Create initial roadmap structure via StateManager
-      await stateManager.saveCheckpoint("auto-claude-roadmap", {
+      await stateManager.saveCheckpoint("rad-engineer-roadmap", {
         waveNumber: 0,
         completedTasks: [],
         failedTasks: [],
@@ -416,7 +416,7 @@ describe("Phase 3 E2E Integration Tests", () => {
 
     test("should handle feature updates and deletion", async () => {
       // Create initial roadmap
-      await stateManager.saveCheckpoint("auto-claude-roadmap", {
+      await stateManager.saveCheckpoint("rad-engineer-roadmap", {
         waveNumber: 0,
         completedTasks: [],
         failedTasks: [],

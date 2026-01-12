@@ -94,7 +94,7 @@ describe("SettingsAPIHandler: getSettings", () => {
       isActive: true,
     });
 
-    const settingsFile = join(tempDir, ".auto-claude-integration", "settings.json");
+    const settingsFile = join(tempDir, ".rad-engineer-integration", "settings.json");
     const stats = await fs.stat(settingsFile);
 
     // Check file permissions (0o600 = 384 in decimal, owner read/write only)
@@ -254,7 +254,7 @@ describe("SettingsAPIHandler: Profile Management", () => {
       await handler.addProfile(profile);
 
       // Read raw file and verify API key is encrypted
-      const settingsFile = join(tempDir, ".auto-claude-integration", "settings.json");
+      const settingsFile = join(tempDir, ".rad-engineer-integration", "settings.json");
       const rawContent = readFileSync(settingsFile, "utf-8");
       const fileData = JSON.parse(rawContent);
 
@@ -615,7 +615,7 @@ describe("SettingsAPIHandler: Encryption", () => {
       isActive: true,
     });
 
-    const saltFile = join(tempDir, ".auto-claude-integration", ".key-salt");
+    const saltFile = join(tempDir, ".rad-engineer-integration", ".key-salt");
     expect(existsSync(saltFile)).toBe(true);
 
     // Salt file should have secure permissions
@@ -642,7 +642,7 @@ describe("SettingsAPIHandler: Encryption", () => {
     });
 
     // Read raw file
-    const settingsFile = join(tempDir, ".auto-claude-integration", "settings.json");
+    const settingsFile = join(tempDir, ".rad-engineer-integration", "settings.json");
     const rawContent = readFileSync(settingsFile, "utf-8");
     const fileData = JSON.parse(rawContent);
 
@@ -663,7 +663,7 @@ describe("SettingsAPIHandler: Encryption", () => {
     });
 
     // Tamper with encrypted data
-    const settingsFile = join(tempDir, ".auto-claude-integration", "settings.json");
+    const settingsFile = join(tempDir, ".rad-engineer-integration", "settings.json");
     const fileData = JSON.parse(readFileSync(settingsFile, "utf-8"));
 
     // Corrupt the encrypted data
@@ -698,8 +698,8 @@ describe("SettingsAPIHandler: Error Handling", () => {
   });
 
   it("Handles corrupted settings file gracefully", async () => {
-    const settingsFile = join(tempDir, ".auto-claude-integration", "settings.json");
-    await fs.mkdir(join(tempDir, ".auto-claude-integration"), { recursive: true });
+    const settingsFile = join(tempDir, ".rad-engineer-integration", "settings.json");
+    await fs.mkdir(join(tempDir, ".rad-engineer-integration"), { recursive: true });
     await fs.writeFile(settingsFile, "{ invalid json }", "utf-8");
 
     await expect(handler.getSettings()).rejects.toThrow("Failed to load settings");
