@@ -44,7 +44,8 @@ global:
         - veracity-engine: "Python - deterministic confidence scoring"
         - knowledge-base: "TypeScript - Qdrant vector + MCP server"
         - gateway: "TypeScript - unified query agent + conversation manager"
-      integration_status: "MAPPED"
+      integration_status: "DOCUMENTED"
+      integration_document: "docs/platform-foundation/ENGG-SUPPORT-INTEGRATION.md"
 
 ---
 # TASK SCOPE (current analysis - persists across agent runs)
@@ -122,6 +123,32 @@ task:
       action: "gap_analysis_updated"
       summary: "Added CORRECTIONS section to GAP-ANALYSIS.md with evidence: existing agents table, context budget corrections, single orchestrator reality, agent mapping. Revised Part 7 architecture to 'Extend, Don't Replace'."
 
+    # V4 Analysis - Deep VPS Integration Analysis
+    - timestamp: "2026-01-12T012"
+      wave: 5
+      action: "vps_ssh_exploration"
+      summary: "SSH to VPS (devuser@72.60.204.156), explored engg-support-system structure: gateway/(EnggContextAgent, QueryClassifier, ConversationManager), veracity-engine/(veracity.py, packet_contract.py, mcp_server.py), knowledge-base/(Qdrant types, relationships schema)"
+    - timestamp: "2026-01-12T013"
+      wave: 5
+      action: "veracity_scoring_analyzed"
+      summary: "Veracity scoring algorithm: starts 100, deducts penalties (STALE_DOC:-15, ORPHANED_NODE:-5, CONTRADICTION:-20, LOW_COVERAGE:-10). Deterministic formula-based, no LLM."
+    - timestamp: "2026-01-12T014"
+      wave: 5
+      action: "evidence_packet_schema_documented"
+      summary: "EvidencePacketV1 schema: meta(query_id,timestamp,project), status, code_truth(id,type,path,name,score,excerpt), doc_claims, veracity(confidence_score,is_stale,faults), graph_relationships"
+    - timestamp: "2026-01-12T015"
+      wave: 5
+      action: "mcp_tools_documented"
+      summary: "Veracity MCP tools: query_codebase(project,question,max_results), get_component_map(project,component_path), list_projects(), get_file_relationships(project,file_path)"
+    - timestamp: "2026-01-12T016"
+      wave: 5
+      action: "gateway_patterns_analyzed"
+      summary: "EnggContextAgent ALWAYS queries BOTH Qdrant+Neo4j. QueryClassifier detects clear/ambiguous/requires_context. ConversationManager: Redis-backed, 3-round max, collectedContext accumulation"
+    - timestamp: "2026-01-12T017"
+      wave: 5
+      action: "integration_document_created"
+      summary: "Created docs/platform-foundation/ENGG-SUPPORT-INTEGRATION.md: 8 parts covering architecture, veracity engine, knowledge base, gateway, integration points, required enhancements, implementation roadmap, API reference"
+
   decisions_made:
     - decision: "Platform has solid foundation (40% requirements satisfied)"
       evidence: "DecisionLearningStore, SecurityLayer, PromptValidator meet CCA patterns"
@@ -147,6 +174,19 @@ task:
       evidence: "WaveOrchestrator.ts is ONLY orchestrator, ResearchCoordinator is helper not orchestration layer"
     - decision: "CORRECTED: Extend existing agents, don't create duplicates"
       evidence: "7 of 9 proposed atomic agents duplicate existing: PlannerAgent=planner.md, ExecutorAgent=developer.md, etc."
+    # V4 Integration decisions
+    - decision: "Integrate via MCP, not code porting"
+      evidence: "engg-support-system has MCP servers (veracity mcp_server.py, knowledge-base), can be called remotely without copying code"
+    - decision: "Use veracity scoring for deterministic confidence"
+      evidence: "veracity.py:compute_confidence_score() is formula-based (no LLM), starts at 100, deducts penalties for STALE_DOC(-15), ORPHANED_NODE(-5), CONTRADICTION(-20), LOW_COVERAGE(-10)"
+    - decision: "Adopt EvidencePacketV1 as VAC contract format"
+      evidence: "packet_contract.py defines versioned schema with meta, code_truth, doc_claims, veracity report - exactly what VAC needs"
+    - decision: "Use ConversationManager for hierarchical context"
+      evidence: "ConversationManager.ts provides Redis-backed, 3-round dialogue state with collectedContext accumulation - maps to TASK scope in CCA"
+    - decision: "QueryClassifier enables ambiguity detection"
+      evidence: "classifyQuery() returns clear/ambiguous/requires_context with confidence scores - enables proactive clarification"
+    - decision: "TypeScript AST parser needed for rad-engineer indexing"
+      evidence: "veracity-engine only parses .py/.md files, rad-engineer-v2 is TypeScript - must add tree-sitter TypeScript support"
 
   blocking_questions: []
 
@@ -263,6 +303,31 @@ agents:
         task: "Create detailed implementation plan with file paths"
         status: "completed"
         output_summary: "6 phases, 23 new files, 5 modifications, ~5000 lines, all with specific paths and integration details"
+
+  # V4 Analysis - Deep VPS Integration Analysis
+  wave_5:
+    status: "completed"
+    depends_on: "wave_4"
+    agents:
+      - id: "vps_explorer"
+        task: "SSH to VPS and explore engg-support-system"
+        status: "completed"
+        output_summary: "Explored gateway/(EnggContextAgent.ts:16KB, QueryClassifier.ts:4KB, ConversationManager.ts:6KB), veracity-engine/core/(veracity.py:11KB, packet_contract.py:12KB, mcp_server.py:20KB), knowledge-base/src/"
+
+      - id: "api_documenter"
+        task: "Document MCP tools and API endpoints"
+        status: "completed"
+        output_summary: "4 MCP tools (query_codebase, get_component_map, list_projects, get_file_relationships), EvidencePacketV1 schema, VeracityResult structure"
+
+      - id: "integration_architect"
+        task: "Map integration points to rad-engineer objectives"
+        status: "completed"
+        output_summary: "7 integration points mapped: codebase indexing, semantic search, structural analysis, deterministic verification, evidence packets, context engineering, ambiguity detection"
+
+      - id: "document_writer"
+        task: "Create ENGG-SUPPORT-INTEGRATION.md"
+        status: "completed"
+        output_summary: "Created 8-part integration document: architecture, veracity engine, knowledge base, gateway, integration points, required enhancements, implementation roadmap, API reference"
 
 ---
 # OUTPUT SCHEMA (what we're producing)
