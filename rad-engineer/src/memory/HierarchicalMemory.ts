@@ -129,7 +129,7 @@ export class HierarchicalMemory {
    * Implements scope chain lookup similar to lexical scoping
    */
   getArtifact<T = unknown>(key: string): T | undefined {
-    // Search from current scope up the hierarchy
+    // First search active scopes in the stack
     for (let depth = 0; depth < this.stack.size(); depth++) {
       const scope = this.stack.peek(depth);
       if (scope) {
@@ -139,6 +139,16 @@ export class HierarchicalMemory {
         }
       }
     }
+
+    // If not found in active scopes, search all scopes in registry
+    // (includes closed scopes that were popped from stack)
+    for (const scope of this.scopeRegistry.values()) {
+      const artifact = scope.getArtifact<T>(key);
+      if (artifact !== undefined) {
+        return artifact;
+      }
+    }
+
     return undefined;
   }
 

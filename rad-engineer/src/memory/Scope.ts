@@ -153,8 +153,9 @@ export class Scope {
       });
     }
 
-    // Replace artifacts with a summary artifact
-    this.artifacts.clear();
+    // Keep artifacts intact - only compress events for now
+    // This preserves access to important artifacts while still reducing token count
+    // Future enhancement: could implement selective artifact compression
     if (artifactSummary) {
       this.artifacts.set("compressed-artifacts", { summary: artifactSummary });
     }

@@ -1014,6 +1014,269 @@ services:
 
 ---
 
+## Phase 6: CI/CD Pipeline with TLS Termination (P2)
+
+**Duration**: 0.5 days
+**Purpose**: Secure production deployment with zero-performance-degradation TLS
+
+### Data Security Governance Strategy
+
+**Architecture**: Edge TLS Termination (Recommended)
+```
+Internet → nginx/caddy (HTTPS:443) → Gateway (HTTP:3001) → Backend Services
+```
+
+**Benefits**:
+- TLS handled at reverse proxy (single handshake, not per-service)
+- Let's Encrypt auto-renewal (zero manual cert management)
+- Zero application-level performance impact
+- Internal traffic stays HTTP within Docker network (trusted)
+
+### Task 6.1: Create Caddy Configuration (Recommended)
+
+**Location**: `infra/Caddyfile`
+
+```caddyfile
+# Caddy automatically handles HTTPS with Let's Encrypt
+ess.{$DOMAIN} {
+    # TLS termination (automatic)
+    tls {$ADMIN_EMAIL}
+
+    # Reverse proxy to gateway
+    reverse_proxy gateway:3001 {
+        # Health checks
+        health_uri /health
+        health_interval 30s
+        health_timeout 10s
+
+        # Headers
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    # Rate limiting (optional)
+    rate_limit {
+        zone ess_zone {
+            key {remote_host}
+            events 100
+            window 1m
+        }
+    }
+
+    # Logging
+    log {
+        output file /var/log/caddy/ess.log
+        format json
+    }
+}
+```
+
+### Task 6.2: Alternative nginx Configuration
+
+**Location**: `infra/nginx.conf`
+
+```nginx
+upstream ess_gateway {
+    server gateway:3001;
+    keepalive 32;
+}
+
+server {
+    listen 80;
+    server_name ess.example.com;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name ess.example.com;
+
+    # TLS Configuration (Let's Encrypt via certbot)
+    ssl_certificate /etc/letsencrypt/live/ess.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/ess.example.com/privkey.pem;
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:SSL:50m;
+    ssl_session_tickets off;
+
+    # Modern TLS configuration
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256;
+    ssl_prefer_server_ciphers off;
+
+    # HSTS
+    add_header Strict-Transport-Security "max-age=63072000" always;
+
+    # Security headers
+    add_header X-Content-Type-Options nosniff;
+    add_header X-Frame-Options DENY;
+
+    location / {
+        proxy_pass http://ess_gateway;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+
+        # Timeouts
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    location /health {
+        proxy_pass http://ess_gateway/health;
+        access_log off;
+    }
+}
+```
+
+### Task 6.3: Update Production Docker Compose
+
+**Location**: `docker-compose.prod.yml` (add caddy service)
+
+```yaml
+services:
+  # ... existing services ...
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: ess-caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      DOMAIN: ${ESS_DOMAIN:-localhost}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+    depends_on:
+      - gateway
+    networks:
+      - ess_network
+
+volumes:
+  caddy_data:
+  caddy_config:
+```
+
+### Task 6.4: CI/CD Pipeline Script
+
+**Location**: `scripts/ci-cd-deploy.sh`
+
+```bash
+#!/bin/bash
+set -e
+
+echo "=== ESS CI/CD Pipeline ==="
+
+# 1. Environment check
+echo "Checking environment..."
+if [ -z "$ESS_DOMAIN" ]; then
+    echo "ERROR: ESS_DOMAIN not set"
+    exit 1
+fi
+
+# 2. Run tests locally
+echo "Running tests..."
+cd gateway && bun test && cd ..
+cd veracity-engine && pytest -q && cd ..
+
+# 3. Build check
+echo "Building TypeScript..."
+cd gateway && bun run build && cd ..
+
+# 4. Push to VPS
+echo "Pushing to VPS..."
+git push vps main
+
+# 5. Deploy on VPS with TLS
+echo "Deploying on VPS..."
+ssh vps-dev << 'DEPLOY_EOF'
+cd /home/devuser/Projects/engg-support-system
+git pull
+
+# Stop existing services
+docker-compose -f docker-compose.prod.yml down
+
+# Start with TLS
+docker-compose -f docker-compose.prod.yml up -d
+
+# Wait for services
+echo "Waiting for services to start..."
+sleep 15
+
+# Verify HTTPS health
+if curl -sf https://${ESS_DOMAIN}/health > /dev/null; then
+    echo "✓ HTTPS health check passed"
+else
+    echo "✗ HTTPS health check failed"
+    docker-compose -f docker-compose.prod.yml logs caddy
+    exit 1
+fi
+
+echo "Deployment complete!"
+DEPLOY_EOF
+
+echo "=== CI/CD Pipeline Complete ==="
+```
+
+### Task 6.5: Local Development (No TLS Needed)
+
+For local development, HTTP is sufficient:
+
+```bash
+# Local dev - no TLS (localhost only)
+docker-compose -f docker-compose.local.yml up -d
+curl http://localhost:3001/health
+```
+
+For local HTTPS testing (optional):
+
+```bash
+# Generate local dev certs with mkcert
+mkcert -install
+mkcert localhost 127.0.0.1 ::1
+# Use generated certs in local Caddy/nginx
+```
+
+### Verification Criteria
+
+- [ ] Caddy/nginx starts without errors
+- [ ] HTTPS accessible on port 443
+- [ ] HTTP redirects to HTTPS
+- [ ] Let's Encrypt certificate obtained
+- [ ] `/health` endpoint accessible via HTTPS
+- [ ] Security headers present in responses
+- [ ] Internal services still use HTTP (Docker network)
+
+### Security Governance Summary
+
+| Layer | Protocol | Purpose |
+|-------|----------|---------|
+| Edge (Caddy/nginx) | HTTPS (TLS 1.2/1.3) | Client-facing encryption |
+| Internal (Docker) | HTTP | Service-to-service (trusted network) |
+| API Authentication | API Key header | Request authorization |
+| Rate Limiting | Caddy/nginx | DoS protection |
+
+**Performance Impact**: Zero at application level - TLS handled by optimized reverse proxy.
+
+---
+
 ## Integration Checkpoints (for rad-engineer-v2)
 
 After each phase, verify integration readiness:
