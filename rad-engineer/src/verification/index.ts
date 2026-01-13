@@ -82,3 +82,30 @@ export {
   type VerificationEvidence,
   type VerificationStatus,
 } from "./VACHook.js";
+
+// UndefinedStateError exports
+export {
+  UndefinedStateError,
+  isUndefinedStateError,
+  type TransitionErrorContext,
+} from "./UndefinedStateError.js";
+
+// Transition exports
+export {
+  Transition,
+  StandardTransitions,
+  type TransitionDefinition,
+  type TransitionResult,
+  type TransitionGuard,
+  type TransitionAction,
+  type RollbackAction,
+} from "./Transition.js";
+
+// StateMachineExecutor exports
+export {
+  StateMachineExecutor,
+  createExecutionContext,
+  type StateMachineConfig,
+  type ExecutionResult,
+  type HistoryEntry,
+} from "./StateMachineExecutor.js";
