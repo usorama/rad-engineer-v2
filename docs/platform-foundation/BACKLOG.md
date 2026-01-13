@@ -176,6 +176,30 @@ These items were identified during planning but deferred to achieve the **shorte
 
 ---
 
+### 9. ESS MCP Server Wrapper
+
+**Deferred From**: ESS integration (2026-01-13)
+**Reason**: HTTP client sufficient for initial integration
+
+| Component | Description | Effort |
+|-----------|-------------|--------|
+| MCP server scaffold | TypeScript MCP server | 2h |
+| Tool definitions | query, conversation, health | 2h |
+| Claude Code config | mcpServers entry | 1h |
+| Documentation | Usage guide | 1h |
+| Tests | MCP protocol tests | 2h |
+
+**Total Effort**: ~8h
+**When to Implement**: When native Claude Code MCP integration is preferred over HTTP
+
+**Notes**:
+- HTTP client (`ESSClient`) already implemented and working
+- MCP would allow: `mcp__ess__query("How does auth work?")`
+- Benefits: Native Claude Code integration, tool discovery
+- Current solution: Import and use ESSClient directly in code
+
+---
+
 ## Backlog Priority Order
 
 When core platform is complete, implement in this order:
@@ -198,6 +222,9 @@ When core platform is complete, implement in this order:
 ### Priority 5: Distribution
 8. npx Installer (19h)
 
+### Priority 6: Integration Enhancement
+9. ESS MCP Server Wrapper (8h)
+
 ---
 
 ## Total Backlog Effort
@@ -209,7 +236,8 @@ When core platform is complete, implement in this order:
 | Languages | 40h | P3 |
 | Domains | 69h | P4 |
 | Distribution | 19h | P5 |
-| **Total** | **238h** | ~6 weeks |
+| Integration | 8h | P6 |
+| **Total** | **246h** | ~6 weeks |
 
 ---
 
