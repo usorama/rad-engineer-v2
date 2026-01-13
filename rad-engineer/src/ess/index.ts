@@ -27,6 +27,9 @@ export type {
   ESSNeo4jSource,
   ESSRelationship,
   ESSClarifyingQuestion,
+  ESSCitation,
+  ESSSynthesizedAnswer,
+  ESSCombinedInsights,
 } from './types.js';
 
 export {

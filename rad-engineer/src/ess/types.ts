@@ -18,6 +18,8 @@ export interface ESSQueryRequest {
   context?: string[];
   /** Query mode: one-shot or conversational */
   mode?: 'one-shot' | 'conversational';
+  /** Synthesis mode: "synthesized" (default) returns intelligent answer, "raw" returns search results only */
+  synthesisMode?: 'synthesized' | 'raw';
 }
 
 export interface ESSConversationContinueRequest {
@@ -29,19 +31,63 @@ export interface ESSConversationContinueRequest {
 // Response Types
 // ============================================================================
 
+/**
+ * Citation from synthesized answer
+ */
+export interface ESSCitation {
+  /** Source file path or graph reference */
+  source: string;
+  /** Line start (for code sources) */
+  lineStart?: number;
+  /** Line end (for code sources) */
+  lineEnd?: number;
+  /** Relevance score (0-1) */
+  relevance: number;
+  /** Source type */
+  type: 'code' | 'doc' | 'graph';
+}
+
+/**
+ * Synthesized answer from SynthesisAgent
+ */
+export interface ESSSynthesizedAnswer {
+  /** The synthesized answer text (Markdown) */
+  text: string;
+  /** Confidence score (0-1) */
+  confidence: number;
+  /** Evidence citations */
+  citations: ESSCitation[];
+}
+
+/**
+ * Combined insights from synthesis
+ */
+export interface ESSCombinedInsights {
+  /** Executive summary (Markdown) */
+  summary: string;
+  /** Key findings (bullet points in Markdown) */
+  keyFindings: string[];
+  /** Optional recommendations */
+  recommendations?: string[];
+}
+
 export interface ESSQueryResponse {
   /** Unique request ID */
   requestId: string;
   /** ISO timestamp */
   timestamp: string;
-  /** The synthesized answer */
-  answer: string;
-  /** Confidence score (0-1) */
-  confidence: number;
+  /** Synthesized answer (when synthesisMode !== "raw") */
+  answer?: ESSSynthesizedAnswer;
+  /** Legacy: simple answer string (deprecated, use answer.text) */
+  legacyAnswer?: string;
+  /** Legacy: Confidence score (deprecated, use answer.confidence) */
+  confidence?: number;
   /** Sources from Qdrant vector search */
   qdrantSources: ESSQdrantSource[];
   /** Sources from Neo4j graph search */
   neo4jSources: ESSNeo4jSource[];
+  /** Combined insights from synthesis */
+  insights?: ESSCombinedInsights;
   /** For conversational mode: conversation ID to continue */
   conversationId?: string;
   /** Clarifying questions if more info needed */

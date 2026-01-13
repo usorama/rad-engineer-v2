@@ -56,8 +56,11 @@ describe("ESSClient", () => {
       const mockResponse: ESSQueryResponse = {
         requestId: "test-123",
         timestamp: new Date().toISOString(),
-        answer: "This is the answer",
-        confidence: 0.95,
+        answer: {
+          text: "This is the answer",
+          confidence: 0.95,
+          citations: [],
+        },
         qdrantSources: [],
         neo4jSources: [],
       };
@@ -80,16 +83,20 @@ describe("ESSClient", () => {
       expect(JSON.parse(options.body as string)).toEqual({
         query: "How does auth work?",
         mode: "one-shot",
+        synthesisMode: "synthesized",
       });
-      expect(result.answer).toBe("This is the answer");
+      expect(result.answer?.text).toBe("This is the answer");
     });
 
     test("accepts ESSQueryRequest object", async () => {
       const mockResponse: ESSQueryResponse = {
         requestId: "test-123",
         timestamp: new Date().toISOString(),
-        answer: "Answer",
-        confidence: 0.9,
+        answer: {
+          text: "Answer",
+          confidence: 0.9,
+          citations: [],
+        },
         qdrantSources: [],
         neo4jSources: [],
       };
@@ -122,8 +129,11 @@ describe("ESSClient", () => {
       const mockResponse: ESSQueryResponse = {
         requestId: "test-123",
         timestamp: new Date().toISOString(),
-        answer: "Answer",
-        confidence: 0.9,
+        answer: {
+          text: "Answer",
+          confidence: 0.9,
+          citations: [],
+        },
         qdrantSources: [],
         neo4jSources: [],
       };
@@ -150,8 +160,11 @@ describe("ESSClient", () => {
       const mockResponse: ESSQueryResponse = {
         requestId: "test-123",
         timestamp: new Date().toISOString(),
-        answer: "Initial answer",
-        confidence: 0.8,
+        answer: {
+          text: "Initial answer",
+          confidence: 0.8,
+          citations: [],
+        },
         conversationId: "conv-456",
         qdrantSources: [],
         neo4jSources: [],
@@ -184,8 +197,11 @@ describe("ESSClient", () => {
       const mockResponse: ESSQueryResponse = {
         requestId: "test-123",
         timestamp: new Date().toISOString(),
-        answer: "Updated answer",
-        confidence: 0.95,
+        answer: {
+          text: "Updated answer",
+          confidence: 0.95,
+          citations: [],
+        },
         qdrantSources: [],
         neo4jSources: [],
       };
@@ -209,7 +225,7 @@ describe("ESSClient", () => {
       expect(JSON.parse(options.body as string)).toEqual({
         answers: { q1: "The auth module" },
       });
-      expect(result.answer).toBe("Updated answer");
+      expect(result.answer?.text).toBe("Updated answer");
     });
   });
 

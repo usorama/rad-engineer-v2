@@ -54,15 +54,23 @@ export class ESSClient {
    * Query ESS with natural language. Uses hybrid search (Qdrant + Neo4j).
    *
    * @param query - Natural language query or ESSQueryRequest object
-   * @param project - Optional project name to scope the search
+   * @param options - Optional query options (project, synthesisMode)
    * @returns Query response with answer, sources, and confidence
    */
   async query(
     query: string | ESSQueryRequest,
-    project?: string
+    options?: { project?: string; synthesisMode?: 'synthesized' | 'raw' } | string
   ): Promise<ESSQueryResponse> {
+    // Handle backwards compatibility: options can be a string (project name)
+    const opts = typeof options === 'string' ? { project: options } : options;
+
     const request: ESSQueryRequest = typeof query === 'string'
-      ? { query, project, mode: 'one-shot' }
+      ? {
+          query,
+          project: opts?.project,
+          mode: 'one-shot',
+          synthesisMode: opts?.synthesisMode ?? 'synthesized', // Default to synthesized
+        }
       : query;
 
     return this.post<ESSQueryResponse>('/query', request);
