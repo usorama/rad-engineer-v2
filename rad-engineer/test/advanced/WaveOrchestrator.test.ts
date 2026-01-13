@@ -19,6 +19,7 @@ import { ProviderFactory } from "@/sdk/providers/ProviderFactory.js";
 import { ProviderType } from "@/sdk/providers/types.js";
 import type { ResourceMetrics } from "@/sdk/types.js";
 import type { Task } from "@/advanced/index.js";
+import { HierarchicalMemory } from "@/memory/HierarchicalMemory.js";
 
 /**
  * Create a mock SDKIntegration for testing
@@ -72,6 +73,43 @@ function createMockSDK(): SDKIntegration {
   return sdk;
 }
 
+/**
+ * Create a test orchestrator instance with all dependencies
+ */
+function createTestOrchestrator(resourceManager?: ResourceManager): WaveOrchestrator {
+  const promptValidator = new PromptValidator();
+  const responseParser = new ResponseParser();
+  const sdk = createMockSDK();
+  const memory = new HierarchicalMemory();
+
+  // Use provided resourceManager or create a default one
+  const rm = resourceManager || new ResourceManager({
+    maxConcurrent: 3,
+    resourceMonitor: {
+      getCurrentMetrics: () => Promise.resolve({
+        kernel_task_cpu: 30,
+        memory_pressure: 15,
+        active_tasks: 1,
+        peak_usage: 2,
+        average_usage: 1.5,
+        health_score: 85,
+        process_count: 150,
+        can_spawn_agent: true,
+        timestamp: new Date().toISOString(),
+      }),
+      setBaseline: () => Promise.resolve(),
+    },
+  });
+
+  return new WaveOrchestrator({
+    resourceManager: rm,
+    promptValidator,
+    responseParser,
+    sdk,
+    memory,
+  });
+}
+
 describe("WaveOrchestrator: calculateWaveSize", () => {
   it("Returns maxConcurrent from ResourceManager", async () => {
     const mockMonitor = {
@@ -90,16 +128,7 @@ describe("WaveOrchestrator: calculateWaveSize", () => {
       resourceMonitor: mockMonitor,
     });
 
-    const promptValidator = new PromptValidator();
-    const responseParser = new ResponseParser();
-    const sdk = createMockSDK();
-
-    const orchestrator = new WaveOrchestrator({
-      resourceManager,
-      promptValidator,
-      responseParser,
-      sdk,
-    });
+    const orchestrator = createTestOrchestrator(resourceManager);
 
     const waveSize = await orchestrator.calculateWaveSize();
 
@@ -123,16 +152,7 @@ describe("WaveOrchestrator: calculateWaveSize", () => {
       resourceMonitor: mockMonitor,
     });
 
-    const promptValidator = new PromptValidator();
-    const responseParser = new ResponseParser();
-    const sdk = createMockSDK();
-
-    const orchestrator = new WaveOrchestrator({
-      resourceManager,
-      promptValidator,
-      responseParser,
-      sdk,
-    });
+    const orchestrator = createTestOrchestrator(resourceManager);
 
     const tasks: Task[] = [
       { id: "task-1", prompt: "Task: Test\nFiles: test.ts\nOutput: JSON\nRules: test" },
@@ -166,16 +186,7 @@ describe("WaveOrchestrator: splitIntoWaves", () => {
       resourceMonitor: mockMonitor,
     });
 
-    const promptValidator = new PromptValidator();
-    const responseParser = new ResponseParser();
-    const sdk = createMockSDK();
-
-    orchestrator = new WaveOrchestrator({
-      resourceManager,
-      promptValidator,
-      responseParser,
-      sdk,
-    });
+    orchestrator = createTestOrchestrator(resourceManager);
   });
 
   it("Splits 10 tasks into 5 waves of 2", () => {
@@ -232,16 +243,7 @@ describe("WaveOrchestrator: executeWave", () => {
       resourceMonitor: mockMonitor,
     });
 
-    const promptValidator = new PromptValidator();
-    const responseParser = new ResponseParser();
-    const sdk = createMockSDK();
-
-    orchestrator = new WaveOrchestrator({
-      resourceManager,
-      promptValidator,
-      responseParser,
-      sdk,
-    });
+    orchestrator = createTestOrchestrator(resourceManager);
   });
 
   it("Executes 10 tasks in waves of 2", async () => {

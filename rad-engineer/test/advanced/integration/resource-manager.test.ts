@@ -16,6 +16,7 @@ import { ProviderFactory } from "@/sdk/providers/ProviderFactory.js";
 import { ProviderType } from "@/sdk/providers/types.js";
 import type { ResourceMetrics } from "@/sdk/types.js";
 import type { Task } from "@/advanced/index.js";
+import { HierarchicalMemory } from "@/memory/HierarchicalMemory.js";
 
 /**
  * Create a mock SDKIntegration for testing
@@ -93,12 +94,14 @@ describe("WaveOrchestrator: ResourceManager Integration", () => {
     const promptValidator = new PromptValidator();
     const responseParser = new ResponseParser();
     const sdk = createMockSDK();
+    const memory = new HierarchicalMemory();
 
     orchestrator = new WaveOrchestrator({
       resourceManager,
       promptValidator,
       responseParser,
       sdk,
+      memory,
     });
   });
 

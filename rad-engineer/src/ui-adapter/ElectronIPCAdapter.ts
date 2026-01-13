@@ -28,6 +28,7 @@ import { ResourceManager } from "@/core/ResourceManager.js";
 import { PromptValidator } from "@/core/PromptValidator.js";
 import { ResponseParser } from "@/core/ResponseParser.js";
 import { SDKIntegration } from "@/sdk/SDKIntegration.js";
+import { HierarchicalMemory } from "@/memory/HierarchicalMemory.js";
 import { ProviderFactory } from "@/sdk/providers/ProviderFactory.js";
 import { ProviderType } from "@/sdk/providers/types.js";
 import type {
@@ -98,12 +99,14 @@ export class ElectronIPCAdapter extends EventEmitter {
       const sdk = new SDKIntegration(providerFactory);
       const promptValidator = new PromptValidator();
       const responseParser = new ResponseParser();
+      const memory = new HierarchicalMemory();
 
       return new WaveOrchestrator({
         resourceManager,
         promptValidator,
         responseParser,
         sdk,
+        memory,
       });
     })();
 
