@@ -135,6 +135,32 @@ export class Scope {
   }
 
   /**
+   * Apply compression to this scope by replacing content with summaries
+   */
+  applyCompression(eventSummary: string, artifactSummary: string): void {
+    if (!this.isClosed()) {
+      throw new Error("Cannot compress open scope");
+    }
+
+    // Replace events with a summary event
+    this.events.splice(0, this.events.length);
+    if (eventSummary) {
+      this.events.push({
+        id: "compressed-events",
+        type: "STATE_CHANGE",
+        timestamp: new Date(),
+        data: { summary: eventSummary },
+      });
+    }
+
+    // Replace artifacts with a summary artifact
+    this.artifacts.clear();
+    if (artifactSummary) {
+      this.artifacts.set("compressed-artifacts", { summary: artifactSummary });
+    }
+  }
+
+  /**
    * Get scope hierarchy path from root to this scope
    * Useful for debugging and logging
    */

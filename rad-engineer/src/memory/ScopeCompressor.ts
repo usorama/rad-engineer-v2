@@ -78,6 +78,9 @@ export class ScopeCompressor {
       timestamp: new Date(),
     };
 
+    // Apply compression to the scope itself
+    scope.applyCompression(eventSummary, artifactSummary);
+
     // Track metrics
     this.metrics.push(result);
 
