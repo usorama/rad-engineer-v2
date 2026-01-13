@@ -425,10 +425,17 @@ If no:
 1. Spawn developer agent with component-spec.yaml
 2. Implement all methods with failure modes in `rad-engineer/src/`
 3. Write all tests from test-spec.yaml in `rad-engineer/test/`
-4. Run quality gates:
-   - `cd rad-engineer && pnpm typecheck` (must pass, 0 errors)
-   - `cd rad-engineer && pnpm lint` (must pass)
-   - `cd rad-engineer && pnpm test` (must pass, ≥80% coverage)
+4. Run quality gates (SERIALIZED with flock + JIT resource check):
+   ```bash
+   cd rad-engineer && \
+   LOCK="/tmp/rad-engineer-quality-gate.lock" && \
+   ( ../.claude/hooks/check-system-resources.sh || { sleep 30; ../.claude/hooks/check-system-resources.sh; } ) && \
+   flock -w 300 "$LOCK" sh -c 'bun run typecheck && bun run lint && bun test'
+   ```
+   - Must pass with 0 errors, ≥80% coverage
+   - flock ensures only ONE quality gate runs across all agents
+   - JIT resource check prevents spawning when system is overloaded
+   - Uses bun exclusively (no pnpm/npm overhead)
 5. Update progress:
    - Set implementation_status to "implemented"
    - Add implementation files to list
@@ -651,9 +658,12 @@ Skill: Next component: ResourceManager (Phase-1)
 
 - [ ] All methods implemented in `rad-engineer/src/`
 - [ ] All tests written in `rad-engineer/test/`
-- [ ] `cd rad-engineer && pnpm typecheck` passes (0 errors)
-- [ ] `cd rad-engineer && pnpm lint` passes
-- [ ] `cd rad-engineer && pnpm test` passes (≥80% coverage)
+- [ ] Quality gates pass (SERIALIZED + JIT check):
+  ```bash
+  cd rad-engineer && LOCK="/tmp/rad-engineer-quality-gate.lock" && \
+  ( ../.claude/hooks/check-system-resources.sh || sleep 30 ) && \
+  flock -w 300 "$LOCK" sh -c 'bun run typecheck && bun run lint && bun test'
+  ```
 
 ---
 
@@ -735,7 +745,7 @@ Skill: Next component: ResourceManager (Phase-1)
 
 1. Read error output from `rad-engineer/`
 2. Spawn fix agent to address failures in `rad-engineer/src/`
-3. Re-run quality gates: `cd rad-engineer && pnpm typecheck && pnpm lint && pnpm test`
+3. Re-run quality gates (SERIALIZED + JIT check): `cd rad-engineer && LOCK="/tmp/rad-engineer-quality-gate.lock" && ( ../.claude/hooks/check-system-resources.sh || sleep 30 ) && flock -w 300 "$LOCK" sh -c 'bun run typecheck && bun run lint && bun test'`
 4. Max 3 iterations, then mark as "blocked"
 
 ---

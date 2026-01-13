@@ -449,13 +449,13 @@ quality_gates:
   - wave_id: "all"
     gates:
       - name: "TypeScript compilation"
-        command: "pnpm typecheck"
+        command: "bun run typecheck"
         must_pass: true
       - name: "Lint"
-        command: "pnpm lint"
+        command: "bun run lint"
         must_pass: true
       - name: "Tests"
-        command: "pnpm test"
+        command: "bun test"
         threshold: "80%"
         must_pass: true
 ```

@@ -1,3 +1,0 @@
-{"tokenUsage":{"input":1000,"output":2000},"timestamp":1704451200000,"duration":1000,"outcome":"complete","taskType":"sdk-invoke"}
-{"tokenUsage":{"input":1500,"output":2500},"timestamp":1704451201000,"duration":2000,"outcome":"complete","taskType":"sdk-invoke"}
-{"tokenUsage":{"input":2000,"output":3000},"timestamp":1704451202000,"duration":3000,"outcome":"failed","taskType":"query","errorType":"APIError"}

@@ -27,7 +27,7 @@
       "instruction": "1. Initialize git repository\n2. Create package.json with project metadata\n3. Configure TypeScript with strict mode\n4. Set up ESLint and Prettier\n5. Configure path aliases\n6. Add pre-commit hooks with husky",
       "verification": {
         "type": "command_success",
-        "command": "pnpm run typecheck && pnpm run lint"
+        "command": "bun run typecheck && bun run lint"
       },
       "status": "pending",
       "estimate_hours": 2,
@@ -92,7 +92,7 @@
       "instruction": "Define TypeScript interfaces for:\n1. User model with roles\n2. Core entity models\n3. API request/response types\n4. Common utility types\n\nUse strict types - no 'any'.",
       "verification": {
         "type": "lint_pass",
-        "command": "pnpm run typecheck"
+        "command": "bun run typecheck"
       },
       "status": "pending",
       "estimate_hours": 3,
@@ -113,7 +113,7 @@
       "instruction": "Create reusable UI components:\n1. Button with variants (primary, secondary, ghost)\n2. Input with validation states\n3. Card with header, body, footer\n4. Use Tailwind for styling\n5. Add proper TypeScript props",
       "verification": {
         "type": "test_pass",
-        "command": "pnpm test src/components/ui/"
+        "command": "bun test src/components/ui/"
       },
       "status": "pending",
       "estimate_hours": 5,
@@ -134,7 +134,7 @@
       "instruction": "1. Create AuthContext with user state\n2. Implement useAuth hook with login, logout, register\n3. Create LoginForm and RegisterForm components\n4. Add protected route wrapper\n5. Handle loading and error states",
       "verification": {
         "type": "test_pass",
-        "command": "pnpm test src/features/auth/"
+        "command": "bun test src/features/auth/"
       },
       "status": "pending",
       "estimate_hours": 8,
@@ -154,7 +154,7 @@
       "instruction": "Write comprehensive tests:\n1. useAuth hook - all methods\n2. AuthContext - state management\n3. Mock external auth provider\n4. Test error scenarios\n5. Achieve 85% coverage",
       "verification": {
         "type": "command_success",
-        "command": "pnpm test --coverage src/features/auth/ && node -e \"const c = require('./coverage/coverage-summary.json'); if(c.total.lines.pct < 85) process.exit(1)\""
+        "command": "bun test --coverage src/features/auth/ && node -e \"const c = require('./coverage/coverage-summary.json'); if(c.total.lines.pct < 85) process.exit(1)\""
       },
       "status": "pending",
       "estimate_hours": 4,
@@ -175,7 +175,7 @@
       "instruction": "Identify repeated patterns and extract:\n1. useAsync for async operations with loading/error\n2. useLocalStorage for persistent state\n3. useDebounce for input debouncing\n4. Add TypeScript generics for type safety",
       "verification": {
         "type": "test_pass",
-        "command": "pnpm test src/hooks/"
+        "command": "bun test src/hooks/"
       },
       "status": "pending",
       "estimate_hours": 4,

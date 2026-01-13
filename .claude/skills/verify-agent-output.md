@@ -15,12 +15,16 @@ description: Run after ANY agent returns code to verify compliance. Use when use
 
 ## What This Skill Does
 
-1. **Runs Quality Gates**
+1. **Runs Quality Gates** (Bun-only, with resource check)
 
    ```bash
-   pnpm typecheck  # MUST: 0 errors
-   pnpm lint       # MUST: all pass
-   pnpm test       # MUST: all pass
+   # Check system resources first
+   .claude/hooks/check-system-resources.sh || { sleep 30; .claude/hooks/check-system-resources.sh; }
+
+   # Quality gates with bun (no pnpm overhead)
+   bun run typecheck  # MUST: 0 errors
+   bun run lint       # MUST: all pass
+   bun test           # MUST: all pass
    ```
 
 2. **Checks Evidence Requirements**
@@ -90,9 +94,9 @@ Before returning code, implementation agent MUST include:
 
 ### Quality Gate Results
 
-- [ ] `pnpm typecheck`: [paste output showing 0 errors]
-- [ ] `pnpm lint`: [paste output showing pass]
-- [ ] `pnpm test`: [paste output showing pass]
+- [ ] `bun run typecheck`: [paste output showing 0 errors]
+- [ ] `bun run lint`: [paste output showing pass]
+- [ ] `bun test`: [paste output showing pass]
 
 ### Required Reading Confirmation
 

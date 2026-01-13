@@ -98,9 +98,9 @@ Stories grouped by dependencies. Each wave can run in parallel.
 Every story completion requires:
 
 ```
-□ pnpm typecheck → 0 errors
-□ pnpm lint → 0 errors
-□ pnpm test → all pass
+□ bun run typecheck → 0 errors
+□ bun run lint → 0 errors
+□ bun test → all pass
 □ No hardcoded values
 □ Reviewer agent approval (for M/L stories)
 ```
@@ -182,9 +182,9 @@ Implement [specific outcome] that:
 - Files changed: [list]
 
 ## Checks Required
-1. pnpm typecheck
-2. pnpm lint
-3. pnpm test --coverage
+1. bun run typecheck
+2. bun run lint
+3. bun test --coverage
 4. grep for hardcoded values
 
 ## Report Format

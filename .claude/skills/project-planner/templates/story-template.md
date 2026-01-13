@@ -29,7 +29,7 @@
 cd /Users/umasankr/Projects/pinglearn-PWA/app
 
 # Quality gates
-pnpm typecheck && pnpm lint && pnpm test
+bun run typecheck && bun run lint && bun test
 ```
 
 ### Key Project Files

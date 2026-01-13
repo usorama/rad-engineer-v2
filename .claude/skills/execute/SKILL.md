@@ -625,6 +625,64 @@ These apply to ALL tasks in ALL projects:
 
 ---
 
+## CRITICAL: Continue Until Complete Protocol
+
+**MANDATORY**: When executing with `/execute full` or similar comprehensive execution requests:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  NEVER STOP UNTIL ALL TASKS ARE COMPLETE                       │
+│                                                                 │
+│  After each task completion, AUTOMATICALLY:                    │
+│  1. Check TodoWrite for remaining tasks                        │
+│  2. If pending tasks exist → Continue to next task             │
+│  3. If all completed → Report final summary                    │
+│                                                                 │
+│  DO NOT:                                                        │
+│  - Ask "should I continue?" - just continue                    │
+│  - Stop after one phase - complete all phases                  │
+│  - Wait for user input between tasks                           │
+│                                                                 │
+│  The execution is complete when:                               │
+│  - All TodoWrite items show "completed"                        │
+│  - All phases in the plan are implemented                      │
+│  - All tests pass and typecheck is clean                       │
+│  - Final verification commit is made                           │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Auto-Continuation Check
+
+After every task completion:
+
+```typescript
+// Pseudo-code for continuation logic
+function shouldContinue(): boolean {
+  const todos = getCurrentTodos();
+  const pendingTasks = todos.filter(t => t.status !== 'completed');
+
+  if (pendingTasks.length > 0) {
+    // Mark next pending task as in_progress
+    // Continue execution without asking
+    return true;
+  }
+
+  return false; // All done, report final summary
+}
+```
+
+### Full Execution Mode
+
+When user says "execute full" or "complete all phases":
+1. Load the complete implementation plan
+2. Create todos for ALL phases and tasks
+3. Execute each task in sequence
+4. Update progress after each completion
+5. Continue until all todos are completed
+6. Report comprehensive final summary
+
+---
+
 ## Mathematical Certainty Definition
 
 A task is **mathematically complete** when:

@@ -165,7 +165,7 @@ export class ValidationUtils {
 
     const requiredFields = ['id', 'number', 'phase', 'name', 'stories'];
     for (const field of requiredFields) {
-      if (!wave[field as keyof Wave]) {
+      if (wave[field as keyof Wave] === undefined) {
         issues.push({
           severity: 'error',
           message: `Missing required field: ${field}`,
@@ -216,6 +216,7 @@ export class ValidationUtils {
     const requiredFields = [
       'id',
       'waveId',
+      'phase',
       'title',
       'agentType',
       'model',
@@ -225,7 +226,7 @@ export class ValidationUtils {
       'testRequirements',
     ];
     for (const field of requiredFields) {
-      if (!story[field as keyof Story]) {
+      if (story[field as keyof Story] === undefined) {
         issues.push({
           severity: 'error',
           message: `Missing required field: ${field}`,
@@ -306,12 +307,16 @@ export class ValidationUtils {
       }
     }
 
-    // Validate story dependencies exist
+    // Validate story dependencies exist (can be story IDs or wave IDs)
     for (const wave of waves) {
       const storyIds = new Set(wave.stories.map(s => s.id));
       for (const story of wave.stories) {
         for (const dep of story.dependencies ?? []) {
-          if (!storyIds.has(dep)) {
+          // Dependency can be either a story ID or a wave ID
+          const isValidStoryDep = storyIds.has(dep);
+          const isValidWaveDep = waveIds.has(dep);
+
+          if (!isValidStoryDep && !isValidWaveDep) {
             issues.push({
               severity: 'error',
               message: `Story ${story.id} depends on non-existent story ${dep}`,

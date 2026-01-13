@@ -225,11 +225,22 @@ PENALTY: If you make unverified claims, user will be disappointed
    Exceeding this causes system crash (5 agents = 685 threads, kernel overload)
 ```
 
-### Testing
+### Quality Gates (BUN-ONLY)
 
 ```
-✅ USE BUN TEST (not vitest)
-   17x faster, lower memory footprint
+⚠️ BUN-ONLY COMMANDS (NEVER use pnpm/npm/node)
+
+ALL quality gates MUST use bun exclusively:
+- bun run typecheck    # TypeScript check
+- bun run lint         # ESLint
+- bun test             # Tests (17x faster than vitest)
+
+JIT Resource Check BEFORE running:
+.claude/hooks/check-system-resources.sh
+
+Serialized execution (one at a time):
+cd rad-engineer && LOCK="/tmp/rad-engineer-quality-gate.lock" && \
+flock -w 300 "$LOCK" sh -c 'bun run typecheck && bun run lint && bun test'
 ```
 
 ### Context Management
@@ -281,9 +292,9 @@ PENALTY: If you make unverified claims, user will be disappointed
 
 ---
 
-**Version**: 1.0.0
+**Version**: 1.1.0
 **Status**: Phase 1 - /execute skill implementation
-**Last Updated**: 2026-01-05
+**Last Updated**: 2026-01-13
 
 ---
 

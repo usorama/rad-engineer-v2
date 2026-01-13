@@ -165,6 +165,7 @@ export interface TestRequirements {
 export interface Story {
   id: string;
   waveId: string;
+  phase: 0 | 1 | 2 | 3; // 0=foundation, 1=features, 2=qa, 3=polish
   title: string;
   description: string;
   agentType: 'planner' | 'test-writer' | 'developer' | 'code-reviewer' | 'debugger';
@@ -264,6 +265,7 @@ export interface TasksJson {
   stories: Array<{
     id: string;
     waveId: string;
+    phase: 0 | 1 | 2 | 3;
     title: string;
     status: 'pending' | 'in_progress' | 'complete' | 'blocked';
     model: 'haiku' | 'sonnet' | 'opus';

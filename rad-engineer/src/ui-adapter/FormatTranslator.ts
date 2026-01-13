@@ -58,6 +58,7 @@ export class FormatTranslator {
         {
           id: `story-${taskId}-1`,
           waveId: `wave-${taskId}`,
+          phase: 0 as const,
           title: spec.title,
           description: spec.description,
           agentType: "developer" as const,

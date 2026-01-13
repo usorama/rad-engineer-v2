@@ -353,6 +353,7 @@ describe('/plan Skill - End-to-End Test', () => {
             {
               id: 'STORY-001-1-1',
               waveId: 'wave-0.1',
+              phase: 0,
               title: 'Initialize project',
               description: 'Set up project structure',
               agentType: 'developer',

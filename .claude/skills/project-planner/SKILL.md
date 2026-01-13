@@ -673,10 +673,10 @@ execution_metadata:
     - wave_id: "all" # or specific wave ID
       gates:
         - name: "TypeScript compilation"
-          command: "pnpm typecheck"
+          command: "bun run typecheck"
           must_pass: true
         - name: "Test coverage"
-          command: "pnpm test:coverage"
+          command: "bun test --coverage"
           threshold: "80%"
           must_pass: true
 ```
@@ -968,9 +968,9 @@ grep -r "password\|secret\|key\s*=" src/ --include="*.ts" --include="*.tsx"
 **These MUST pass before any task is marked complete**:
 
 ```bash
-pnpm run typecheck  # 0 errors - not warnings, ERRORS
-pnpm run lint       # 0 errors
-pnpm run test       # All pass
+bun run typecheck  # 0 errors - not warnings, ERRORS
+bun run lint       # 0 errors
+bun test           # All pass
 ```
 
 #### 6. Configuration Management

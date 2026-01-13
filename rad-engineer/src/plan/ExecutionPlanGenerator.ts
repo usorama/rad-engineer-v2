@@ -118,6 +118,7 @@ export class ExecutionPlanGenerator {
       wave.stories.map(story => ({
         id: story.id,
         waveId: story.waveId,
+        phase: story.phase,
         title: story.title,
         status: 'pending' as const,
         model: story.model,
@@ -214,6 +215,7 @@ export class ExecutionPlanGenerator {
       `wave-${waveNum}`,
       storyCount,
       'foundation',
+      0,
       0
     );
 
@@ -239,7 +241,8 @@ export class ExecutionPlanGenerator {
       `wave-${waveNum}`,
       storyCount,
       'feature',
-      dependsOn
+      dependsOn,
+      1
     );
 
     return {
@@ -264,7 +267,8 @@ export class ExecutionPlanGenerator {
       `wave-${waveNum}`,
       storyCount,
       'qa',
-      dependsOn
+      dependsOn,
+      2
     );
 
     return {
@@ -289,7 +293,8 @@ export class ExecutionPlanGenerator {
       `wave-${waveNum}`,
       storyCount,
       'documentation',
-      dependsOn
+      dependsOn,
+      3
     );
 
     return {
@@ -312,25 +317,34 @@ export class ExecutionPlanGenerator {
     waveId: string,
     count: number,
     type: 'foundation' | 'feature' | 'qa' | 'documentation',
-    waveNumber: number
+    waveNumber: number,
+    phase: 0 | 1 | 2 | 3
   ): Story[] {
     const stories: Story[] = [];
-    const waveNum = Math.floor(waveNumber);
-    const subWaveNum = Math.round((waveNumber % 1) * 10);
+    const waveNum = waveNumber;
 
     for (let i = 0; i < count; i++) {
-      const storyId = `STORY-${String(waveNum).padStart(3, '0')}-${subWaveNum}-${i + 1}`;
+      const storyId = `STORY-${String(waveNum).padStart(3, '0')}-${phase}-${i + 1}`;
       const model = this.selectModel(type, i, count);
+
+      // Dependencies: First story of non-foundation waves depends on previous wave
+      // Instead of referencing non-existent story IDs, reference the previous wave ID
+      const dependencies: string[] = [];
+      if (i === 0 && waveNumber > 1) {
+        // First story depends on previous wave completing
+        dependencies.push(`wave-${waveNumber - 1}`);
+      }
 
       stories.push({
         id: storyId,
         waveId,
+        phase,
         title: this.generateStoryTitle(type, i, count),
         description: this.generateStoryDescription(type, i, count),
         agentType: 'developer',
         model,
         estimatedMinutes: this.estimateStoryMinutes(type, model),
-        dependencies: i === 0 && waveNumber > 0 ? [`wave-${waveNumber - 0.1}`] : [],
+        dependencies,
         parallelGroup: Math.floor(i / 2) + 1, // Group stories for parallel execution
         acceptanceCriteria: this.generateAcceptanceCriteria(type),
         filesInScope: this.generateFilesInScope(type),

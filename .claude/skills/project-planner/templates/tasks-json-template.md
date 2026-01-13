@@ -125,7 +125,7 @@ The `tasks.json` file is the machine-readable task tracking system for project m
 {
   "verification": {
     "type": "test_pass",
-    "command": "pnpm test src/components/Button.test.tsx"
+    "command": "bun test src/components/Button.test.tsx"
   }
 }
 ```
@@ -148,7 +148,7 @@ The `tasks.json` file is the machine-readable task tracking system for project m
 {
   "verification": {
     "type": "command_success",
-    "command": "pnpm run typecheck && pnpm run lint"
+    "command": "bun run typecheck && bun run lint"
   }
 }
 ```
@@ -158,7 +158,7 @@ The `tasks.json` file is the machine-readable task tracking system for project m
 {
   "verification": {
     "type": "build_success",
-    "command": "pnpm run build"
+    "command": "bun run build"
   }
 }
 ```
@@ -168,7 +168,7 @@ The `tasks.json` file is the machine-readable task tracking system for project m
 {
   "verification": {
     "type": "lint_pass",
-    "command": "pnpm run lint --max-warnings 0"
+    "command": "bun run lint --max-warnings 0"
   }
 }
 ```
@@ -200,7 +200,7 @@ The `tasks.json` file is the machine-readable task tracking system for project m
   "instruction": "Run create-vite with react-ts template. Configure path aliases. Add ESLint and Prettier.",
   "verification": {
     "type": "command_success",
-    "command": "pnpm run dev --port 3000 & sleep 5 && curl -s http://localhost:3000 | grep -q 'Vite'"
+    "command": "bun run dev --port 3000 & sleep 5 && curl -s http://localhost:3000 | grep -q 'Vite'"
   },
   "status": "pending",
   "estimate_hours": 2,
@@ -225,7 +225,7 @@ The `tasks.json` file is the machine-readable task tracking system for project m
   "instruction": "Create AuthContext with Firebase Auth. Implement sign-in, sign-out, and sign-up methods. Add loading and error states. Persist auth state.",
   "verification": {
     "type": "test_pass",
-    "command": "pnpm test src/hooks/useAuth.test.ts"
+    "command": "bun test src/hooks/useAuth.test.ts"
   },
   "status": "pending",
   "estimate_hours": 8,
@@ -249,7 +249,7 @@ The `tasks.json` file is the machine-readable task tracking system for project m
   "instruction": "Write unit tests for useAuth hook. Test sign-in, sign-out, error handling, loading states. Mock Firebase Auth. Achieve 90% coverage.",
   "verification": {
     "type": "command_success",
-    "command": "pnpm test --coverage src/hooks/useAuth.test.ts && grep -q '90' coverage/lcov-report/index.html"
+    "command": "bun test --coverage src/hooks/useAuth.test.ts && grep -q '90' coverage/lcov-report/index.html"
   },
   "status": "pending",
   "estimate_hours": 4,

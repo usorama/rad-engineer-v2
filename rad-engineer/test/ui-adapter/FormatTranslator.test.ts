@@ -145,6 +145,7 @@ describe("FormatTranslator: toAutoClaudeTask", () => {
       stories: [
         {
           id: "story-1",
+          phase: 0,
           waveId: "wave-task-789",
           title: "Build user dashboard",
           description: "Create React dashboard component",
@@ -191,6 +192,7 @@ describe("FormatTranslator: toAutoClaudeTask", () => {
       stories: [
         {
           id: "story-1",
+          phase: 0,
           waveId: "wave-task-999",
           title: "Story 1",
           description: "First story",
@@ -209,6 +211,7 @@ describe("FormatTranslator: toAutoClaudeTask", () => {
         },
         {
           id: "story-2",
+          phase: 0,
           waveId: "wave-task-999",
           title: "Story 2",
           description: "Second story",
@@ -256,6 +259,7 @@ describe("FormatTranslator: toAutoClaudeTask", () => {
       stories: [
         {
           id: "story-1",
+          phase: 0,
           waveId: "wave-task-888",
           title: "Only story",
           description: "Single story",
@@ -303,6 +307,7 @@ describe("FormatTranslator: toAutoClaudeTask", () => {
       stories: [
         {
           id: "story-1",
+          phase: 0,
           waveId: "wave-task-777",
           title: "Story 1",
           description: "First story",
@@ -400,6 +405,7 @@ describe("FormatTranslator: toAutoClaudeTask", () => {
       stories: [
         {
           id: "story-1",
+          phase: 0,
           waveId: "wave-task-mixed",
           title: "Story 1",
           description: "First story",
@@ -414,6 +420,7 @@ describe("FormatTranslator: toAutoClaudeTask", () => {
         },
         {
           id: "story-2",
+          phase: 0,
           waveId: "wave-task-mixed",
           title: "Story 2",
           description: "Second story",
@@ -428,6 +435,7 @@ describe("FormatTranslator: toAutoClaudeTask", () => {
         },
         {
           id: "story-3",
+          phase: 0,
           waveId: "wave-task-mixed",
           title: "Story 3",
           description: "Third story",
@@ -513,6 +521,7 @@ describe("FormatTranslator: toAutoClaudeTask", () => {
       stories: [
         {
           id: "story-1",
+          phase: 0,
           waveId: "wave-123",
           title: "Story title",
           description: "Story description",
