@@ -7,6 +7,9 @@
  * - ConfigMutator: Configuration mutation
  * - BenchmarkRunner: Benchmark execution
  * - ImprovementStrategies: Improvement strategies
+ * - FailureEmbedding: Error embedding generation
+ * - FailureIndex: Searchable failure database
+ * - ResolutionMatcher: Match failures to resolutions
  */
 
 // TraceAnalyzer exports
@@ -76,3 +79,31 @@ export {
   type MetaLoopResult,
   type MetaLoopConfig,
 } from "./MetaAgentLoop.js";
+
+// FailureEmbedding exports
+export {
+  FailureEmbedding,
+  type FailureContext,
+  type EmbeddingResult,
+  type EmbeddingConfig,
+} from "./FailureEmbedding.js";
+
+// FailureIndex exports
+export {
+  FailureIndex,
+  type Resolution,
+  type FailureRecord,
+  type SearchResult,
+  type IndexStats,
+  type IndexConfig,
+  type SearchStatsData,
+} from "./FailureIndex.js";
+
+// ResolutionMatcher exports
+export {
+  ResolutionMatcher,
+  type MatchResult,
+  type MatcherConfig,
+  type MatchStats,
+  type FeedbackResult,
+} from "./ResolutionMatcher.js";
