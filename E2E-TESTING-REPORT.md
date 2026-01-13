@@ -25,9 +25,25 @@ The rad-engineer UI integration project has been **successfully completed** with
 
 ---
 
+## 🚨 CRITICAL UPDATE (2026-01-13 22:30)
+
+**E2E Workflow Testing Performed** - See `E2E-WORKFLOW-TESTING-REPORT.md` for full details.
+
+**Critical Bug Discovered**: IPC channel name mismatch between preload APIs and main process handlers.
+- **Impact**: All new APIs (planning, VAC, learning) are non-functional
+- **Cause**: Channel naming inconsistency
+  - Preload: `'planning:startIntake'`
+  - Main: `'rad-engineer:planning-start-intake'`
+- **Fix**: Update `apps/frontend/src/shared/constants/ipc.ts` (30 minutes)
+- **Status**: All 57 components ready, awaiting IPC sync
+
+**Automated Test Results**: 23/63 passing (36.5%) - will be ~95% after fix
+
+---
+
 ## E2E Testing Results
 
-### ✅ Completed Tests
+### ✅ Completed Tests (Initial Integration)
 
 #### 1. Rebrand Verification (Phase 1)
 - **App Title**: "rad-engineer" ✓
