@@ -21,7 +21,7 @@ import type { TaskAPIHandlerConfig } from "@/ui-adapter/TaskAPIHandler.js";
 import { StateManager } from "@/advanced/StateManager.js";
 import type { WaveOrchestrator, WaveResult } from "@/advanced/WaveOrchestrator.js";
 import type { ResourceManager } from "@/core/ResourceManager.js";
-import type { AutoClaudeTaskSpec, AutoClaudeTask } from "@/ui-adapter/types.js";
+import type { RadEngineerTaskSpec, RadEngineerTask } from "@/ui-adapter/types.js";
 import { promises as fs } from "fs";
 import { join } from "path";
 
@@ -257,7 +257,7 @@ describe("TaskAPIHandler: createTask", () => {
   });
 
   it("Creates task with generated unique ID", async () => {
-    const spec: AutoClaudeTaskSpec = {
+    const spec: RadEngineerTaskSpec = {
       title: "New feature",
       description: "Implement feature X",
       priority: 5,
@@ -294,7 +294,7 @@ describe("TaskAPIHandler: createTask", () => {
   });
 
   it("Creates task without optional fields", async () => {
-    const spec: AutoClaudeTaskSpec = {
+    const spec: RadEngineerTaskSpec = {
       title: "Simple task",
       description: "Basic task",
     };
@@ -326,9 +326,9 @@ describe("TaskAPIHandler: createTask", () => {
   });
 
   it("Emits task-updated event on creation", async () => {
-    let emittedTask: AutoClaudeTask | null = null;
+    let emittedTask: RadEngineerTask | null = null;
 
-    handler.on("task-updated", (task: AutoClaudeTask) => {
+    handler.on("task-updated", (task: RadEngineerTask) => {
       emittedTask = task;
     });
 
@@ -440,9 +440,9 @@ describe("TaskAPIHandler: updateTask", () => {
       description: "Test",
     });
 
-    let emittedTask: AutoClaudeTask | null = null;
+    let emittedTask: RadEngineerTask | null = null;
 
-    handler.on("task-updated", (updatedTask: AutoClaudeTask) => {
+    handler.on("task-updated", (updatedTask: RadEngineerTask) => {
       emittedTask = updatedTask;
     });
 
@@ -628,9 +628,9 @@ describe("TaskAPIHandler: startTask", () => {
       description: "Test",
     });
 
-    let emittedTask: AutoClaudeTask | null = null;
+    let emittedTask: RadEngineerTask | null = null;
 
-    handler.on("task-updated", (updatedTask: AutoClaudeTask) => {
+    handler.on("task-updated", (updatedTask: RadEngineerTask) => {
       emittedTask = updatedTask;
     });
 
@@ -813,9 +813,9 @@ describe("TaskAPIHandler: stopTask", () => {
 
     await handler.startTask(task.id);
 
-    let emittedTask: AutoClaudeTask | null = null;
+    let emittedTask: RadEngineerTask | null = null;
 
-    handler.on("task-updated", (updatedTask: AutoClaudeTask) => {
+    handler.on("task-updated", (updatedTask: RadEngineerTask) => {
       emittedTask = updatedTask;
     });
 

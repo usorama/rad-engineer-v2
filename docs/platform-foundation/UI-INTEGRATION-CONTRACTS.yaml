@@ -1,0 +1,370 @@
+---
+meta:
+  version: "1.0.0"
+  purpose: "VAC (Verifiable Agentic Contract) contracts for UI integration"
+  status: "ACTIVE"
+  generated: "2026-01-13T11:00:00Z"
+
+---
+# STORY 1: Fix Initialization Button Error Feedback
+
+story_1_initialization_bug_fix:
+  story_id: 1
+  wave: 1
+  title: "Fix Initialization Button Error Feedback"
+
+  preconditions:
+    - condition: "GeneralSettings.tsx exists"
+      verification: "Read file apps/frontend/src/renderer/components/project-settings/GeneralSettings.tsx"
+      status: "VERIFIED"
+
+    - condition: "useProjectSettings hook exists"
+      verification: "Read file apps/frontend/src/renderer/components/project-settings/hooks/useProjectSettings.ts"
+      status: "VERIFIED"
+
+    - condition: "Initialization currently fails silently"
+      verification: "Manual test: Click initialize button, observe no feedback"
+      status: "VERIFIED"
+
+  postconditions:
+    - condition: "Error toast displays when initialization fails"
+      verification: "Test: Mock handleInitialize to set error, expect toast with variant='destructive'"
+      acceptance: "bun test GeneralSettings.test.tsx --grep 'Error toast appears'"
+
+    - condition: "Success toast displays when initialization succeeds"
+      verification: "Test: Mock handleInitialize to return success, expect success toast"
+      acceptance: "bun test GeneralSettings.test.tsx --grep 'Success toast appears'"
+
+    - condition: "Console logs show complete IPC flow"
+      verification: "Manual test: Check DevTools console for [IPC] PROJECT_INITIALIZE logs"
+      acceptance: "Logs include: projectId, projectPath, success status, errors"
+
+    - condition: "i18n keys exist for toast messages"
+      verification: "Grep for initializeErrorTitle, initializeSuccessTitle in en/settings.json"
+      acceptance: "Keys exist in both en/ and fr/ locales"
+
+  invariants:
+    - invariant: "Button loading state works correctly"
+      verification: "Test: Set isUpdating=true, expect button disabled"
+      maintains: "User cannot double-click while initializing"
+
+    - invariant: "Error is cleared after toast displays"
+      verification: "Test: Set error, wait for effect, expect setError(null) called"
+      maintains: "Error doesn't persist across multiple attempts"
+
+    - invariant: "TypeScript compilation passes"
+      verification: "bun run typecheck"
+      maintains: "0 errors"
+
+  drift_detection:
+    enabled: true
+    runs: 3
+    threshold: 0.95
+    comparison: "AST structure of GeneralSettings.tsx"
+
+---
+# STORY 2: Update Package Configuration
+
+story_2_package_configuration:
+  story_id: 2
+  wave: 2
+  title: "Update Package Configuration"
+
+  preconditions:
+    - condition: "Root package.json contains 'auto-claude-ui'"
+      verification: "Grep 'auto-claude' workspaces/Auto-Claude/package.json"
+      status: "VERIFIED"
+
+    - condition: "Frontend package.json contains 'auto-claude'"
+      verification: "Grep 'auto-claude' apps/frontend/package.json"
+      status: "VERIFIED"
+
+  postconditions:
+    - condition: "Root package.json uses 'rad-engineer'"
+      verification: "Grep 'rad-engineer' workspaces/Auto-Claude/package.json"
+      acceptance: "name, productName, appId all updated"
+
+    - condition: "Frontend package.json uses 'rad-engineer'"
+      verification: "Grep 'rad-engineer' apps/frontend/package.json"
+      acceptance: "name and build config updated"
+
+    - condition: "HTML title tag uses 'rad-engineer'"
+      verification: "Grep 'rad-engineer' apps/frontend/src/renderer/index.html"
+      acceptance: "Title contains rad-engineer"
+
+    - condition: "No 'auto-claude' references in config files"
+      verification: "Grep -r 'auto-claude' package.json files"
+      acceptance: "0 matches (except backups)"
+
+  invariants:
+    - invariant: "JSON files are valid"
+      verification: "node -e 'require(\"./package.json\")'"
+      maintains: "Package files can be parsed"
+
+    - invariant: "App launches successfully"
+      verification: "npm run dev (manual check)"
+      maintains: "No import errors or crashes"
+
+  drift_detection:
+    enabled: false
+    reason: "Configuration changes are idempotent"
+
+---
+# STORY 3: Bulk i18n Replacement
+
+story_3_i18n_replacement:
+  story_id: 3
+  wave: 2
+  title: "Bulk i18n Replacement"
+
+  preconditions:
+    - condition: "127+ 'Auto Claude' references in i18n"
+      verification: "find apps/frontend/src/shared/i18n -name '*.json' | xargs grep -c 'Auto Claude'"
+      status: "VERIFIED"
+
+  postconditions:
+    - condition: "0 'Auto Claude' references in English locale"
+      verification: "grep -r 'Auto Claude' apps/frontend/src/shared/i18n/locales/en/"
+      acceptance: "0 matches"
+
+    - condition: "0 'Auto Claude' references in French locale"
+      verification: "grep -r 'Auto Claude' apps/frontend/src/shared/i18n/locales/fr/"
+      acceptance: "0 matches"
+
+    - condition: "All JSON files are valid"
+      verification: "for f in locales/*/*.json; do node -e \"require('$f')\"; done"
+      acceptance: "No parse errors"
+
+    - condition: "Backup files exist"
+      verification: "ls locales/*/*.json.bak"
+      acceptance: "Backups created before replacement"
+
+  invariants:
+    - invariant: "i18n system loads without errors"
+      verification: "Test: Import i18n, call t('common:appName')"
+      maintains: "No missing keys"
+
+    - invariant: "English and French have same keys"
+      verification: "Compare keys in en/common.json vs fr/common.json"
+      maintains: "Parity between locales"
+
+  drift_detection:
+    enabled: false
+    reason: "Text replacements are deterministic"
+
+---
+# STORY 4: Update Theme Colors
+
+story_4_theme_colors:
+  story_id: 4
+  wave: 3
+  title: "Update Theme Colors"
+
+  preconditions:
+    - condition: "Primary color is yellow (#D6D876)"
+      verification: "grep '#D6D876' apps/frontend/src/renderer/styles/globals.css"
+      status: "VERIFIED"
+
+  postconditions:
+    - condition: "Primary color is blue in light mode"
+      verification: "grep '#0EA5E9' globals.css (line 119)"
+      acceptance: "--primary: #0EA5E9"
+
+    - condition: "Primary color is blue in dark mode"
+      verification: "grep '#38BDF8' globals.css (line 179)"
+      acceptance: "--primary: #38BDF8"
+
+    - condition: "No yellow hex codes remain"
+      verification: "grep -E '#(D6D876|A5A66A)' globals.css"
+      acceptance: "0 matches"
+
+    - condition: "Contrast ratios meet WCAG AA"
+      verification: "Manual check with contrast checker tool"
+      acceptance: "4.5:1 for text, 3:1 for UI components"
+
+  invariants:
+    - invariant: "CSS is valid"
+      verification: "npx stylelint globals.css"
+      maintains: "No syntax errors"
+
+    - invariant: "Dark mode toggle works"
+      verification: "Test: Toggle dark mode, expect colors change"
+      maintains: "Theme switching functional"
+
+  drift_detection:
+    enabled: false
+    reason: "CSS color values are deterministic"
+
+---
+# STORY 5: Replace Logo & Icons
+
+story_5_logo_icons:
+  story_id: 5
+  wave: 3
+  title: "Replace Logo & Icons"
+
+  preconditions:
+    - condition: "Auto-Claude logo exists"
+      verification: "ls apps/frontend/resources/icon.png"
+      status: "VERIFIED"
+
+  postconditions:
+    - condition: "rad-engineer logo created"
+      verification: "ls apps/frontend/resources/icon.png (new version)"
+      acceptance: "File exists, different from original (hash check)"
+
+    - condition: "macOS icon exists (.icns)"
+      verification: "ls apps/frontend/resources/icon.icns"
+      acceptance: "Valid .icns file with multiple sizes"
+
+    - condition: "Windows icon exists (.ico)"
+      verification: "ls apps/frontend/resources/icon.ico"
+      acceptance: "Valid .ico file with 16, 32, 48, 256 sizes"
+
+    - condition: "PNG icon is 512x512"
+      verification: "identify -format '%wx%h' icon.png"
+      acceptance: "512x512"
+
+  invariants:
+    - invariant: "App displays new icon on launch"
+      verification: "Manual test: Launch app on macOS/Windows/Linux"
+      maintains: "Icon visible in OS UI"
+
+    - invariant: "No Auto-Claude logo artifacts"
+      verification: "grep -r 'auto.*claude.*logo' resources/"
+      maintains: "Clean branding"
+
+  drift_detection:
+    enabled: false
+    reason: "Binary assets, not code"
+
+---
+# STORY 8: Planning Workflow Infrastructure
+
+story_8_planning_infrastructure:
+  story_id: 8
+  wave: 5
+  title: "Planning Workflow Infrastructure"
+
+  preconditions:
+    - condition: "Rebrand complete (Waves 2-4)"
+      verification: "Check Wave 4 checkpoint exists"
+      status: "PENDING"
+
+    - condition: "Backend planning modules exist"
+      verification: "ls rad-engineer/src/plan/ (IntakeHandler, ResearchCoordinator)"
+      status: "VERIFIED"
+
+  postconditions:
+    - condition: "PlanningAPIHandler exists and exports methods"
+      verification: "grep 'export class PlanningAPIHandler' rad-engineer/src/ui-adapter/PlanningAPIHandler.ts"
+      acceptance: "Class exported with 6+ methods"
+
+    - condition: "IPC channels registered (10 new)"
+      verification: "grep 'plan:' apps/frontend/src/main/ipc-handlers/rad-engineer-handlers.ts"
+      acceptance: "10 plan:* channels registered"
+
+    - condition: "Preload API exposes planning methods"
+      verification: "grep 'planning' apps/frontend/src/preload/index.ts"
+      acceptance: "Methods available in window.api.planning"
+
+    - condition: "PlanningWorkflow component renders"
+      verification: "Test: Render PlanningWorkflow, expect no errors"
+      acceptance: "Component mounts successfully"
+
+  invariants:
+    - invariant: "Backend services start without errors"
+      verification: "npm run dev (backend logs)"
+      maintains: "No import errors, IPC handlers registered"
+
+    - invariant: "TypeScript compilation passes"
+      verification: "bun run typecheck"
+      maintains: "0 errors in rad-engineer/ and apps/frontend/"
+
+  drift_detection:
+    enabled: true
+    runs: 3
+    threshold: 0.95
+    comparison: "AST of PlanningAPIHandler.ts"
+
+---
+# UNIVERSAL CONTRACTS (Apply to All Stories)
+
+universal_quality_gates:
+  description: "Quality gates that MUST pass for every story"
+
+  gates:
+    - gate: "TypeScript Compilation"
+      command: "bun run typecheck"
+      acceptance: "0 errors"
+      required: true
+
+    - gate: "ESLint"
+      command: "bun run lint"
+      acceptance: "0 errors (warnings acceptable)"
+      required: true
+
+    - gate: "Unit Tests"
+      command: "bun test"
+      acceptance: "All tests pass"
+      required: true
+
+    - gate: "Test Coverage"
+      command: "bun test --coverage"
+      acceptance: ">= 80% for modified files"
+      required: false
+
+  tdd_protocol:
+    description: "Test-Driven Development protocol for every story"
+    steps:
+      - step: 1
+        action: "Write test file FIRST"
+        expectation: "Test file created, tests written"
+
+      - step: 2
+        action: "Run test (expect FAIL)"
+        command: "bun test <test-file>"
+        expectation: "Tests fail because implementation doesn't exist"
+
+      - step: 3
+        action: "Implement minimal code"
+        expectation: "Write just enough code to pass tests"
+
+      - step: 4
+        action: "Run test (expect PASS)"
+        command: "bun test <test-file>"
+        expectation: "All tests pass"
+
+      - step: 5
+        action: "Refactor if needed"
+        expectation: "Tests still pass after refactoring"
+
+      - step: 6
+        action: "Run quality gates"
+        command: "bun run typecheck && bun run lint && bun test"
+        expectation: "All gates pass"
+
+      - step: 7
+        action: "Capture evidence"
+        command: "mcp__memory-keeper__context_save"
+        expectation: "Test outputs saved to memory-keeper"
+
+  memory_management:
+    description: "Memory management requirements for every story"
+    checkpoints:
+      - trigger: "Before starting story"
+        action: "mcp__memory-keeper__context_checkpoint()"
+
+      - trigger: "After completing story"
+        action: "mcp__memory-keeper__context_save(category='progress')"
+
+      - trigger: "Context reaches 70%"
+        action: "/compact Keep: current story, test status"
+
+      - trigger: "Between waves"
+        action: "/clear (reset context for next wave)"
+
+---
+**Version**: 1.0.0
+**Status**: ACTIVE
+**Generated**: 2026-01-13

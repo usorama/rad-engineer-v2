@@ -41,8 +41,8 @@ import type {
   TaskResult,
 } from "@/advanced/WaveOrchestrator.js";
 import type {
-  AutoClaudeTask,
-  AutoClaudeTaskSpec,
+  RadEngineerTask,
+  RadEngineerTaskSpec,
   TaskProgressEvent,
 } from "@/ui-adapter/types.js";
 import type { ResourceMetrics } from "@/sdk/types.js";
@@ -366,7 +366,7 @@ describe("Stress Test Suite - Handler Performance & Recovery", () => {
       taskHandler.on("error", () => {});
 
       // Create all tasks first
-      const tasks: AutoClaudeTask[] = [];
+      const tasks: RadEngineerTask[] = [];
       for (let i = 0; i < taskCount; i++) {
         const task = await taskHandler.createTask({
           title: `Parallel Task ${i + 1}`,

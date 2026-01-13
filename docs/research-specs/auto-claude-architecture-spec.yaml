@@ -1,0 +1,358 @@
+story_id: AUTO-CLAUDE-RESEARCH
+title: "Auto-Claude Architecture & Feature Analysis"
+research_date: 2026-01-13
+
+# ============================================================================
+# EXTERNAL SYSTEM: Auto-Claude Overview
+# ============================================================================
+
+repository:
+  url: "https://github.com/AndyMik90/Auto-Claude"
+  license: "AGPL-3.0"
+  version: "v2.7.2 (stable), v2.7.2-beta.10 (beta)"
+  language_split:
+    typescript: "55.3%"
+    python: "43.1%"
+    bash: "1.6%"
+
+architecture:
+  pattern: "Multi-agent autonomous coding framework"
+  deployment: "Desktop app (Electron) + CLI"
+  agent_execution: "Up to 12 concurrent agent terminals"
+  workspace_isolation: "Git worktrees per task"
+  security: "3-layer (OS sandbox, filesystem restrict, dynamic allowlist)"
+
+# ============================================================================
+# FEATURES (Auto-Claude's Production Capabilities)
+# ============================================================================
+
+features:
+  ui_components:
+    - name: "Kanban Board"
+      purpose: "Visual task workflow (backlog → in_progress → ai_review → human_review → done)"
+      tech: "React + @dnd-kit drag-drop"
+
+    - name: "Agent Terminals"
+      purpose: "Multi-terminal grid with xterm.js emulation"
+      tech: "xterm.js 6.0.0 + PTY via @lydell/node-pty"
+
+    - name: "Roadmap Generator"
+      purpose: "AI-powered feature planning with competitor analysis"
+      integration: "Linear, GitHub/GitLab issue sync"
+
+    - name: "Insights Chat"
+      purpose: "Chat interface for codebase exploration, vulnerability detection"
+      memory: "Graphiti knowledge graph (cross-session context)"
+
+    - name: "Changelog Generator"
+      purpose: "Auto-generate release notes from git history"
+
+    - name: "Context View"
+      purpose: "Memory/knowledge graph visualization"
+      backend: "Graphiti integration"
+
+  automation_capabilities:
+    - name: "QA Validation Loop"
+      complexity: "High (40-60h to rebuild)"
+      function: "Reviewer agent + fixer agent with 3-attempt iteration tracking"
+      states: "Review → Fix → Verify → Escalate (if 3+ attempts)"
+
+    - name: "Multi-Phase Spec Generation"
+      complexity: "High (60-80h to rebuild)"
+      phases: "8 (discovery → requirements → context → research → spec → planning → critique → validation)"
+      dynamic: "3 phases for simple, 8 for complex tasks"
+
+    - name: "AI Merge Conflict Resolution"
+      complexity: "High (60-80h to rebuild)"
+      approach: "AST parsing + severity classification + minimal context (4K tokens)"
+      strategies: "auto, conservative, manual"
+
+    - name: "Project Analysis & Security Profiles"
+      complexity: "Medium (30-40h to rebuild)"
+      function: "Tech stack detection + dynamic command allowlists"
+
+  git_workflow:
+    - name: "Worktree Management"
+      purpose: "Isolated workspaces per task preserving main branch"
+      operations: "create, switch, review, merge, discard"
+
+    - name: "PR/Issue Integration"
+      platforms: "GitHub, GitLab, Linear"
+      features: "Auto PR creation, issue sync, code review"
+
+# ============================================================================
+# TECH STACK
+# ============================================================================
+
+frontend_stack:
+  runtime: "Electron 39.2.7"
+  framework: "React 19.2.3"
+  language: "TypeScript 5.9.3"
+  state: "Zustand 5.0.9"
+  ui_library: "Radix UI components"
+  styling: "Tailwind CSS 4.1.17"
+  terminal: "xterm.js 6.0.0"
+  build: "Vite/electron-vite 5.0.0"
+  total_dependencies: 248
+
+backend_stack:
+  language: "Python 3.9+"
+  agent_sdk: "Claude Agent SDK"
+  cli_commands: "15+ commands"
+  memory: "Graphiti (knowledge graph)"
+  worktrees: "Git worktrees via subprocess"
+  pty_management: "@lydell/node-pty (for terminals)"
+
+# ============================================================================
+# DEPLOYMENT & INSTALLATION
+# ============================================================================
+
+deployment:
+  platforms:
+    - platform: "Windows"
+      format: "x64 executable"
+    - platform: "macOS"
+      format: "Intel + Apple Silicon DMGs with code signing"
+    - platform: "Linux"
+      format: "AppImage, Debian package, Flatpak"
+
+installation:
+  prerequisites:
+    - "Node.js 18+"
+    - "Python 3.10+"
+    - "Docker Desktop"
+    - "Claude Pro/Max subscription (for Claude Code CLI)"
+
+  steps:
+    - "npm run install:all (backend + frontend)"
+    - "cd apps/backend && uv venv && uv pip install -r requirements.txt"
+    - "cd apps/frontend && npm install"
+
+  run_commands:
+    - "npm start (build + run desktop app)"
+    - "npm run dev (development mode with hot reload)"
+    - "npm run package (package for current platform)"
+
+# ============================================================================
+# CLI CAPABILITIES (Python Backend)
+# ============================================================================
+
+cli_workflows:
+  spec_generation:
+    command: "python runners/spec_runner.py --task 'description'"
+    output: "Multi-phase spec with complexity assessment"
+
+  build_execution:
+    command: "python run.py --spec 001"
+    options: "--max-iterations N, --qa (manual QA)"
+
+  workspace_management:
+    review: "python run.py --spec 001 --review"
+    merge: "python run.py --spec 001 --merge"
+    discard: "python run.py --spec 001 --discard"
+
+  interactive_control:
+    pause: "Ctrl+C (single press) or create PAUSE file"
+    stop: "Ctrl+C (double press)"
+    human_input: "Create HUMAN_INPUT.md file in spec directory"
+
+# ============================================================================
+# INTEGRATION PATTERNS (Found in rad-engineer-v2 codebase)
+# ============================================================================
+
+codebase_integration:
+  integration_analysis:
+    file: "rad-engineer/docs/auto-claude-integration/AUTO_CLAUDE_INTEGRATION_ANALYSIS.md"
+    size: "42KB"
+    contents:
+      - "Frontend architecture analysis (248 deps, 22 Zustand stores, 24 Radix components)"
+      - "Backend capabilities (12 major, ~15K LOC Python)"
+      - "Gap analysis (what we lose, what we must build)"
+      - "Hybrid strategy (TypeScript core + Python plugins)"
+      - "Risk assessment with mitigations"
+
+  roadmap:
+    file: "rad-engineer/docs/auto-claude-integration/AUTO_CLAUDE_INTEGRATION_ROADMAP.md"
+    phases: 5
+    total_effort: "270-390 hours (4 months, 1 FTE)"
+    quick_win: "60 hours (2 weeks) for minimal viable integration"
+
+  tasks:
+    file: "rad-engineer/docs/auto-claude-integration/tasks.json"
+    task_count: 78
+    phases: "0-5 (PoC → Core → Plugins → Advanced → Polish → Testing)"
+
+  api_reference:
+    file: "rad-engineer/docs/auto-claude-integration/API_REFERENCE.md"
+    handlers: "TaskAPI, RoadmapAPI, InsightsAPI, GitHubAPI, ContextAPI, WorktreeAPI, ChangelogAPI, SettingsAPI"
+    ipc_channels: "30+ channels defined"
+
+  evidence_collected:
+    - "rad-engineer/docs/auto-claude-integration/evidence/phase0-verification.md"
+    - "rad-engineer/docs/auto-claude-integration/evidence/phase1-integration-tests.md"
+    - "rad-engineer/docs/auto-claude-integration/evidence/qa-plugin-results.md"
+    - "rad-engineer/docs/auto-claude-integration/evidence/spec-gen-comparison.md"
+    - "rad-engineer/docs/auto-claude-integration/evidence/ai-merge-results.md"
+
+  python_plugins:
+    directory: "rad-engineer/python-plugins/"
+    plugins:
+      - "qa_loop.py (QA validation loop)"
+      - "spec_generator.py (multi-phase spec generation)"
+      - "ai_merge.py (AI merge conflict resolution)"
+      - "requirements.txt (dependencies)"
+
+    bridge:
+      file: "rad-engineer/src/python-bridge/PythonPluginBridge.ts"
+      purpose: "Spawn Python subprocesses, communicate via stdin/stdout JSON"
+      protocol: "JSON input → Python subprocess → JSON output"
+
+# ============================================================================
+# CUSTOMIZATION & EXTENSION OPTIONS
+# ============================================================================
+
+customization:
+  architecture:
+    approach: "Dynamic command allowlist (not traditional plugins)"
+    detection: "Tech stack detection drives security profiles"
+    extensibility: "Through integrations (GitHub/GitLab/Linear), not formal plugin SDK"
+
+  configuration:
+    env_vars:
+      - "CLAUDE_CODE_OAUTH_TOKEN (required)"
+      - "AUTO_BUILD_MODEL (optional, model selection)"
+      - "LINEAR_API_KEY (optional, Linear integration)"
+      - "GITLAB_TOKEN (optional, GitLab integration)"
+
+    memory_providers:
+      - "OpenAI"
+      - "Anthropic"
+      - "Ollama"
+      - "Google"
+      - "OpenRouter"
+
+  ui_customization:
+    scale: "75-200% (UI scale feature)"
+    themes: "Not documented, likely via Tailwind config"
+
+# ============================================================================
+# TECHNICAL REQUIREMENTS FOR ADAPTATION
+# ============================================================================
+
+adaptation_requirements:
+  keep_from_auto_claude:
+    - "Electron main process (IPC handlers, PTY management, file watching)"
+    - "Frontend UI components (React, Zustand stores, Radix UI)"
+    - "Terminal management (xterm.js + @lydell/node-pty)"
+    - "Settings & profile management"
+
+  build_new:
+    - name: "IPC Adapter Layer"
+      effort: "15-25 hours"
+      purpose: "Translate Auto-Claude IPC calls → rad-engineer TypeScript calls"
+      file: "rad-engineer/src/ui-adapter/ElectronIPCAdapter.ts"
+
+    - name: "Format Translator"
+      effort: "15-20 hours"
+      purpose: "Bidirectional Auto-Claude Task ↔ rad-engineer Wave"
+      file: "rad-engineer/src/ui-adapter/FormatTranslator.ts"
+
+    - name: "Event Broadcaster"
+      effort: "10-15 hours"
+      purpose: "Stream task/agent/terminal updates to frontend"
+      file: "rad-engineer/src/ui-adapter/EventBroadcaster.ts"
+
+  adopt_python_plugins:
+    - name: "QA Loop"
+      effort: "15-20 hours"
+      savings: "25-40 hours (vs rebuild)"
+
+    - name: "Spec Generator"
+      effort: "15-20 hours"
+      savings: "45-60 hours (vs rebuild)"
+
+    - name: "AI Merge"
+      effort: "10-15 hours"
+      savings: "50-65 hours (vs rebuild)"
+
+  total_integration_effort:
+    minimal_viable: "60 hours (2 weeks)"
+    full_integration: "270-390 hours (4 months)"
+    roi: "142-193 hours saved by adopting Python plugins vs rebuilding"
+
+# ============================================================================
+# INTEGRATION STRATEGY
+# ============================================================================
+
+recommended_approach:
+  strategy: "Phased integration with quick wins"
+  phases:
+    - phase: 0
+      name: "Proof of Concept"
+      duration: "Week 1-2 (40-60h)"
+      deliverable: "Desktop app with working Kanban + task execution"
+
+    - phase: 1
+      name: "Core Integration"
+      duration: "Week 3-6 (80-120h)"
+      deliverable: "Full task lifecycle with Auto-Claude UI + rad-engineer backend"
+
+    - phase: 2
+      name: "Python Plugin Integration"
+      duration: "Week 7-8 (50-70h)"
+      deliverable: "QA automation, spec generation, AI merge"
+
+    - phase: 3
+      name: "Advanced Features"
+      duration: "Week 9-12 (60-80h)"
+      deliverable: "Full feature parity + enhancements"
+
+    - phase: 4
+      name: "Polish & Production"
+      duration: "Week 13-16 (40-60h)"
+      deliverable: "Production-ready desktop app"
+
+  value_proposition:
+    - "Auto-Claude's UI (8.5/10 reusability) + rad-engineer's intelligence"
+    - "10x UX improvement (CLI → desktop app)"
+    - "Proven Python plugins save 150 hours rebuild effort"
+    - "Incremental delivery reduces risk"
+
+# ============================================================================
+# KEY INSIGHTS
+# ============================================================================
+
+insights:
+  complementary_strengths:
+    auto_claude: "UX excellence (Kanban, terminals, roadmap, insights chat)"
+    rad_engineer: "Intelligence (decision learning, BMAD reasoning, deterministic execution)"
+
+  hybrid_is_optimal:
+    reason: "TypeScript core (maintainable) + Python plugins (proven, expensive to rebuild)"
+    architecture: "rad-engineer WaveOrchestrator → spawn Python subprocesses for hard capabilities"
+
+  integration_is_feasible:
+    evidence: "78 tasks defined, 32 codebase files already reference auto-claude"
+    risk: "Medium (IPC surface mismatch, data format incompatibility managed via adapters)"
+
+  agpl_compliance:
+    license: "AGPL-3.0 requires open source for modifications"
+    plan: "rad-engineer/docs/auto-claude-integration/evidence/AGPL-3.0-COMPLIANCE-PLAN.md"
+
+# ============================================================================
+# SOURCES
+# ============================================================================
+
+sources:
+  web:
+    - "https://github.com/AndyMik90/Auto-Claude"
+    - "https://github.com/AndyMik90/Auto-Claude/blob/develop/CLAUDE.md"
+    - "https://github.com/AndyMik90/Auto-Claude/blob/develop/guides/CLI-USAGE.md"
+    - "https://www.scriptbyai.com/auto-claude-ai-coding-agent/"
+
+  codebase:
+    - "rad-engineer/docs/auto-claude-integration/AUTO_CLAUDE_INTEGRATION_ANALYSIS.md"
+    - "rad-engineer/docs/auto-claude-integration/AUTO_CLAUDE_INTEGRATION_ROADMAP.md"
+    - "rad-engineer/docs/auto-claude-integration/tasks.json"
+    - "rad-engineer/docs/auto-claude-integration/CLAUDE.md"
+    - "rad-engineer/docs/auto-claude-integration/API_REFERENCE.md"

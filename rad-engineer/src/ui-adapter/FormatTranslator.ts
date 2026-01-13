@@ -12,9 +12,9 @@
 import type { Wave } from "@/plan/types.js";
 import type { WaveState } from "@/advanced/StateManager.js";
 import type {
-  AutoClaudeTask,
-  AutoClaudeTaskSpec,
-  AutoClaudeTaskStatus,
+  RadEngineerTask,
+  RadEngineerTaskSpec,
+  RadEngineerTaskStatus,
 } from "./types.js";
 
 /**
@@ -28,7 +28,7 @@ import type {
  * const wave = translator.toRadEngineerWave(autoClaudeTaskSpec);
  *
  * // rad-engineer → rad-engineer
- * const task = translator.toAutoClaudeTask(wave);
+ * const task = translator.toRadEngineerTask(wave);
  * ```
  */
 export class FormatTranslator {
@@ -42,7 +42,7 @@ export class FormatTranslator {
    * @param taskId - Generated task ID
    * @returns rad-engineer Wave object
    */
-  toRadEngineerWave(spec: AutoClaudeTaskSpec, taskId: string): Wave {
+  toRadEngineerWave(spec: RadEngineerTaskSpec, taskId: string): Wave {
     // P0: Create stub Wave
     // Future: Parse spec.description to generate stories, dependencies
     return {
@@ -88,12 +88,12 @@ export class FormatTranslator {
    * @param waveState - Optional wave execution state
    * @returns rad-engineer Task object
    */
-  toAutoClaudeTask(wave: Wave, waveState?: WaveState): AutoClaudeTask {
+  toRadEngineerTask(wave: Wave, waveState?: WaveState): RadEngineerTask {
     // Extract task ID from wave ID (remove "wave-" prefix)
     const taskId = wave.id.replace(/^wave-/, "");
 
     // Determine status from wave state
-    let status: AutoClaudeTaskStatus = "pending";
+    let status: RadEngineerTaskStatus = "pending";
     let progress = 0;
 
     if (waveState) {
@@ -133,7 +133,7 @@ export class FormatTranslator {
    * @param totalStories - Total stories in wave
    * @returns rad-engineer task status
    */
-  toAutoClaudeStatus(waveState: WaveState, totalStories: number): AutoClaudeTaskStatus {
+  toRadEngineerStatus(waveState: WaveState, totalStories: number): RadEngineerTaskStatus {
     const { completedTasks, failedTasks } = waveState;
 
     // Failed if any tasks failed

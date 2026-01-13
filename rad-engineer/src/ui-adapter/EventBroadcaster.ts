@@ -21,7 +21,7 @@
  */
 
 import type { BrowserWindow } from "electron";
-import type { TaskProgressEvent, AutoClaudeTask } from "./types.js";
+import type { TaskProgressEvent, RadEngineerTask } from "./types.js";
 
 /**
  * Agent output event
@@ -287,7 +287,7 @@ export class EventBroadcaster {
    *
    * @param task - Full task object
    */
-  broadcastTaskObject(task: AutoClaudeTask): void {
+  broadcastTaskObject(task: RadEngineerTask): void {
     const event: TaskStatusEvent = {
       taskId: task.id,
       status: task.status,
