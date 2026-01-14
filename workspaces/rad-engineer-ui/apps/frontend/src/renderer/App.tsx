@@ -44,6 +44,7 @@ import { GitLabMergeRequests } from './components/gitlab-merge-requests';
 import { Changelog } from './components/Changelog';
 import { Worktrees } from './components/Worktrees';
 import { AgentTools } from './components/AgentTools';
+import { ExecutionDashboardEnhanced } from './components';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { RateLimitModal } from './components/RateLimitModal';
 import { SDKRateLimitModal } from './components/SDKRateLimitModal';
@@ -880,6 +881,20 @@ export function App() {
                   <Worktrees projectId={activeProjectId || selectedProjectId!} />
                 )}
                 {activeView === 'agent-tools' && <AgentTools />}
+                {activeView === 'execution' && (activeProjectId || selectedProjectId) && (
+                  <ExecutionDashboardEnhanced
+                    taskId={selectedTask?.id || ''}
+                    taskTitle={selectedTask?.title || 'No Task Selected'}
+                    taskStatus={selectedTask?.status || 'idle'}
+                    taskProgress={selectedTask?.executionProgress?.overallProgress || 0}
+                    currentStep={null}
+                    steps={[]}
+                    activeLoop={null}
+                    verification={{ lastChecked: new Date().toISOString(), preconditions: [], postconditions: [] }}
+                    metrics={{ totalSteps: 0, completedSteps: 0, firstPassRate: 0, avgStepDuration: 0 }}
+                    recentEvents={[]}
+                  />
+                )}
               </>
             ) : (
               <WelcomeScreen

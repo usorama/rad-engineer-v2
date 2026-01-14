@@ -16,18 +16,18 @@ Read these at session start to understand what we're building and the research b
 
 ---
 
-**Current Focus**: UI Integration + Platform Completion (91% backend complete, 0% UI exposure)
+**Current Focus**: UI Integration Complete + Platform Completion (91% backend complete, UI integration done)
 
 **Active Integration Projects**:
 
-### 1. UI Integration (Priority 1)
+### 1. UI Integration (Priority 1) - ✅ COMPLETE
 rad-engineer-ui + rad-engineer Backend integration
 
 **Key Documents**:
 - **Integration Plan**: `~/.claude/plans/stateless-petting-eclipse.md` (approved, 6 weeks, 3 phases)
 - **Gap Analysis**: `docs/platform-foundation/UI-INTEGRATION-GAP-ANALYSIS.yaml` (10 gaps identified)
 
-**Status**: Phase 1 ready to start (fix initialization bug)
+**Status**: ✅ COMPLETE - All execution components wired to UI navigation
 
 ### 2. Platform Completion (Priority 2)
 Finish remaining 2 deferred components
@@ -369,23 +369,27 @@ flock -w 300 "$LOCK" sh -c 'bun run typecheck && bun run lint && bun test'
 - **Implementation**: `rad-engineer/src/ui-adapter/` (backend IPC handlers)
 - **Frontend**: `workspaces/rad-engineer-ui/apps/frontend/` (React UI)
 
-**UI Integration Status (2026-01-14)**:
+**UI Integration Status (2026-01-14, UPDATED)**:
 | Component | Backend | Frontend | Navigation | Status |
 |-----------|---------|----------|------------|--------|
-| StepTimeline | ✅ StepAPIHandler | ✅ Component | ❌ Not wired | Needs App.tsx route |
-| LoopMonitor | ✅ LoopAPIHandler | ✅ Component | ❌ Not wired | Needs App.tsx route |
-| DecisionLog | ✅ StepExecutor | ✅ Component | ❌ Not wired | Needs App.tsx route |
-| VerificationReport | ✅ VerificationReporter | ✅ Component | ❌ Not wired | Needs App.tsx route |
-| StepReplay | ✅ ResumeDecisionEngine | ✅ Component | ❌ Not wired | Needs App.tsx route |
-| ExecutionDashboardEnhanced | ✅ DashboardDataProvider | ✅ Component | ❌ Not wired | Needs Sidebar + App.tsx |
-| Prometheus | ✅ Running on :9091 | ❌ No embed | ❌ No nav | Separate service |
-| Grafana | ✅ Running on :3001 | ❌ No embed | ❌ No nav | Separate service |
+| StepTimeline | ✅ StepAPIHandler | ✅ Component | ✅ Via Dashboard | Integrated |
+| LoopMonitor | ✅ LoopAPIHandler | ✅ Component | ✅ Via Dashboard | Integrated |
+| DecisionLog | ✅ StepExecutor | ✅ Component | ✅ Via Dashboard | Integrated |
+| VerificationReport | ✅ VerificationReporter | ✅ Component | ✅ Via Dashboard | Integrated |
+| StepReplay | ✅ ResumeDecisionEngine | ✅ Component | ✅ Via Dashboard | Integrated |
+| ExecutionDashboardEnhanced | ✅ DashboardDataProvider | ✅ Component | ✅ Sidebar + App.tsx | **COMPLETE** |
+| Prometheus | ✅ Running on :9091 | ❌ No embed | ❌ No nav | External service |
+| Grafana | ✅ Running on :3001 | ❌ No embed | ❌ No nav | External service |
 
-**Next Steps for UI Integration**:
-1. Add 'execution' to SidebarView type in Sidebar.tsx
-2. Add navigation item for execution dashboard
-3. Wire ExecutionDashboardEnhanced into App.tsx activeView switch
-4. Consider embedding Grafana via iframe for metrics visualization
+**Completed UI Integration Steps**:
+1. ✅ Added 'execution' to SidebarView type in Sidebar.tsx
+2. ✅ Added navigation item with Activity icon and 'E' shortcut
+3. ✅ Added i18n keys for execution in en/fr navigation.json
+4. ✅ Wired ExecutionDashboardEnhanced into App.tsx activeView switch
+5. ✅ Frontend builds successfully (3175 modules)
+
+**Optional Future Enhancement**:
+- Consider embedding Grafana via iframe for metrics visualization
 
 ### Skills
 - **Execute Skill**: `.claude/skills/execute/SKILL.md` (deterministic execution)
