@@ -1,0 +1,161 @@
+version: '3.8'
+
+services:
+  # Main rad-engineer application
+  rad-engineer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: rad-engineer-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"     # Application port
+      - "9090:9090"     # Metrics port
+    environment:
+      # Application configuration
+      NODE_ENV: production
+      PORT: 3000
+      METRICS_PORT: 9090
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+      # Anthropic API (required)
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?ANTHROPIC_API_KEY is required}
+
+      # Optional LLM providers
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OLLAMA_HOST: ${OLLAMA_HOST:-}
+
+      # OpenTelemetry configuration
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://localhost:4318}
+      OTEL_SERVICE_NAME: rad-engineer
+
+      # Prometheus metrics
+      PROMETHEUS_URL: http://prometheus:9090
+    volumes:
+      # Persistent data storage
+      - rad-engineer-data:/app/data
+      - rad-engineer-logs:/app/logs
+      - rad-engineer-checkpoints:/app/.checkpoints
+      - rad-engineer-audit:/app/.audit
+    networks:
+      - rad-engineer-network
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "bun", "run", "src/observability/health-check-example.ts"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:v2.48.1
+    container_name: rad-engineer-prometheus
+    restart: unless-stopped
+    ports:
+      - "9091:9090"     # External access to Prometheus UI
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - rad-engineer-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:10.2.3
+    container_name: rad-engineer-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"     # Grafana UI
+    environment:
+      # Admin credentials
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+
+      # Server configuration
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3001}
+      GF_SERVER_SERVE_FROM_SUB_PATH: false
+
+      # Anonymous access (disabled by default)
+      GF_AUTH_ANONYMOUS_ENABLED: false
+
+      # Database (using SQLite)
+      GF_DATABASE_TYPE: sqlite3
+      GF_DATABASE_PATH: /var/lib/grafana/grafana.db
+
+      # Logging
+      GF_LOG_LEVEL: ${GRAFANA_LOG_LEVEL:-info}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - rad-engineer-network
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+networks:
+  rad-engineer-network:
+    driver: bridge
+    name: rad-engineer-network
+
+volumes:
+  rad-engineer-data:
+    name: rad-engineer-data
+  rad-engineer-logs:
+    name: rad-engineer-logs
+  rad-engineer-checkpoints:
+    name: rad-engineer-checkpoints
+  rad-engineer-audit:
+    name: rad-engineer-audit
+  prometheus-data:
+    name: rad-engineer-prometheus-data
+  grafana-data:
+    name: rad-engineer-grafana-data
