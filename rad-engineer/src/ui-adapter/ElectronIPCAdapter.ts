@@ -31,6 +31,7 @@ import { SDKIntegration } from "@/sdk/SDKIntegration.js";
 import { HierarchicalMemory } from "@/memory/HierarchicalMemory.js";
 import { ProviderFactory } from "@/sdk/providers/ProviderFactory.js";
 import { ProviderType } from "@/sdk/providers/types.js";
+import { getDefaultConfig } from "@/config/schema.js";
 import type {
   IPCAdapterConfig,
   RadEngineerTask,
@@ -100,6 +101,7 @@ export class ElectronIPCAdapter extends EventEmitter {
       const promptValidator = new PromptValidator();
       const responseParser = new ResponseParser();
       const memory = new HierarchicalMemory();
+      const waveConfig = getDefaultConfig();
 
       return new WaveOrchestrator({
         resourceManager,
@@ -107,6 +109,7 @@ export class ElectronIPCAdapter extends EventEmitter {
         responseParser,
         sdk,
         memory,
+        config: waveConfig,
       });
     })();
 

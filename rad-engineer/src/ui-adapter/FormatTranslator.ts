@@ -141,8 +141,8 @@ export class FormatTranslator {
       return "failed";
     }
 
-    // Completed if all tasks done
-    if (completedTasks.length === totalStories) {
+    // Completed if all tasks done (and there are tasks to complete)
+    if (totalStories > 0 && completedTasks.length === totalStories) {
       return "completed";
     }
 
