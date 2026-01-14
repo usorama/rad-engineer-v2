@@ -17,3 +17,13 @@ export type { WaveState } from "./StateManager.js";
 
 export { ErrorRecoveryEngine, ErrorRecoveryError, ErrorRecoveryException } from "./ErrorRecoveryEngine.js";
 export type { RetryOptions, CircuitState } from "./ErrorRecoveryEngine.js";
+
+// Step-level replay types
+export * from "./types/index.js";
+
+// Step execution
+export { StepExecutor } from "./StepExecutor.js";
+export type { StepExecutorConfig } from "./StepExecutor.js";
+
+// Resume decision engine
+export { ResumeDecisionEngine } from "./ResumeDecisionEngine.js";

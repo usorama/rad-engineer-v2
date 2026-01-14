@@ -57,3 +57,56 @@ export type {
   IPCAdapterConfig,
   TaskWaveMapping,
 } from "./types.js";
+
+// Step-level replay and visibility
+export { StepAPIHandler } from "./StepAPIHandler.js";
+export type {
+  StepAPIHandlerConfig,
+  StepUIStatus,
+  StepEvidence,
+  StepAPIEvents,
+  StepEvent,
+  StepProgressEvent,
+  StepPhaseEvent,
+  VerificationEvent,
+  CheckpointEvent,
+} from "./StepAPIHandler.js";
+
+// RepeatUntil loop visibility
+export { LoopAPIHandler } from "./LoopAPIHandler.js";
+export type {
+  LoopAPIHandlerConfig,
+  LoopUIStatus,
+  IterationUIResult,
+  ConditionUIStatus,
+  LoopAPIEvents,
+  LoopUIEvent,
+  LoopIterationEvent,
+  LoopConditionEvent,
+} from "./LoopAPIHandler.js";
+
+// Unified metrics API
+export { MetricsAPIHandler } from "./MetricsAPIHandler.js";
+export type {
+  MetricsAPIHandlerConfig,
+  StepMetrics,
+  LoopMetrics,
+  SessionSummary,
+  TimelineDataPoint,
+  TimelineData,
+} from "./MetricsAPIHandler.js";
+
+// Dashboard data provider (single source of truth)
+export { DashboardDataProvider } from "./DashboardDataProvider.js";
+export type {
+  DashboardDataProviderConfig,
+  CurrentStepInfo,
+  StepTimelineEntry,
+  ActiveLoopInfo,
+  VerificationStatus,
+  DashboardMetrics,
+  RecentEvent,
+  RecentDecision,
+  CheckpointEntry,
+  ExecutionDashboard,
+} from "./DashboardDataProvider.js";
