@@ -69,7 +69,7 @@ describe("ExecutionAPIHandler: getExecutionStatus", () => {
 
     expect(result.success).toBe(true);
     expect(result.status).toBeDefined();
-    expect(["pending", "in_progress", "completed", "failed", "paused"]).toContain(result.status);
+    expect(["pending", "in_progress", "completed", "failed", "paused"]).toContain(result.status!);
   });
 
   it("Returns progress information", async () => {
@@ -120,7 +120,7 @@ describe("ExecutionAPIHandler: getWaveStatus", () => {
 
     expect(result.success).toBe(true);
     expect(result.status).toBeDefined();
-    expect(["pending", "executing", "completed", "failed"]).toContain(result.status);
+    expect(["pending", "executing", "completed", "failed"]).toContain(result.status!);
   });
 
   it("Returns agent information for wave", async () => {
@@ -161,7 +161,7 @@ describe("ExecutionAPIHandler: getAgentStatus", () => {
 
     expect(result.success).toBe(true);
     expect(result.status).toBeDefined();
-    expect(["idle", "running", "completed", "failed"]).toContain(result.status);
+    expect(["idle", "running", "completed", "failed"]).toContain(result.status!);
   });
 
   it("Returns agent metrics", async () => {
@@ -253,7 +253,7 @@ describe("ExecutionAPIHandler: getStateMachineStatus", () => {
     const result = await handler.getStateMachineStatus(executionId);
 
     const validStates = ["idle", "executing", "validating", "completed", "failed", "recovering"];
-    expect(validStates).toContain(result.currentState);
+    expect(validStates).toContain(result.currentState!);
   });
 
   it("Returns error for empty execution ID", async () => {
@@ -294,7 +294,7 @@ describe("ExecutionAPIHandler: getErrorRecoveryStatus", () => {
 
     expect(result.retryCount).toBeGreaterThanOrEqual(0);
     expect(result.circuitBreakerState).toBeDefined();
-    expect(["closed", "open", "half-open"]).toContain(result.circuitBreakerState);
+    expect(["closed", "open", "half-open"]).toContain(result.circuitBreakerState!);
   });
 
   it("Returns error for empty execution ID", async () => {
