@@ -14,8 +14,110 @@ import { WaveOrchestrator } from "@/advanced/WaveOrchestrator.js";
 import { ResourceManager } from "@/core/index.js";
 import { PromptValidator } from "@/core/index.js";
 import { ResponseParser } from "@/core/index.js";
+import { SDKIntegration } from "@/sdk/index.js";
+import { ProviderFactory } from "@/sdk/providers/ProviderFactory.js";
+import { ProviderType } from "@/sdk/providers/types.js";
 import type { ResourceMetrics } from "@/sdk/types.js";
 import type { Task } from "@/advanced/index.js";
+import { HierarchicalMemory } from "@/memory/HierarchicalMemory.js";
+
+/**
+ * Create a mock SDKIntegration for testing
+ * Returns a real SDKIntegration instance but with mocked testAgent method
+ */
+function createMockSDK(): SDKIntegration {
+  // Create ProviderFactory with test configuration
+  const providerFactory = new ProviderFactory({
+    defaultProvider: ProviderType.GLM,
+    providers: {
+      "test-glm": {
+        providerType: ProviderType.GLM,
+        apiKey: "test-api-key",
+        baseUrl: "https://test.api.com",
+        model: "glm-4.7",
+        timeout: 60000,
+        temperature: 1.0,
+        maxTokens: 4096,
+        topP: 1.0,
+        stream: false,
+      },
+    },
+    enableFallback: false,
+  });
+
+  const sdk = new SDKIntegration(providerFactory);
+
+  // Mock testAgent to return valid AgentResponse JSON
+  sdk.testAgent = async () => ({
+    success: true,
+    agentResponse: JSON.stringify({
+      success: true,
+      filesModified: ["/mock/test.ts"],
+      testsWritten: ["/mock/test.test.ts"],
+      summary: "Task completed successfully",
+      errors: [],
+      nextSteps: [],
+    }),
+    tokensUsed: {
+      promptTokens: 100,
+      completionTokens: 50,
+      totalTokens: 150,
+    },
+    duration: 1000,
+    toolsInvoked: [],
+    error: null,
+    providerUsed: "glm",
+    modelUsed: "glm-4.7",
+  });
+
+  return sdk;
+}
+
+/**
+ * Create a test orchestrator instance with all dependencies
+ */
+function createTestOrchestrator(resourceManager?: ResourceManager): WaveOrchestrator {
+  const promptValidator = new PromptValidator();
+  const responseParser = new ResponseParser();
+  const sdk = createMockSDK();
+  const memory = new HierarchicalMemory();
+
+  // Use provided resourceManager or create a default one
+  const rm = resourceManager || new ResourceManager({
+    maxConcurrent: 3,
+    resourceMonitor: {
+      getCurrentMetrics: () => Promise.resolve({
+        kernel_task_cpu: 30,
+        memory_pressure: 15,
+        active_tasks: 1,
+        peak_usage: 2,
+        average_usage: 1.5,
+        health_score: 85,
+        process_count: 150,
+        can_spawn_agent: true,
+        timestamp: new Date().toISOString(),
+      }),
+      setBaseline: () => Promise.resolve(),
+    },
+  });
+
+  // Default config for tests (mock mode)
+  const config = {
+    useRealAgents: false,
+    maxAgents: 3,
+    timeout: 300000,
+    logLevel: "info" as const,
+  };
+
+  return new WaveOrchestrator({
+    resourceManager: rm,
+    promptValidator,
+    responseParser,
+    sdk,
+    memory,
+    config,
+  });
+}
 
 describe("WaveOrchestrator: calculateWaveSize", () => {
   it("Returns maxConcurrent from ResourceManager", async () => {
@@ -35,14 +137,7 @@ describe("WaveOrchestrator: calculateWaveSize", () => {
       resourceMonitor: mockMonitor,
     });
 
-    const promptValidator = new PromptValidator();
-    const responseParser = new ResponseParser();
-
-    const orchestrator = new WaveOrchestrator({
-      resourceManager,
-      promptValidator,
-      responseParser,
-    });
+    const orchestrator = createTestOrchestrator(resourceManager);
 
     const waveSize = await orchestrator.calculateWaveSize();
 
@@ -66,14 +161,7 @@ describe("WaveOrchestrator: calculateWaveSize", () => {
       resourceMonitor: mockMonitor,
     });
 
-    const promptValidator = new PromptValidator();
-    const responseParser = new ResponseParser();
-
-    const orchestrator = new WaveOrchestrator({
-      resourceManager,
-      promptValidator,
-      responseParser,
-    });
+    const orchestrator = createTestOrchestrator(resourceManager);
 
     const tasks: Task[] = [
       { id: "task-1", prompt: "Task: Test\nFiles: test.ts\nOutput: JSON\nRules: test" },
@@ -107,14 +195,7 @@ describe("WaveOrchestrator: splitIntoWaves", () => {
       resourceMonitor: mockMonitor,
     });
 
-    const promptValidator = new PromptValidator();
-    const responseParser = new ResponseParser();
-
-    orchestrator = new WaveOrchestrator({
-      resourceManager,
-      promptValidator,
-      responseParser,
-    });
+    orchestrator = createTestOrchestrator(resourceManager);
   });
 
   it("Splits 10 tasks into 5 waves of 2", () => {
@@ -171,14 +252,7 @@ describe("WaveOrchestrator: executeWave", () => {
       resourceMonitor: mockMonitor,
     });
 
-    const promptValidator = new PromptValidator();
-    const responseParser = new ResponseParser();
-
-    orchestrator = new WaveOrchestrator({
-      resourceManager,
-      promptValidator,
-      responseParser,
-    });
+    orchestrator = createTestOrchestrator(resourceManager);
   });
 
   it("Executes 10 tasks in waves of 2", async () => {

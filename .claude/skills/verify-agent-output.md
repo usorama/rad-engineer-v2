@@ -15,12 +15,16 @@ description: Run after ANY agent returns code to verify compliance. Use when use
 
 ## What This Skill Does
 
-1. **Runs Quality Gates**
+1. **Runs Quality Gates** (Bun-only, with resource check)
 
    ```bash
-   pnpm typecheck  # MUST: 0 errors
-   pnpm lint       # MUST: all pass
-   pnpm test       # MUST: all pass
+   # Check system resources first
+   .claude/hooks/check-system-resources.sh || { sleep 30; .claude/hooks/check-system-resources.sh; }
+
+   # Quality gates with bun (no pnpm overhead)
+   bun run typecheck  # MUST: 0 errors
+   bun run lint       # MUST: all pass
+   bun test           # MUST: all pass
    ```
 
 2. **Checks Evidence Requirements**
@@ -90,9 +94,9 @@ Before returning code, implementation agent MUST include:
 
 ### Quality Gate Results
 
-- [ ] `pnpm typecheck`: [paste output showing 0 errors]
-- [ ] `pnpm lint`: [paste output showing pass]
-- [ ] `pnpm test`: [paste output showing pass]
+- [ ] `bun run typecheck`: [paste output showing 0 errors]
+- [ ] `bun run lint`: [paste output showing pass]
+- [ ] `bun test`: [paste output showing pass]
 
 ### Required Reading Confirmation
 
@@ -102,3 +106,75 @@ Before returning code, implementation agent MUST include:
 ```
 
 If this section is missing or incomplete, REJECT the code.
+
+---
+
+## Mathematical Certainty Verification
+
+> **MANDATORY**: Every verification MUST include quantitative evidence
+
+### Deterministic Metrics Table
+
+When verifying implementation completeness, produce this table:
+
+```markdown
+| Metric | Value | Command | Pass/Fail |
+|--------|-------|---------|-----------|
+| TypeScript Errors | 0 | `bun run typecheck` exit 0 | ✅/❌ |
+| Tasks Completed | X/Y | `tasks.json` status counts | ✅/❌ |
+| Tasks Pending | 0 | `tasks.json` status counts | ✅/❌ |
+| Test Pass Rate | X/X | `bun test [path]` | ✅/❌ |
+| Files Created | N | `ls [path] \| wc -l` | ✅/❌ |
+| LOC Added | N | `wc -l [files]` | ✅/❌ |
+| Git Commits | N | `git log --oneline \| wc -l` | ✅/❌ |
+```
+
+### Verification Commands (Run ALL)
+
+```bash
+# 1. TypeScript - MUST be 0 errors
+bun run typecheck 2>&1
+echo "Exit code: $?"
+
+# 2. Test Suite - MUST pass
+bun test [relevant-path] 2>&1 | tail -20
+
+# 3. File Existence - Count files
+ls [implementation-path]/*.ts | wc -l
+
+# 4. Task Status - Count completed vs pending
+cat [tasks.json] | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+c=len([t for t in d.get('tasks',[]) if t.get('status')=='completed'])
+p=len([t for t in d.get('tasks',[]) if t.get('status')=='pending'])
+print(f'Completed: {c}, Pending: {p}')
+"
+
+# 5. Git Evidence
+git log --oneline | head -10
+```
+
+### Mathematical Certainty Scores
+
+Calculate and report:
+
+```
+Implementation Completeness = (Tasks Completed / Total Tasks) × 100%
+Test Pass Rate = (Tests Passing / Total Tests) × 100%
+TypeScript Compliance = (0 errors) ? 100% : 0%
+```
+
+**MINIMUM THRESHOLDS:**
+- Implementation Completeness: ≥95% to claim "complete"
+- Test Pass Rate: ≥90% to accept
+- TypeScript Compliance: 100% (non-negotiable)
+
+### Rejection Criteria
+
+Reject and require fixes if:
+- TypeScript errors > 0
+- Test pass rate < 90%
+- Tasks pending > 5% of total
+- Evidence table incomplete
+- Commands not actually run (claims without output)

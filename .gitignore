@@ -42,3 +42,5 @@ test-checkpoints-*/
 
 # Audit logs (SecurityLayer)
 .audit/
+bmad-research/
+workspaces/

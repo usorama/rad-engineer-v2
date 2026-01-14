@@ -1,0 +1,465 @@
+# BMAD Methods Integration - Component Specification
+
+**Component**: BMADMethods (or ReasoningMethods)
+**Phase**: Q4 Phase 2 - Integration
+**Status**: Specified
+**Priority**: MEDIUM
+**Estimated Effort**: 8-12 hours
+
+---
+
+## 1. Component Overview
+
+### Purpose
+Integrate 50 BMAD elicitation methods for advanced decision-making across the platform. This component catalogs, categorizes, and applies structured reasoning methods to enable deterministic, evidence-based decision-making.
+
+### Outcome
+Agents can select and apply appropriate reasoning methods based on decision context, improving decision quality and consistency.
+
+### Dependencies
+- **OutcomeInjector** (exists): Can already inject reasoning methods into prompts
+- **DecisionLearningStore** (exists): Can track which methods work best for which contexts
+- **methods.csv** (verified): 50 methods cataloged and ready for use
+
+---
+
+## 2. Evidence-Based Analysis
+
+### 2.1 BMAD Methods Structure (VERIFIED)
+
+**Source**: `/Users/umasankr/Projects/rad-engineer-v2/bmad-research/src/core/workflows/advanced-elicitation/methods.csv`
+
+**Evidence**: File exists with 50 methods across 10 categories
+
+| Category | Count | Example Methods | Purpose |
+|----------|-------|-----------------|---------|
+| **Core** | 5 | First Principles, 5 Whys, Socratic Questioning | Strip assumptions, find root causes |
+| **Advanced** | 5 | Tree of Thoughts, Self-Consistency, Chain of Thought | Explore multiple reasoning paths |
+| **Collaboration** | 10 | Stakeholder Round Table, Expert Panel Review | Diverse perspectives |
+| **Competitive** | 3 | Red Team vs Blue Team, Shark Tank Pitch | Stress-test ideas |
+| **Creative** | 6 | SCAMPER, Reverse Engineering, What If Scenarios | Innovation techniques |
+| **Learning** | 2 | Feynman Technique, Active Recall | Understanding verification |
+| **Philosophical** | 2 | Occam's Razor, Trolley Problem | Conceptual clarity |
+| **Research** | 3 | Literature Review, Thesis Defense, Comparative Matrix | Evidence evaluation |
+| **Retrospective** | 2 | Hindsight Reflection, Lessons Learned | Reflection |
+| **Risk** | 5 | Pre-mortem, Failure Mode Analysis, Chaos Monkey | Risk mitigation |
+| **Technical** | 5 | Architecture Decision Records, Algorithm Olympics | Technical decisions |
+
+**CSV Structure**:
+```csv
+num,category,method_name,description,output_pattern
+1,core,First Principles Analysis,Strip away assumptions...,assumptions → truths → new approach
+```
+
+### 2.2 Existing Implementation (VERIFIED)
+
+**Source**: `/Users/umasankr/Projects/rad-engineer-v2/rad-engineer/src/outcome/OutcomeInjector.ts`
+
+**Evidence**: OutcomeInjector already has reasoning method infrastructure
+
+**Existing Features**:
+- `selectReasoningMethod(context: DecisionContext): ReasoningMethod` (lines 167-196)
+- `injectReasoningMethod(basePrompt: string, method: ReasoningMethod): string` (lines 199-231)
+- `formatReasoningMethod(method: ReasoningMethod): string` (lines 524-564)
+- `KNOWN_METHODS` array with 12 methods (lines 87-100)
+
+**Gap**: Only 12 methods hardcoded, missing 38 methods from full BMAD catalog
+
+### 2.3 Usage Pattern (VERIFIED)
+
+**Source**: `/Users/umasankr/Projects/rad-engineer-v2/rad-engineer/Q4_RESEARCH_UPDATED.md`
+
+**Evidence**: Methods should be selected based on decision context
+
+**Selection Criteria** (from Q4_RESEARCH_UPDATED.md:43-51):
+- Domain: code, creative, reasoning, analysis
+- Complexity: 1-10 scale
+- Stakeholders: who is involved
+- Constraints: technical, business, time
+
+**Usage Flow**:
+1. Agent receives task with decision context
+2. BMADMethods selects best method based on context
+3. OutcomeInjector injects method into agent prompt
+4. Agent applies method to decision-making
+5. DecisionLearningStore tracks outcome for learning
+
+---
+
+## 3. Functional Requirements
+
+### 3.1 Method Catalog
+
+**FR1**: Load all 50 methods from methods.csv
+- Parse CSV structure (num, category, method_name, description, output_pattern)
+- Store in memory for fast lookup
+- Validate each method has required fields
+
+**FR2**: Categorize methods by purpose
+- Core: Fundamental reasoning techniques
+- Advanced: Multi-path reasoning
+- Collaboration: Multi-perspective approaches
+- Competitive: Adversarial testing
+- Creative: Innovation techniques
+- Learning: Understanding verification
+- Philosophical: Conceptual clarity
+- Research: Evidence evaluation
+- Retrospective: Reflection
+- Risk: Risk mitigation
+- Technical: Technical decisions
+
+**FR3**: Tag methods with metadata
+- Domain applicability (code, creative, reasoning, analysis)
+- Complexity level (1-10)
+- Time required (quick, medium, extensive)
+- Stakeholder requirements (solo, pair, team)
+
+### 3.2 Method Selection
+
+**FR4**: Select method based on decision context
+```typescript
+interface MethodSelectionContext {
+  domain: Domain;           // code, creative, reasoning, analysis
+  complexity: number;       // 1-10
+  stakeholders: string[];   // who is involved
+  constraints: string[];    // technical, business, time
+  timeAvailable: number;    // seconds
+}
+
+selectMethod(context: MethodSelectionContext): ReasoningMethod
+```
+
+**Selection Algorithm**:
+1. Filter by domain applicability
+2. Filter by time available
+3. Filter by stakeholder requirements
+4. Sort by complexity match
+5. Return best match or default (First Principles)
+
+**FR5**: Handle edge cases
+- No suitable method found → return First Principles
+- Multiple suitable methods → return highest rated
+- Insufficient time → return quick method
+
+### 3.3 Method Application
+
+**FR6**: Format method for injection
+- Use existing `formatReasoningMethod()` pattern
+- Include method name, category, and guidance
+- Add output pattern from methods.csv
+- Keep within MAX_PROMPT_SIZE (500 chars)
+
+**FR7**: Validate method before injection
+- Check method structure is valid
+- Check method name is known
+- Check formatted output fits prompt size
+- Fallback to default if invalid
+
+### 3.4 Learning Integration
+
+**FR8**: Track method effectiveness
+- Log which method was used for which decision
+- Track decision outcome quality
+- Store in DecisionLearningStore
+- Use for future method selection
+
+**FR9**: Improve selection over time
+- Query DecisionLearningStore for best methods
+- Weight recent outcomes higher
+- Adapt to domain-specific patterns
+- Fallback to defaults if insufficient data
+
+---
+
+## 4. Technical Design
+
+### 4.1 Module Structure
+
+```
+src/reasoning/
+├── BMADMethods.ts           # Main class with method catalog
+├── MethodCatalog.ts         # Method data and categorization
+├── MethodSelector.ts        # Selection algorithm
+└── types.ts                 # Shared types
+```
+
+### 4.2 Core Classes
+
+**BMADMethods** (main class)
+```typescript
+class BMADMethods {
+  private catalog: MethodCatalog;
+  private selector: MethodSelector;
+  private decisionStore: DecisionLearningStore;
+
+  constructor(decisionStore?: DecisionLearningStore);
+  selectMethod(context: MethodSelectionContext): ReasoningMethod;
+  getAllMethods(): ReasoningMethod[];
+  getMethodsByCategory(category: MethodCategory): ReasoningMethod[];
+  getMethodsByDomain(domain: Domain): ReasoningMethod[];
+}
+```
+
+**MethodCatalog** (method data)
+```typescript
+class MethodCatalog {
+  private methods: Map<string, ReasoningMethod>;
+
+  constructor(csvPath: string);
+  loadFromCSV(path: string): void;
+  getMethod(name: string): ReasoningMethod | undefined;
+  getAllMethods(): ReasoningMethod[];
+  getByCategory(category: MethodCategory): ReasoningMethod[];
+  getByDomain(domain: Domain): ReasoningMethod[];
+}
+```
+
+**MethodSelector** (selection algorithm)
+```typescript
+class MethodSelector {
+  private catalog: MethodCatalog;
+  private decisionStore: DecisionLearningStore;
+
+  selectMethod(context: MethodSelectionContext): ReasoningMethod;
+  private filterByApplicability(methods: ReasoningMethod[], context: MethodSelectionContext): ReasoningMethod[];
+  private sortByRelevance(methods: ReasoningMethod[], context: MethodSelectionContext): ReasoningMethod[];
+  private getBestMethod(methods: ReasoningMethod[]): ReasoningMethod;
+}
+```
+
+### 4.3 Types
+
+```typescript
+/**
+ * Reasoning method from BMAD catalog
+ */
+export interface ReasoningMethod {
+  id: string;                    // e.g., "first-principles"
+  name: string;                  // e.g., "First Principles Analysis"
+  category: MethodCategory;      // e.g., "core"
+  description: string;           // Full description
+  outputPattern: string;         // e.g., "assumptions → truths → new approach"
+  domains: Domain[];             // Applicable domains
+  complexity: number;            // 1-10
+  timeRequired: TimeRequirement; // quick, medium, extensive
+  stakeholders: StakeholderReq;  // solo, pair, team
+  parameters: Record<string, unknown>;
+}
+
+/**
+ * Method categories from BMAD
+ */
+export type MethodCategory =
+  | 'core'
+  | 'advanced'
+  | 'collaboration'
+  | 'competitive'
+  | 'creative'
+  | 'learning'
+  | 'philosophical'
+  | 'research'
+  | 'retrospective'
+  | 'risk'
+  | 'technical';
+
+/**
+ * Time requirement for method
+ */
+export type TimeRequirement = 'quick' | 'medium' | 'extensive';
+
+/**
+ * Stakeholder requirement
+ */
+export type StakeholderReq = 'solo' | 'pair' | 'team';
+
+/**
+ * Method selection context
+ */
+export interface MethodSelectionContext {
+  domain: Domain;
+  complexity: number;
+  stakeholders: string[];
+  constraints: string[];
+  timeAvailable: number;  // seconds
+}
+
+/**
+ * Method with confidence score
+ */
+export interface MethodWithScore {
+  method: ReasoningMethod;
+  score: number;
+  reasons: string[];
+}
+```
+
+### 4.4 Integration Points
+
+**OutcomeInjector Integration**:
+```typescript
+// Extend OutcomeInjector to use BMADMethods
+class OutcomeInjector {
+  private bmadMethods: BMADMethods;
+
+  selectReasoningMethod(context: DecisionContext): ReasoningMethod {
+    // Convert DecisionContext to MethodSelectionContext
+    const selectionCtx: MethodSelectionContext = {
+      domain: context.domain,
+      complexity: context.complexity,
+      stakeholders: context.stakeholders,
+      constraints: context.constraints,
+      timeAvailable: 300, // default 5 minutes
+    };
+
+    return this.bmadMethods.selectMethod(selectionCtx);
+  }
+}
+```
+
+**DecisionLearningStore Integration**:
+```typescript
+// Track method effectiveness
+class BMADMethods {
+  trackMethodOutcome(methodId: string, outcome: DecisionOutcome): void {
+    this.decisionStore.recordMethodUsage(methodId, outcome);
+  }
+
+  getBestMethods(context: MethodSelectionContext): ReasoningMethod[] {
+    return this.decisionStore.getTopMethods(context, 5);
+  }
+}
+```
+
+---
+
+## 5. Non-Functional Requirements
+
+### 5.1 Performance
+- Method selection: < 100ms (single lookup)
+- Catalog loading: < 500ms (one-time at startup)
+- Memory footprint: < 10MB (50 methods × ~200 bytes)
+
+### 5.2 Reliability
+- Always return a method (never null/undefined)
+- Fallback to First Principles if selection fails
+- Validate all methods at startup
+
+### 5.3 Maintainability
+- CSV-based catalog (easy to update)
+- Clear categorization
+- Comprehensive logging
+
+### 5.4 Testability
+- Mockable dependencies
+- Deterministic selection
+- Clear inputs/outputs
+
+---
+
+## 6. Implementation Tasks
+
+### Task 1: Create BMADMethods Module (2-3h)
+- [ ] Create `src/reasoning/BMADMethods.ts`
+- [ ] Create `src/reasoning/MethodCatalog.ts`
+- [ ] Create `src/reasoning/MethodSelector.ts`
+- [ ] Create `src/reasoning/types.ts`
+- [ ] Add methods.csv to rad-engineer (copy from bmad-research)
+
+### Task 2: Implement Method Catalog (2-3h)
+- [ ] Parse methods.csv
+- [ ] Validate each method
+- [ ] Store in Map for fast lookup
+- [ ] Add category/domain filtering
+- [ ] Add error handling
+
+### Task 3: Implement Method Selector (2-3h)
+- [ ] Implement selection algorithm
+- [ ] Add domain filtering
+- [ ] Add time filtering
+- [ ] Add stakeholder filtering
+- [ ] Add complexity scoring
+- [ ] Add fallback logic
+
+### Task 4: Integrate with OutcomeInjector (1-2h)
+- [ ] Update OutcomeInjector to use BMADMethods
+- [ ] Replace KNOWN_METHODS with catalog
+- [ ] Add method tracking
+- [ ] Add learning integration
+
+### Task 5: Add Tests (1-2h)
+- [ ] Unit tests for MethodCatalog
+- [ ] Unit tests for MethodSelector
+- [ ] Unit tests for BMADMethods
+- [ ] Integration tests with OutcomeInjector
+- [ ] Edge case tests
+
+---
+
+## 7. Success Criteria
+
+### 7.1 Functional
+- [ ] All 50 methods loaded from CSV
+- [ ] Method selection works for all domains
+- [ ] Fallback to First Principles on errors
+- [ ] Integration with OutcomeInjector works
+- [ ] DecisionLearningStore tracking works
+
+### 7.2 Quality
+- [ ] 100% TypeScript coverage (no `any` types)
+- [ ] ≥95% test coverage
+- [ ] Zero ESLint errors
+- [ ] All tests pass (bun test)
+
+### 7.3 Performance
+- [ ] Method selection < 100ms
+- [ ] Catalog loading < 500ms
+- [ ] Memory footprint < 10MB
+
+### 7.4 Documentation
+- [ ] JSDoc comments on all public methods
+- [ ] README with usage examples
+- [ ] Integration guide
+
+---
+
+## 8. Risks & Mitigations
+
+### Risk 1: CSV Parsing Errors
+**Mitigation**: Validate CSV structure at startup, provide clear error messages
+
+### Risk 2: Method Selection Bias
+**Mitigation**: Track method effectiveness, use learning to improve selection
+
+### Risk 3: Performance Degradation
+**Mitigation**: In-memory catalog, efficient filtering, lazy loading
+
+### Risk 4: Integration Complexity
+**Mitigation**: Clear integration points, comprehensive tests, incremental rollout
+
+---
+
+## 9. Open Questions
+
+### Q1: Should methods be editable at runtime?
+**Recommendation**: No, load at startup only (simpler, safer)
+
+### Q2: Should we add custom methods beyond BMAD?
+**Recommendation**: Yes, extend catalog with platform-specific methods
+
+### Q3: How to handle method conflicts?
+**Recommendation**: Use weighted scoring, resolve by highest score
+
+---
+
+## 10. References
+
+- **BMAD Methods**: `/Users/umasankr/Projects/rad-engineer-v2/bmad-research/src/core/workflows/advanced-elicitation/methods.csv`
+- **OutcomeInjector**: `/Users/umasankr/Projects/rad-engineer-v2/rad-engineer/src/outcome/OutcomeInjector.ts`
+- **Q4 Research**: `/Users/umasankr/Projects/rad-engineer-v2/rad-engineer/Q4_RESEARCH_UPDATED.md`
+- **DecisionLearningStore**: `/Users/umasankr/Projects/rad-engineer-v2/rad-engineer/src/decision/DecisionLearningStore.ts`
+
+---
+
+**Specification Version**: 1.0
+**Last Updated**: 2026-01-08
+**Status**: Ready for Implementation

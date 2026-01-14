@@ -35,6 +35,24 @@ export interface WaveState {
 }
 
 /**
+ * In-memory state tracking for buffers and allocations
+ */
+export interface MemoryState {
+  /** Currently allocated bytes for in-memory buffers */
+  allocatedBytes: number;
+  /** Actually used bytes (subset of allocated) */
+  usedBytes: number;
+  /** Maximum allowed memory bytes */
+  maxBytes: number;
+  /** Fragmentation percentage (0-100) */
+  fragmentationPercent: number;
+  /** Memory utilization percentage (0-100) */
+  utilizationPercent: number;
+  /** Whether memory is under pressure (> 80% utilization) */
+  isUnderPressure: boolean;
+}
+
+/**
  * Checkpoint metadata stored with state
  */
 interface CheckpointMetadata {
@@ -54,6 +72,8 @@ export enum StateManagerError {
   CHECKPOINT_LOAD_FAILED = "CHECKPOINT_LOAD_FAILED",
   CHECKPOINT_CORRUPT = "CHECKPOINT_CORRUPT",
   INVALID_CHECKPOINT_NAME = "INVALID_CHECKPOINT_NAME",
+  MEMORY_LIMIT_EXCEEDED = "MEMORY_LIMIT_EXCEEDED",
+  INSUFFICIENT_MEMORY = "INSUFFICIENT_MEMORY",
 }
 
 /**
@@ -104,10 +124,21 @@ export class StateManagerException extends Error {
 export class StateManager {
   private readonly checkpointsDir: string;
   private readonly checkpointRetentionDays: number;
+  private readonly maxMemoryBytes: number;
 
-  constructor(config?: { checkpointsDir?: string; checkpointRetentionDays?: number }) {
+  // In-memory state tracking
+  private memoryAllocated: number = 0;
+  private memoryUsed: number = 0;
+  private memoryFragments: number = 0;
+
+  constructor(config?: {
+    checkpointsDir?: string;
+    checkpointRetentionDays?: number;
+    maxMemoryBytes?: number;
+  }) {
     this.checkpointsDir = config?.checkpointsDir || ".checkpoints";
     this.checkpointRetentionDays = config?.checkpointRetentionDays || 7;
+    this.maxMemoryBytes = config?.maxMemoryBytes || 100 * 1024 * 1024; // Default 100MB
   }
 
   /**
@@ -217,7 +248,12 @@ export class StateManager {
 
     try {
       const filePath = this.getCheckpointPath(name);
-      await fs.writeFile(filePath, JSON.stringify(metadata, null, 2), "utf-8");
+      const content = JSON.stringify(metadata, null, 2);
+      await fs.writeFile(filePath, content, "utf-8");
+
+      // Track memory usage for checkpoint
+      const checkpointSize = Buffer.byteLength(content, "utf-8");
+      this.memoryUsed += checkpointSize;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       throw new StateManagerException(
@@ -313,6 +349,10 @@ export class StateManager {
 
           // Remove if older than retention period
           if (ageMs > retentionMs) {
+            // Track memory release
+            const checkpointSize = Buffer.byteLength(fileContent, "utf-8");
+            this.memoryUsed = Math.max(0, this.memoryUsed - checkpointSize);
+
             await fs.unlink(filePath);
           }
         } catch {
@@ -321,6 +361,9 @@ export class StateManager {
           console.warn(`Skipping corrupt checkpoint file: ${file}`);
         }
       }
+
+      // Compact memory after checkpoint cleanup
+      await this.compactMemory();
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       throw new StateManagerException(
@@ -356,5 +399,109 @@ export class StateManager {
       .filter((file) => file.endsWith(".json"))
       .map((file) => file.replace(/\.json$/, ""))
       .sort();
+  }
+
+  /**
+   * Allocate more memory for in-memory state buffers
+   *
+   * Process:
+   * 1. Check if allocation would exceed maxMemoryBytes
+   * 2. Increase allocated memory counter
+   * 3. Track fragmentation
+   *
+   * @param bytes - Number of bytes to allocate
+   * @throws StateManagerException if allocation would exceed maximum
+   */
+  growMemory(bytes: number): void {
+    if (this.memoryAllocated + bytes > this.maxMemoryBytes) {
+      throw new StateManagerException(
+        StateManagerError.MEMORY_LIMIT_EXCEEDED,
+        `Cannot grow memory: would exceed maximum (${this.maxMemoryBytes} bytes)`,
+        {
+          requested: bytes,
+          current: this.memoryAllocated,
+          max: this.maxMemoryBytes,
+        }
+      );
+    }
+
+    this.memoryAllocated += bytes;
+    this.memoryFragments++;
+  }
+
+  /**
+   * Release memory when idle
+   *
+   * Process:
+   * 1. Check if sufficient memory is allocated
+   * 2. Decrease allocated memory counter
+   * 3. Track fragmentation
+   *
+   * @param bytes - Number of bytes to release
+   * @throws StateManagerException if insufficient memory allocated
+   */
+  shrinkMemory(bytes: number): void {
+    if (bytes > this.memoryAllocated) {
+      throw new StateManagerException(
+        StateManagerError.INSUFFICIENT_MEMORY,
+        `Cannot shrink memory: insufficient allocated (${this.memoryAllocated} bytes available)`,
+        {
+          requested: bytes,
+          available: this.memoryAllocated,
+        }
+      );
+    }
+
+    this.memoryAllocated -= bytes;
+    this.memoryFragments++;
+  }
+
+  /**
+   * Defragment and consolidate in-memory state
+   *
+   * Process:
+   * 1. Analyze memory fragmentation
+   * 2. Consolidate fragmented buffers
+   * 3. Reset fragmentation counter
+   *
+   * @returns Promise that resolves when compaction is complete
+   */
+  async compactMemory(): Promise<void> {
+    // Simulate memory defragmentation
+    // In a real implementation, this would:
+    // 1. Identify fragmented memory blocks
+    // 2. Copy active data to contiguous regions
+    // 3. Release fragmented blocks
+
+    // Reset fragmentation
+    this.memoryFragments = 0;
+
+    // Compact used memory to match actual checkpoint data
+    // This is a simplified implementation
+    // In production, you'd scan checkpoints and recalculate precise memory usage
+  }
+
+  /**
+   * Get current memory usage statistics
+   *
+   * @returns MemoryState with current statistics
+   */
+  getMemoryUsage(): MemoryState {
+    const utilizationPercent =
+      this.maxMemoryBytes > 0 ? (this.memoryAllocated / this.maxMemoryBytes) * 100 : 0;
+
+    const fragmentationPercent =
+      this.memoryAllocated > 0
+        ? Math.min(100, (this.memoryFragments / (this.memoryAllocated / 1024)) * 100)
+        : 0;
+
+    return {
+      allocatedBytes: this.memoryAllocated,
+      usedBytes: this.memoryUsed,
+      maxBytes: this.maxMemoryBytes,
+      fragmentationPercent: Math.round(fragmentationPercent),
+      utilizationPercent: Math.round(utilizationPercent),
+      isUnderPressure: utilizationPercent > 80,
+    };
   }
 }

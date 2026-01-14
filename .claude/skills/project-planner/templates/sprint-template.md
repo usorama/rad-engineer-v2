@@ -118,8 +118,8 @@ TASK-002 ──────┘
 ## Definition of Done Checklist
 
 ### Code Quality
-- [ ] Code compiles without errors (`pnpm run typecheck`)
-- [ ] Linting passes (`pnpm run lint`)
+- [ ] Code compiles without errors (`bun run typecheck`)
+- [ ] Linting passes (`bun run lint`)
 - [ ] No new TypeScript errors or warnings
 - [ ] No `any` types introduced
 - [ ] Code follows project conventions

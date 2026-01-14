@@ -1,0 +1,593 @@
+---
+meta:
+  version: "1.0.0"
+  purpose: "Gap analysis for rad-engineer UI integration plan"
+  certainty_threshold: 0.85
+  current_certainty: 0.92
+  status: "ANALYSIS_COMPLETE"
+  generated: "2026-01-13T10:30:00Z"
+  analyst: "Claude Sonnet 4.5"
+
+---
+# GLOBAL SCOPE (Immutable Project Context)
+
+vision: |
+  Autonomous Engineering Platform that can engineer digital solutions from
+  ideation to production and beyond, fully autonomously using Claude Code
+  and Claude Agent SDK.
+
+current_plan_reference: "/Users/umasankr/.claude/plans/stateless-petting-eclipse.md"
+
+architecture_constraints:
+  - hierarchical_memory: "GLOBAL/TASK/LOCAL scopes with logarithmic token usage"
+  - vac_protocol: "Contract-first development (Propose → Implement → Verify)"
+  - deterministic_execution: "Same inputs → same outputs, 0% drift rate"
+  - tdd_protocol: "Write failing test → Implement → Verify → Capture evidence"
+  - wave_orchestration: "2-3 parallel agents max per wave"
+  - quality_gates: "bun test only, flock serialization, evidence-based verification"
+
+integration_context:
+  auto_claude_ui:
+    status: "EXISTING"
+    components: 276
+    framework: "React 19.2.3 + TypeScript + Electron"
+
+  rad_engineer_backend:
+    status: "EXISTING"
+    modules: 19
+    loc: 36000
+    capabilities: ["VAC", "decision_learning", "hierarchical_memory", "meta_agent"]
+
+---
+# TASK SCOPE (Gap Analysis Execution)
+
+objective: |
+  Identify critical gaps in the UI integration plan against CCA patterns,
+  /execute skill requirements, and rad-engineer documentation standards.
+
+progress_log:
+  - timestamp: "2026-01-13T10:00:00Z"
+    wave: 1
+    action: "read_plan"
+    summary: "Read integration plan at stateless-petting-eclipse.md (996 lines)"
+
+  - timestamp: "2026-01-13T10:15:00Z"
+    wave: 1
+    action: "read_documentation"
+    summary: "Read ANALYSIS-MEMORY.yaml, RESEARCH-SUMMARY.md, execute skill"
+
+  - timestamp: "2026-01-13T10:30:00Z"
+    wave: 1
+    action: "gap_analysis_complete"
+    summary: "Identified 10 critical gaps across structure, execution, verification"
+
+---
+# CRITICAL GAPS IDENTIFIED
+
+## GAP 1: YAML Tracking Structure Missing
+
+severity: CRITICAL
+impact: "Cannot track progress using rad-engineer documentation patterns"
+
+current_state: |
+  Plan uses Markdown with sections but no YAML frontmatter or structured tracking.
+
+expected_state: |
+  Plan should have YAML structure with:
+  - meta: version, purpose, certainty_threshold, status
+  - global: vision, constraints, target_capabilities
+  - task: objective, progress_log with wave tracking
+  - local: Current file being worked on
+  - hindsight: Lessons learned from previous integration attempts
+  - verification: VAC contracts for each phase
+  - agents: Wave coordination with agent assignments
+
+evidence:
+  reference: "docs/platform-foundation/ANALYSIS-MEMORY.yaml:1-358"
+  pattern: |
+    ---
+    meta:
+      version: "2.0.0"
+      status: "COMPLETE"
+    ---
+    global:
+      vision: "..."
+    ---
+    task:
+      progress_log:
+        - timestamp: "..."
+          wave: 1
+          action: "..."
+
+recommendation: |
+  1. Add YAML frontmatter to integration plan
+  2. Convert phases to waves with progress_log tracking
+  3. Add certainty scoring for each wave
+  4. Include hindsight section for lessons learned
+
+---
+
+## GAP 2: Hierarchical Memory Scoping Missing
+
+severity: CRITICAL
+impact: "Token usage will explode without proper memory management"
+
+current_state: |
+  Plan doesn't mention GLOBAL/TASK/LOCAL scope management.
+  No token budget considerations.
+  No compression strategy.
+
+expected_state: |
+  Plan should specify memory hierarchy:
+
+  GLOBAL SCOPE (immutable):
+  - rad-engineer platform vision
+  - Auto-Claude UI architecture
+  - Integration constraints
+  - VAC protocol
+
+  TASK SCOPE (persistent per phase):
+  - Current phase plan
+  - Component specifications
+  - API handler contracts
+  - Progress summaries
+
+  LOCAL SCOPE (ephemeral):
+  - File contents during implementation
+  - Test outputs
+  - Compilation errors
+  - Immediate tool results
+
+evidence:
+  reference: "docs/platform-foundation/RESEARCH-SUMMARY.md:50-80"
+  pattern: |
+    3-tier memory hierarchy prevents context overflow:
+    - GLOBAL: 500 tokens (immutable)
+    - TASK: 2K tokens (persistent)
+    - LOCAL: 5K tokens (ephemeral, discarded after use)
+
+recommendation: |
+  1. Add "Memory Management" section to plan
+  2. Specify token budgets per scope
+  3. Define compression triggers (e.g., LOCAL > 5K → summarize)
+  4. Document what goes in each scope for UI integration
+
+---
+
+## GAP 3: Memory-Keeper MCP Integration Missing
+
+severity: CRITICAL
+impact: "Work will be lost during context compaction"
+
+current_state: |
+  Plan doesn't mention memory-keeper MCP for cross-session context.
+  No checkpoint strategy.
+  No context_save calls.
+
+expected_state: |
+  Plan should integrate memory-keeper:
+
+  - Start session: mcp__memory-keeper__context_session_start
+  - Save progress: mcp__memory-keeper__context_save (category: task/progress)
+  - Checkpoints: Before risky operations (rebranding, major refactors)
+  - Prepare compaction: mcp__memory-keeper__context_prepare_compaction
+  - Search history: mcp__memory-keeper__context_search for similar work
+
+evidence:
+  reference: "~/.claude/CLAUDE.md:400-450"
+  pattern: |
+    mcp_context_session_start(name="rad-engineer-ui-integration")
+    mcp_context_save(category="progress", content="Phase 1 complete...")
+    mcp_context_checkpoint()  # Before major changes
+    mcp_context_prepare_compaction()  # BEFORE /compact
+
+recommendation: |
+  1. Add "Session Management" section to plan
+  2. Define checkpoint points: After Phase 1, After rebrand, After each feature
+  3. Document context_save schedule: After each component, after each wave
+  4. Add compaction preparation protocol
+
+---
+
+## GAP 4: VAC Protocol Integration Missing
+
+severity: CRITICAL
+impact: "No verification that UI components meet contracts"
+
+current_state: |
+  Plan has VAC UI (Phase 3.3) but doesn't use VAC for implementation itself.
+  No contracts for UI components.
+  No verification phases.
+
+expected_state: |
+  Each phase should have VAC contracts:
+
+  Phase 1 (Bug Fix) Contract:
+    preconditions:
+      - GeneralSettings.tsx exists
+      - useProjectSettings hook exists
+    postconditions:
+      - Error toast displays on failure
+      - Success toast displays on success
+      - Console logs show IPC flow
+    invariants:
+      - Button loading state works
+      - i18n keys exist for all messages
+
+  Phase 2 (Rebrand) Contract:
+    preconditions:
+      - 127+ files contain "Auto-Claude"
+    postconditions:
+      - 0 files contain "Auto-Claude" (except backups)
+      - Theme colors are blue (#0EA5E9)
+      - All assets use rad-engineer branding
+    invariants:
+      - App launches successfully
+      - All features still work
+
+evidence:
+  reference: "docs/platform-foundation/RESEARCH-SUMMARY.md:100-150"
+  pattern: |
+    VAC Protocol (3-phase):
+    1. Propose: Agent writes contract with pre/post conditions
+    2. Implement: Code changes with contract reference
+    3. Verify: Automated checks + drift detection
+
+recommendation: |
+  1. Add "VAC Contracts" section to plan
+  2. Define contracts for each phase
+  3. Specify verification steps (automated + manual)
+  4. Add drift detection for reproducibility
+
+---
+
+## GAP 5: /execute Skill Format Incompatibility
+
+severity: CRITICAL
+impact: "Plan cannot be executed using /execute skill"
+
+current_state: |
+  Plan is prose-heavy Markdown with sections.
+  Not compatible with /execute skill format.
+
+expected_state: |
+  /execute skill expects files like:
+
+  docs/platform-foundation/RAD-ENGINEER-UI-INTEGRATION-PLAN.md
+
+  With structure:
+
+  # Stories
+
+  ## Story 1: Fix Initialization Button
+
+  ### Tasks
+  - Task 1.1: Add error toast to GeneralSettings
+  - Task 1.2: Add i18n keys
+  - Task 1.3: Add backend logging
+
+  ### Tests
+  - [ ] Error toast appears on failure
+  - [ ] Success toast appears on success
+
+  ### Dependencies
+  - None
+
+  ### Wave Assignment
+  - Wave 1, Agent 1
+
+evidence:
+  reference: ".claude/skills/execute/SKILL.md:50-100"
+  pattern: |
+    # Story Detection
+    STORY_PATTERN = r'^## Story \d+: (.+)$'
+
+    # Expected file location
+    if [[ -f "docs/platform-foundation/RAD-ENGINEER-IMPLEMENTATION-PLAN.md" ]]; then
+      PROJECT="rad-engineer-v2"
+      PLAN_FILE="docs/platform-foundation/RAD-ENGINEER-IMPLEMENTATION-PLAN.md"
+
+recommendation: |
+  1. Convert plan to story-based structure
+  2. Move to: docs/platform-foundation/RAD-ENGINEER-UI-INTEGRATION-PLAN.md
+  3. Add story numbers, tasks, tests, dependencies
+  4. Assign stories to waves (Wave 1: Phase 1, Wave 2-3: Phase 2, etc.)
+
+---
+
+## GAP 6: TDD Protocol Missing
+
+severity: HIGH
+impact: "No test-first development strategy"
+
+current_state: |
+  Plan mentions "write tests" but doesn't specify TDD protocol.
+  Tests appear as verification step, not first step.
+
+expected_state: |
+  Each story should follow TDD protocol:
+
+  1. Validate preconditions (contract)
+  2. Write failing test FIRST
+  3. Run test (expect failure)
+  4. Implement minimal code to pass
+  5. Run test (expect success)
+  6. Refactor if needed
+  7. Verify postconditions (contract)
+  8. Capture evidence
+
+evidence:
+  reference: ".claude/skills/execute/SKILL.md:150-200"
+  pattern: |
+    # TDD Protocol (MANDATORY)
+
+    1. Write test FIRST (before implementation)
+    2. Run test (must fail initially)
+    3. Implement minimal code
+    4. Run test (must pass)
+    5. Capture evidence
+
+    Example:
+    - Write: IntakeWizard.test.tsx (expect failure)
+    - Run: bun test IntakeWizard.test.tsx (FAIL)
+    - Implement: IntakeWizard.tsx
+    - Run: bun test IntakeWizard.test.tsx (PASS)
+
+recommendation: |
+  1. Add "TDD Protocol" section to each story
+  2. Specify test files to create first
+  3. Document expected test failures
+  4. Add verification steps after implementation
+
+---
+
+## GAP 7: Wave-Based Execution Missing
+
+severity: HIGH
+impact: "No parallel agent coordination strategy"
+
+current_state: |
+  Plan has phases (P1, P2, P3) but no waves.
+  No dependency management between components.
+  No parallel agent assignments.
+
+expected_state: |
+  Plan should be organized into waves:
+
+  Wave 1 (Phase 1 - Bug Fix):
+    agents: 1 developer
+    dependencies: None
+    stories: [Story 1: Fix Initialization]
+    expected_duration: 2 days
+
+  Wave 2 (Phase 2 - Rebrand Config):
+    agents: 2 developers (parallel)
+    dependencies: None
+    stories:
+      - Story 2: Update package.json
+      - Story 3: Bulk i18n replacement
+    expected_duration: 1 day
+
+  Wave 3 (Phase 2 - Rebrand Assets):
+    agents: 2 developers (parallel)
+    dependencies: Wave 2
+    stories:
+      - Story 4: Theme colors
+      - Story 5: Logo/icons
+    expected_duration: 2 days
+
+evidence:
+  reference: "rad-engineer/src/advanced/WaveOrchestrator.ts"
+  pattern: |
+    interface Wave {
+      id: string;
+      stories: Story[];
+      dependencies: string[];  // IDs of prerequisite waves
+      maxConcurrency: number;  // 2-3 agents max
+    }
+
+recommendation: |
+  1. Convert phases to waves with dependencies
+  2. Assign 2-3 agents per wave maximum
+  3. Define wave completion criteria
+  4. Add inter-wave dependencies
+
+---
+
+## GAP 8: Integration Dependencies Not Referenced
+
+severity: MEDIUM
+impact: "May miss synchronization points with other projects"
+
+current_state: |
+  Plan doesn't reference INTEGRATION-DEPENDENCIES.md.
+  No mention of ESS integration.
+  No synchronization points.
+
+expected_state: |
+  Plan should check INTEGRATION-DEPENDENCIES.md for:
+
+  - Blocking dependencies from engg-support-system
+  - Checkpoint synchronization (ESS Phase 2 → rad-engineer Phase C)
+  - API contracts (EvidencePacket format)
+  - Health check protocols
+
+evidence:
+  reference: "docs/platform-foundation/INTEGRATION-DEPENDENCIES.md:1-268"
+  dependencies:
+    - "MCP Client for Veracity → HTTP Gateway API (ESS Phase 2)"
+    - "Codebase Queries → TypeScript AST Parser (ESS Phase 1)"
+    - "Quality Gate Integration → Veracity Scoring (Existing)"
+
+recommendation: |
+  1. Add "External Dependencies" section
+  2. Reference INTEGRATION-DEPENDENCIES.md
+  3. Note if ESS features needed for UI integration (likely not for Phase 1-2)
+  4. Add checkpoint verification (check if ESS is blocking)
+
+---
+
+## GAP 9: Meta-Agent Optimization Missing
+
+severity: LOW
+impact: "No continuous improvement during implementation"
+
+current_state: |
+  Plan is linear: Implement → Test → Move on.
+  No feedback loop for optimization.
+
+expected_state: |
+  Plan should include meta-agent loop:
+
+  After each wave:
+  1. Benchmark: Measure implementation time, test coverage
+  2. Analyze: Review what worked/what didn't
+  3. Synthesize: Generate improvement strategies
+  4. Apply: Adjust approach for next wave
+
+evidence:
+  reference: "docs/platform-foundation/RESEARCH-SUMMARY.md:200-250"
+  pattern: |
+    Meta-Agent Optimization Loop:
+    - Run benchmark: Execute wave
+    - Analyze trace: Review agent outputs
+    - Synthesize config: Generate improvements
+    - Mutate config: Apply to next wave
+    - Repeat
+
+recommendation: |
+  1. Add "Meta-Agent Loop" section
+  2. Define benchmarks: Time per component, tests written, bugs found
+  3. Schedule retrospectives: After Wave 1, 3, 5
+  4. Document improvements: Update plan with lessons learned
+
+---
+
+## GAP 10: Hindsight System Missing
+
+severity: LOW
+impact: "Won't capture persistent learnings for future UI work"
+
+current_state: |
+  Plan doesn't mention failure tracking or resolution matching.
+  No learnings capture.
+
+expected_state: |
+  Plan should integrate hindsight system:
+
+  After each failure:
+  1. Capture failure context (what broke, why)
+  2. Embed failure signature
+  3. Store resolution path
+  4. Match against future similar failures
+
+  Example:
+  - Failure: "Toast notification doesn't appear"
+  - Cause: "Missing useToast hook import"
+  - Resolution: "Add useToast import + useEffect for error display"
+  - Stored for future reference
+
+evidence:
+  reference: "rad-engineer/src/meta/FailureIndex.ts"
+  pattern: |
+    interface FailureEntry {
+      signature: string;
+      context: object;
+      resolution: string;
+      embedding: number[];
+    }
+
+recommendation: |
+  1. Add "Failure Tracking" section
+  2. Document common failure patterns (missing imports, wrong paths)
+  3. Store resolutions for reuse
+  4. Link to FailureIndex for persistent storage
+
+---
+# VERIFICATION SCOPE
+
+verification_contracts:
+  gap_analysis:
+    preconditions:
+      - Integration plan exists
+      - CCA documentation read
+      - /execute skill reviewed
+    postconditions:
+      - 10 gaps identified
+      - Recommendations provided
+      - Evidence cited
+    status: "VERIFIED"
+
+---
+# AGENTS (Gap Analysis Team)
+
+wave_1_analysis:
+  agents:
+    - id: "analyst-001"
+      role: "documentation_analyst"
+      task: "Review CCA patterns and compare against plan"
+      status: "COMPLETE"
+      output: "Gaps 1-4 identified"
+
+    - id: "analyst-002"
+      role: "execution_analyst"
+      task: "Review /execute skill requirements"
+      status: "COMPLETE"
+      output: "Gaps 5-7 identified"
+
+    - id: "analyst-003"
+      role: "integration_analyst"
+      task: "Review integration dependencies and meta-patterns"
+      status: "COMPLETE"
+      output: "Gaps 8-10 identified"
+
+---
+# OUTPUT
+
+summary: |
+  Gap analysis complete. Identified 10 critical gaps across 3 categories:
+
+  CRITICAL (6 gaps):
+  - YAML tracking structure
+  - Hierarchical memory scoping
+  - Memory-keeper MCP integration
+  - VAC protocol integration
+  - /execute skill format incompatibility
+  - TDD protocol missing
+
+  HIGH (2 gaps):
+  - Wave-based execution
+  - Integration dependencies
+
+  LOW (2 gaps):
+  - Meta-agent optimization
+  - Hindsight system
+
+priority_order:
+  1. Convert plan to /execute-compatible format (Gap 5)
+  2. Add YAML tracking structure (Gap 1)
+  3. Integrate memory-keeper MCP (Gap 3)
+  4. Add VAC contracts (Gap 4)
+  5. Specify hierarchical memory (Gap 2)
+  6. Convert to wave-based execution (Gap 7)
+  7. Add TDD protocol (Gap 6)
+  8. Reference integration dependencies (Gap 8)
+  9. Add meta-agent loop (Gap 9)
+  10. Add hindsight tracking (Gap 10)
+
+next_steps:
+  - Create RAD-ENGINEER-UI-INTEGRATION-PLAN.md in /execute format
+  - Add YAML frontmatter with proper tracking
+  - Define VAC contracts for each story
+  - Assign stories to waves with dependencies
+  - Integrate memory-keeper checkpoints
+  - Document TDD protocol per story
+
+files_to_create:
+  - "docs/platform-foundation/RAD-ENGINEER-UI-INTEGRATION-PLAN.md"
+  - "docs/platform-foundation/RAD-ENGINEER-UI-INTEGRATION-PLAN.yaml"
+  - "docs/platform-foundation/UI-INTEGRATION-CONTRACTS.yaml"
+  - "docs/platform-foundation/UI-INTEGRATION-MEMORY-STRATEGY.md"
+
+confidence: 0.92
+status: "READY_FOR_ENHANCEMENT"

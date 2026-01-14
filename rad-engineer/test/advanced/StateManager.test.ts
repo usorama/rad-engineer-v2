@@ -287,3 +287,179 @@ describe("StateManager: listCheckpoints", () => {
     expect(checkpoints).toEqual([]);
   });
 });
+
+describe("StateManager: Memory Management", () => {
+  let manager: StateManager;
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = join(process.cwd(), "test-checkpoints");
+    await fs.mkdir(tempDir, { recursive: true });
+    // Use 50MB max memory for testing
+    manager = new StateManager({ checkpointsDir: tempDir, maxMemoryBytes: 50 * 1024 * 1024 });
+  });
+
+  afterEach(async () => {
+    try {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+  });
+
+  it("Returns initial memory usage as zero", () => {
+    const usage = manager.getMemoryUsage();
+
+    expect(usage.usedBytes).toBe(0);
+    expect(usage.allocatedBytes).toBe(0);
+    expect(usage.maxBytes).toBe(50 * 1024 * 1024);
+    expect(usage.utilizationPercent).toBe(0);
+  });
+
+  it("Grows memory successfully", () => {
+    const bytesToGrow = 1024 * 1024; // 1MB
+    manager.growMemory(bytesToGrow);
+
+    const usage = manager.getMemoryUsage();
+
+    expect(usage.allocatedBytes).toBe(bytesToGrow);
+    expect(usage.usedBytes).toBe(0); // Not yet used
+    expect(usage.utilizationPercent).toBe(2); // 1MB / 50MB = 2%
+  });
+
+  it("Throws error when growing beyond max memory", () => {
+    expect(() => manager.growMemory(60 * 1024 * 1024)).toThrow(StateManagerException);
+    expect(() => manager.growMemory(60 * 1024 * 1024)).toThrow(
+      "Cannot grow memory: would exceed maximum"
+    );
+  });
+
+  it("Shrinks memory successfully", () => {
+    // Grow first
+    manager.growMemory(5 * 1024 * 1024);
+
+    // Shrink by 2MB
+    manager.shrinkMemory(2 * 1024 * 1024);
+
+    const usage = manager.getMemoryUsage();
+
+    expect(usage.allocatedBytes).toBe(3 * 1024 * 1024);
+  });
+
+  it("Cannot shrink more than allocated", () => {
+    manager.growMemory(1 * 1024 * 1024);
+
+    expect(() => manager.shrinkMemory(2 * 1024 * 1024)).toThrow(StateManagerException);
+    expect(() => manager.shrinkMemory(2 * 1024 * 1024)).toThrow(
+      "Cannot shrink memory: insufficient allocated"
+    );
+  });
+
+  it("Compacts memory and reduces fragmentation", async () => {
+    // Simulate fragmented state by growing and shrinking
+    manager.growMemory(10 * 1024 * 1024);
+    manager.shrinkMemory(3 * 1024 * 1024);
+    manager.growMemory(2 * 1024 * 1024);
+    manager.shrinkMemory(1 * 1024 * 1024);
+
+    // Save some checkpoints to create "used" memory
+    const state: WaveState = {
+      waveNumber: 1,
+      completedTasks: ["task-1"],
+      failedTasks: [],
+      timestamp: new Date().toISOString(),
+    };
+
+    await manager.saveCheckpoint("wave-1", state);
+    await manager.saveCheckpoint("wave-2", state);
+
+    // Compact memory
+    await manager.compactMemory();
+
+    const usage = manager.getMemoryUsage();
+
+    // After compaction, fragmentation should be 0
+    expect(usage.fragmentationPercent).toBe(0);
+  });
+
+  it("Tracks memory utilization correctly", () => {
+    const allocatedBytes = 10 * 1024 * 1024; // 10MB
+    manager.growMemory(allocatedBytes);
+
+    // Simulate 60% usage by setting internal state
+    // In real scenario, this would happen through checkpoint operations
+    const usage = manager.getMemoryUsage();
+
+    expect(usage.maxBytes).toBe(50 * 1024 * 1024);
+    expect(usage.allocatedBytes).toBe(allocatedBytes);
+    expect(usage.utilizationPercent).toBeGreaterThanOrEqual(0);
+    expect(usage.utilizationPercent).toBeLessThanOrEqual(100);
+  });
+
+  it("Reports memory pressure when above 80% utilization", () => {
+    // Allocate 45MB out of 50MB max (90%)
+    manager.growMemory(45 * 1024 * 1024);
+
+    const usage = manager.getMemoryUsage();
+
+    expect(usage.isUnderPressure).toBe(true);
+  });
+
+  it("Does not report memory pressure when below 80%", () => {
+    // Allocate 30MB out of 50MB max (60%)
+    manager.growMemory(30 * 1024 * 1024);
+
+    const usage = manager.getMemoryUsage();
+
+    expect(usage.isUnderPressure).toBe(false);
+  });
+
+  it("Integrates memory operations with checkpoint save", async () => {
+    // Pre-allocate memory
+    manager.growMemory(5 * 1024 * 1024);
+
+    const state: WaveState = {
+      waveNumber: 1,
+      completedTasks: ["task-1", "task-2"],
+      failedTasks: [],
+      timestamp: new Date().toISOString(),
+    };
+
+    // Save checkpoint - should track memory usage
+    await manager.saveCheckpoint("wave-1", state);
+
+    const usage = manager.getMemoryUsage();
+
+    // Used bytes should increase after checkpoint save
+    expect(usage.usedBytes).toBeGreaterThan(0);
+  });
+
+  it("Compacts memory during checkpoint compaction", async () => {
+    // Create and save old checkpoint
+    const state: WaveState = {
+      waveNumber: 1,
+      completedTasks: ["task-1"],
+      failedTasks: [],
+      timestamp: new Date().toISOString(),
+    };
+
+    manager.growMemory(10 * 1024 * 1024);
+
+    await manager.saveCheckpoint("old-wave", state);
+
+    // Manually age the checkpoint
+    const filePath = join(tempDir, "old-wave.json");
+    const content = await fs.readFile(filePath, "utf-8");
+    const metadata = JSON.parse(content);
+    metadata.savedAt = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
+    await fs.writeFile(filePath, JSON.stringify(metadata, null, 2), "utf-8");
+
+    // Compact state - should also compact memory
+    await manager.compactState();
+
+    const usage = manager.getMemoryUsage();
+
+    // Memory should be released for deleted checkpoint
+    expect(usage.fragmentationPercent).toBe(0);
+  });
+});

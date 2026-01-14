@@ -1,0 +1,357 @@
+# Hierarchical Memory for Platform Gap Analysis
+# Following CCA pattern: Global → Task → Local (ephemeral)
+# Last Updated: 2026-01-12
+
+---
+meta:
+  version: "2.0.0"
+  purpose: "Track analysis progress for rad-engineer-v2 vs CCA/Neo-Confucius + engg-support-system integration"
+  certainty_threshold: 0.85
+  current_certainty: 0.92  # Updated with engg-support-system integration evidence
+  status: "COMPLETE"
+  output_file: "docs/platform-foundation/GAP-ANALYSIS.md"
+  branch: "feature/gap-analysis-v2-atomic-swarm"
+
+---
+# GLOBAL SCOPE (immutable project context)
+global:
+  vision: "Autonomous Engineering Platform - ideation to production"
+
+  target_capabilities:
+    - hierarchical_working_memory
+    - persistent_hindsight_system
+    - meta_agent_optimization
+    - verifiable_agentic_contract
+    - calculator_mode_tools
+    - scope_aware_orchestration
+
+  success_metrics:
+    resolve_at_1: ">54.3%"
+    drift_rate: "0%"
+    contract_coverage: "100%"
+    hallucination_rate: "<1%"
+
+  constraints:
+    max_parallel_agents: 3
+    agent_prompt_size: "adaptive (scope-based)"  # Updated from fixed 500 chars
+    test_runner: "bun test"
+
+  # NEW: engg-support-system integration
+  external_systems:
+    - name: "engg-support-system"
+      location: "VPS 72.60.204.156:/home/devuser/Projects/engg-support-system"
+      components:
+        - veracity-engine: "Python - deterministic confidence scoring"
+        - knowledge-base: "TypeScript - Qdrant vector + MCP server"
+        - gateway: "TypeScript - unified query agent + conversation manager"
+      integration_status: "DOCUMENTED"
+      integration_document: "docs/platform-foundation/ENGG-SUPPORT-INTEGRATION.md"
+
+---
+# TASK SCOPE (current analysis - persists across agent runs)
+task:
+  objective: "Gap analysis between rad-engineer-v2 and CCA/Neo-Confucius architecture"
+
+  analysis_dimensions:
+    - dimension: "what_we_have"
+      description: "Components already implemented in rad-engineer-v2"
+      status: "pending"
+      findings: []
+
+    - dimension: "what_needs_change"
+      description: "Components that exist but need modification"
+      status: "pending"
+      findings: []
+
+    - dimension: "what_is_missing"
+      description: "Components from research not yet implemented"
+      status: "pending"
+      findings: []
+
+    - dimension: "universal_applicability"
+      description: "How to make platform work beyond coding"
+      status: "pending"
+      findings: []
+
+  progress_log:
+    - timestamp: "2026-01-12T001"
+      wave: 1
+      action: "inventory_complete"
+      summary: "42 components found across 10 modules: SDK(5), Foundation(3), Advanced(3), Integration(1), Decision(2), Reasoning(3), Outcome(1), Execute(1), Plan(5)"
+    - timestamp: "2026-01-12T002"
+      wave: 1
+      action: "requirements_mapped"
+      summary: "10 CCA requirements extracted: HierarchicalMemory, PersistentHindsight, MetaAgentLoop, VAC, CalculatorMode, ScopeAwareContext, ActiveLearning, DeterministicVerification, SafetyHooks, ModularTools"
+    - timestamp: "2026-01-12T003"
+      wave: 2
+      action: "gap_analysis_complete"
+      summary: "GREAT(4): PersistentHindsight, ActiveLearning, SafetyHooks, ModularTools | MODIFY(6): HierarchicalMem, MetaAgent, VAC, CalculatorMode, DeterministicVerif, ScopeContext | MISSING(7): HierarchicalMemory class, MetaAgentLoop, ContractRegistry, StateMachine, DriftDetector, PropertyTesting, FailureIndex"
+    - timestamp: "2026-01-12T004"
+      wave: 2
+      action: "universal_design_complete"
+      summary: "8 generalization principles, 8 new extensions needed, 4 domain examples (restaurant, construction, healthcare, events), 10 architectural changes"
+
+    # V2 Analysis - engg-support-system integration
+    - timestamp: "2026-01-12T005"
+      wave: 3
+      action: "engg_support_review_complete"
+      summary: "Reviewed VPS engg-support-system: veracity.py (confidence scoring), packet_contract.py (evidence packets), metrics.py (Prometheus), EnggContextAgent (dual-DB queries), QueryClassifier (ambiguity), ConversationManager (multi-round)"
+    - timestamp: "2026-01-12T006"
+      wave: 3
+      action: "atomic_agent_architecture_designed"
+      summary: "Designed 2-layer orchestration (O1 domain, O2 meta) with 7 atomic agents: Classifier, Clarifier, Planner, Researcher, Executor, Verifier, Learner"
+    - timestamp: "2026-01-12T007"
+      wave: 3
+      action: "implementation_metrics_defined"
+      summary: "Added metrics for all changes: Token Efficiency (<70%), Compression Ratio (>3:1), Contract Coverage (100%), Agent Utilization (60-80%), Drift Rate (0%)"
+    - timestamp: "2026-01-12T008"
+      wave: 3
+      action: "flexible_vac_designed"
+      summary: "Replaced fixed 500-char limit with adaptive scope-based budgets: GLOBAL(2000), TASK(4000×complexity), LOCAL(2000, compressible)"
+    - timestamp: "2026-01-12T009"
+      wave: 3
+      action: "implementation_plan_created"
+      summary: "23 new files, 5 modified files, 6 phases (A-F), ~5000 lines. Each component has specific file path, integration points, and tests."
+
+    # V3 Analysis - Evidence-based corrections
+    - timestamp: "2026-01-12T010"
+      wave: 4
+      action: "evidence_based_review"
+      summary: "CORRECTIONS: Found 12 existing agents in .claude/agents/. Context limits were WRONG (actual: 5000 tokens/prompt, 120K lifetime vs proposed 500-1000). Only ONE orchestrator (WaveOrchestrator) exists, NOT 2 layers. 7 of 9 proposed agents DUPLICATE existing ones."
+    - timestamp: "2026-01-12T011"
+      wave: 4
+      action: "gap_analysis_updated"
+      summary: "Added CORRECTIONS section to GAP-ANALYSIS.md with evidence: existing agents table, context budget corrections, single orchestrator reality, agent mapping. Revised Part 7 architecture to 'Extend, Don't Replace'."
+
+    # V4 Analysis - Deep VPS Integration Analysis
+    - timestamp: "2026-01-12T012"
+      wave: 5
+      action: "vps_ssh_exploration"
+      summary: "SSH to VPS (devuser@72.60.204.156), explored engg-support-system structure: gateway/(EnggContextAgent, QueryClassifier, ConversationManager), veracity-engine/(veracity.py, packet_contract.py, mcp_server.py), knowledge-base/(Qdrant types, relationships schema)"
+    - timestamp: "2026-01-12T013"
+      wave: 5
+      action: "veracity_scoring_analyzed"
+      summary: "Veracity scoring algorithm: starts 100, deducts penalties (STALE_DOC:-15, ORPHANED_NODE:-5, CONTRADICTION:-20, LOW_COVERAGE:-10). Deterministic formula-based, no LLM."
+    - timestamp: "2026-01-12T014"
+      wave: 5
+      action: "evidence_packet_schema_documented"
+      summary: "EvidencePacketV1 schema: meta(query_id,timestamp,project), status, code_truth(id,type,path,name,score,excerpt), doc_claims, veracity(confidence_score,is_stale,faults), graph_relationships"
+    - timestamp: "2026-01-12T015"
+      wave: 5
+      action: "mcp_tools_documented"
+      summary: "Veracity MCP tools: query_codebase(project,question,max_results), get_component_map(project,component_path), list_projects(), get_file_relationships(project,file_path)"
+    - timestamp: "2026-01-12T016"
+      wave: 5
+      action: "gateway_patterns_analyzed"
+      summary: "EnggContextAgent ALWAYS queries BOTH Qdrant+Neo4j. QueryClassifier detects clear/ambiguous/requires_context. ConversationManager: Redis-backed, 3-round max, collectedContext accumulation"
+    - timestamp: "2026-01-12T017"
+      wave: 5
+      action: "integration_document_created"
+      summary: "Created docs/platform-foundation/ENGG-SUPPORT-INTEGRATION.md: 8 parts covering architecture, veracity engine, knowledge base, gateway, integration points, required enhancements, implementation roadmap, API reference"
+
+  decisions_made:
+    - decision: "Platform has solid foundation (40% requirements satisfied)"
+      evidence: "DecisionLearningStore, SecurityLayer, PromptValidator meet CCA patterns"
+    - decision: "Core missing piece is HierarchicalMemory with scope compression"
+      evidence: "StateManager is checkpoint-only, not scope-aware"
+    - decision: "VAC is highest innovation priority"
+      evidence: "No contract-first pattern exists currently"
+    # V2 decisions
+    - decision: "Port veracity.py, packet_contract.py, metrics.py from engg-support-system"
+      evidence: "These provide proven deterministic patterns: confidence scoring, evidence packets, Prometheus metrics"
+    - decision: "Use atomic agent swarm architecture from EnggContextAgent pattern"
+      evidence: "EnggContextAgent + QueryClassifier + ClarificationGenerator shows single-responsibility agents composing into orchestrated workflows"
+    - decision: "Replace fixed 500-char VAC with adaptive scope-based budgets"
+      evidence: "Hierarchical memory enables dynamic adjustment: GLOBAL fixed, TASK scales with complexity, LOCAL compresses"
+    - decision: "Implementation requires 23 new files across 5 new modules"
+      evidence: "veracity/(4), agents/(8), orchestration/(4), memory/(3), conversation/(4)"
+    # V3 corrected decisions
+    - decision: "CORRECTED: 12 existing agents cover software engineering domain"
+      evidence: "developer.md, planner.md, research-agent.md, architect.md, code-reviewer.md, test-writer.md, debugger.md, pr-*.md in .claude/agents/"
+    - decision: "CORRECTED: Context limits are much larger than proposed"
+      evidence: "ResearchCoordinator.ts:173 shows 'max 5000 tokens', developer.md:105 shows '~120K tokens lifetime'"
+    - decision: "CORRECTED: Single orchestrator (WaveOrchestrator) not 2 layers"
+      evidence: "WaveOrchestrator.ts is ONLY orchestrator, ResearchCoordinator is helper not orchestration layer"
+    - decision: "CORRECTED: Extend existing agents, don't create duplicates"
+      evidence: "7 of 9 proposed atomic agents duplicate existing: PlannerAgent=planner.md, ExecutorAgent=developer.md, etc."
+    # V4 Integration decisions
+    - decision: "Integrate via MCP, not code porting"
+      evidence: "engg-support-system has MCP servers (veracity mcp_server.py, knowledge-base), can be called remotely without copying code"
+    - decision: "Use veracity scoring for deterministic confidence"
+      evidence: "veracity.py:compute_confidence_score() is formula-based (no LLM), starts at 100, deducts penalties for STALE_DOC(-15), ORPHANED_NODE(-5), CONTRADICTION(-20), LOW_COVERAGE(-10)"
+    - decision: "Adopt EvidencePacketV1 as VAC contract format"
+      evidence: "packet_contract.py defines versioned schema with meta, code_truth, doc_claims, veracity report - exactly what VAC needs"
+    - decision: "Use ConversationManager for hierarchical context"
+      evidence: "ConversationManager.ts provides Redis-backed, 3-round dialogue state with collectedContext accumulation - maps to TASK scope in CCA"
+    - decision: "QueryClassifier enables ambiguity detection"
+      evidence: "classifyQuery() returns clear/ambiguous/requires_context with confidence scores - enables proactive clarification"
+    - decision: "TypeScript AST parser needed for rad-engineer indexing"
+      evidence: "veracity-engine only parses .py/.md files, rad-engineer-v2 is TypeScript - must add tree-sitter TypeScript support"
+
+  blocking_questions: []
+
+---
+# LOCAL SCOPE (ephemeral - compressed after each agent run)
+local:
+  current_agent: null
+  current_focus: null
+  raw_findings: []
+  # After agent completes, this gets compressed to task.progress_log
+  # and raw_findings are cleared
+
+---
+# HINDSIGHT NOTES (persistent learnings)
+hindsight:
+  conventions: []
+
+  failures: []
+
+  successful_patterns: []
+
+  resolution_paths: []
+
+---
+# VERIFICATION STATE (VAC-style)
+verification:
+  contracts_proposed: []
+
+  contracts_verified: []
+
+  pending_verification: []
+
+  certainty_calculations:
+    - timestamp: null
+      contract_coverage: 0
+      evidence_score: 0
+      test_coverage: 0
+      calculated_certainty: 0
+
+---
+# AGENT COORDINATION
+agents:
+  wave_1:
+    status: "completed"
+    agents:
+      - id: "inventory_agent"
+        task: "Inventory rad-engineer-v2 components"
+        status: "completed"
+        output_summary: "42 components: SDK(5), Foundation(3), Advanced(3), Integration(1), Decision(2), Reasoning(3), Outcome(1), Execute(1), Plan(5)"
+
+      - id: "research_mapper"
+        task: "Map CCA concepts to implementation requirements"
+        status: "completed"
+        output_summary: "10 requirements: HierarchicalMemory, PersistentHindsight, MetaAgentLoop, VAC, CalculatorMode, ScopeAwareContext, ActiveLearning, DeterministicVerification, SafetyHooks, ModularTools"
+
+  wave_2:
+    status: "completed"
+    depends_on: "wave_1"
+    agents:
+      - id: "gap_analyzer"
+        task: "Compare inventory vs requirements"
+        status: "completed"
+        output_summary: "GREAT(4), MODIFY(6), MISSING(7)"
+
+      - id: "universal_designer"
+        task: "Design universal applicability"
+        status: "completed"
+        output_summary: "8 extensions, 4 domain examples, 10 arch changes"
+
+  wave_3:
+    status: "completed"
+    depends_on: "wave_2"
+    agents:
+      - id: "specification_writer"
+        task: "Write GAP-ANALYSIS.md"
+        status: "completed"
+        output_summary: null
+
+      - id: "universal_designer"
+        task: "Design universal applicability layer"
+        status: "pending"
+        output_summary: null
+
+  wave_3:
+    status: "pending"
+    depends_on: "wave_2"
+    agents:
+      - id: "specification_writer"
+        task: "Write change specifications"
+        status: "pending"
+        output_summary: null
+
+  # V2 Analysis - engg-support-system integration
+  wave_4:
+    status: "completed"
+    depends_on: "wave_3"
+    agents:
+      - id: "vps_reviewer"
+        task: "Review engg-support-system codebase"
+        status: "completed"
+        output_summary: "Reviewed veracity.py, packet_contract.py, evidence_query.py, metrics.py, EnggContextAgent.ts, QueryClassifier.ts, ClarificationGenerator.ts, ConversationManager.ts"
+
+      - id: "architecture_designer"
+        task: "Design atomic agent swarm architecture"
+        status: "completed"
+        output_summary: "2-layer orchestration (O1+O2), 7 atomic agents, Evidence Packets protocol, max 3 concurrent agents"
+
+      - id: "metrics_definer"
+        task: "Define implementation metrics"
+        status: "completed"
+        output_summary: "4 categories: Memory (4 metrics), VAC (5 metrics), Agent (5 metrics), Determinism (4 metrics)"
+
+      - id: "implementation_planner"
+        task: "Create detailed implementation plan with file paths"
+        status: "completed"
+        output_summary: "6 phases, 23 new files, 5 modifications, ~5000 lines, all with specific paths and integration details"
+
+  # V4 Analysis - Deep VPS Integration Analysis
+  wave_5:
+    status: "completed"
+    depends_on: "wave_4"
+    agents:
+      - id: "vps_explorer"
+        task: "SSH to VPS and explore engg-support-system"
+        status: "completed"
+        output_summary: "Explored gateway/(EnggContextAgent.ts:16KB, QueryClassifier.ts:4KB, ConversationManager.ts:6KB), veracity-engine/core/(veracity.py:11KB, packet_contract.py:12KB, mcp_server.py:20KB), knowledge-base/src/"
+
+      - id: "api_documenter"
+        task: "Document MCP tools and API endpoints"
+        status: "completed"
+        output_summary: "4 MCP tools (query_codebase, get_component_map, list_projects, get_file_relationships), EvidencePacketV1 schema, VeracityResult structure"
+
+      - id: "integration_architect"
+        task: "Map integration points to rad-engineer objectives"
+        status: "completed"
+        output_summary: "7 integration points mapped: codebase indexing, semantic search, structural analysis, deterministic verification, evidence packets, context engineering, ambiguity detection"
+
+      - id: "document_writer"
+        task: "Create ENGG-SUPPORT-INTEGRATION.md"
+        status: "completed"
+        output_summary: "Created 8-part integration document: architecture, veracity engine, knowledge base, gateway, integration points, required enhancements, implementation roadmap, API reference"
+
+---
+# OUTPUT SCHEMA (what we're producing)
+output:
+  categories:
+    great_as_is:
+      description: "Components that fully align with CCA/Neo-Confucius"
+      items: []
+
+    needs_modification:
+      description: "Components that exist but need specific changes"
+      items: []
+      # Each item: {component, current_state, required_state, change_spec, why, how}
+
+    needs_replacement:
+      description: "Components that won't work and must be replaced"
+      items: []
+      # Each item: {component, current_state, replacement, why, how}
+
+    missing:
+      description: "New components to add"
+      items: []
+      # Each item: {component, specification, why, how}
+
+    universal_extensions:
+      description: "Extensions for non-coding use cases"
+      items: []

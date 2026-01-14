@@ -1,10 +1,12 @@
 /**
  * Resource Monitor for system resource tracking
  * Monitors kernel_task CPU, memory pressure, and process count
+ * Cross-platform support via platform-specific monitors
  */
 
-import { execSync } from "node:child_process";
 import type { ResourceCheckResult, ResourceMetrics } from "./types";
+import { MonitorFactory } from "./monitors/MonitorFactory.js";
+import type { IPlatformMonitor } from "./monitors/IPlatformMonitor.js";
 
 /**
  * Resource Monitor class
@@ -16,6 +18,12 @@ export class ResourceMonitor {
     memory_pressure: 80, // percent
     process_count: 400, // count
   };
+
+  private monitor: IPlatformMonitor;
+
+  constructor(monitor?: IPlatformMonitor) {
+    this.monitor = monitor || MonitorFactory.createMonitor();
+  }
 
   /**
    * Check system resources before spawning an agent
@@ -46,9 +54,9 @@ export class ResourceMonitor {
    */
   private async collectMetrics(): Promise<ResourceMetrics> {
     const timestamp = new Date().toISOString();
-    const kernel_task_cpu = this.getKernelTaskCPU();
-    const memory_pressure = this.getMemoryPressure();
-    const process_count = this.getProcessCount();
+    const kernel_task_cpu = await this.monitor.getKernelTaskCPU();
+    const memory_pressure = await this.monitor.getMemoryPressure();
+    const process_count = await this.monitor.getProcessCount();
 
     return {
       kernel_task_cpu,
@@ -57,55 +65,6 @@ export class ResourceMonitor {
       can_spawn_agent: false, // Will be evaluated by evaluateThresholds
       timestamp,
     };
-  }
-
-  /**
-   * Get kernel_task CPU usage on macOS
-   */
-  private getKernelTaskCPU(): number {
-    try {
-      const output = execSync("ps -A -o %cpu,comm | grep kernel_task", {
-        encoding: "utf-8",
-      });
-      const match = output.match(/^(\d+\.?\d*)/m);
-      return match ? parseFloat(match[1]) : 0;
-    } catch {
-      return 0;
-    }
-  }
-
-  /**
-   * Get memory pressure percentage
-   */
-  private getMemoryPressure(): number {
-    try {
-      const output = execSync("vm_stat | grep Pages_free", {
-        encoding: "utf-8",
-      });
-      const match = output.match(/(\d+)/);
-      if (match) {
-        const freePages = parseInt(match[1], 10);
-        const pageSize = 4096; // 4KB pages on macOS
-        const freeMB = (freePages * pageSize) / (1024 * 1024);
-        const totalMB = 16384; // Assume 16GB total
-        return 100 - (freeMB / totalMB) * 100;
-      }
-    } catch {
-      // Fallback
-    }
-    return 50; // Conservative default
-  }
-
-  /**
-   * Get total process count
-   */
-  private getProcessCount(): number {
-    try {
-      const output = execSync("ps -A | wc -l", { encoding: "utf-8" });
-      return parseInt(output.trim(), 10);
-    } catch {
-      return 200; // Conservative default
-    }
   }
 
   /**
@@ -162,5 +121,12 @@ export class ResourceMonitor {
    */
   getThresholds() {
     return { ...this.thresholds };
+  }
+
+  /**
+   * Get platform name from current monitor
+   */
+  getPlatformName(): string {
+    return this.monitor.getPlatformName();
   }
 }

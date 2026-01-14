@@ -1,0 +1,1151 @@
+# Test Specification: BusinessOutcomeExtractor
+
+> **Component**: BusinessOutcomeExtractor
+> **Phase**: Q4 Phase 2 - Business Outcome Integration
+> **Status**: specified
+> **Last Updated**: 2026-01-08
+> **Author**: Orchestrator (evidence-based test design)
+
+---
+
+## 1. Test Strategy
+
+### 1.1 Testing Philosophy
+
+- **Evidence-Based**: All tests verify documented behaviors from component-spec.yaml
+- **Coverage First**: Target ≥95% coverage (lines, branches, functions)
+- **Fast Execution**: All unit tests run in <2 seconds total
+- **Independent**: Each test isolates specific functionality
+
+### 1.2 Test Categories
+
+1. **Unit Tests** (20 tests): Test individual methods in isolation
+2. **Integration Tests** (6 tests): Test interactions with /plan skill
+3. **Edge Case Tests** (6 tests): Test boundary conditions and error handling
+
+**Total Tests**: 32
+
+---
+
+## 2. Unit Tests (20 tests)
+
+### 2.1 Extraction Tests (8 tests)
+
+#### Test 1: Extract Outcomes from ExecutionPlan
+
+```typescript
+test('should extract outcomes from ExecutionPlan success_criteria', () => {
+  // Arrange
+  const plan: ExecutionPlan = {
+    execution_metadata: { /* ... */ },
+    requirements: {
+      query: 'Build user dashboard',
+      core_feature: 'Dashboard',
+      tech_stack: 'React',
+      timeline: 'this-week',
+      success_criteria: [
+        'Increase user retention by 20% within 6 months',
+        'Reduce page load time to <2 seconds',
+        'Achieve 95% test coverage'
+      ],
+      out_of_scope: []
+    },
+    waves: [],
+    integration_tests: [],
+    quality_gates: []
+  };
+
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const outcomes = extractor.extractOutcomes(plan);
+
+  // Assert
+  expect(outcomes).toHaveLength(3);
+  expect(outcomes[0].title).toBe('Increase user retention by 20%');
+  expect(outcomes[0].category).toBe('business');
+  expect(outcomes[0].measurable).toBe(true);
+  expect(outcomes[0].kpis).toHaveLength(1);
+  expect(outcomes[0].kpis[0].targetValue).toBe('20%');
+});
+```
+
+**Evidence**: component-spec.yaml section 3.1.1
+
+---
+
+#### Test 2: Categorize Outcomes Correctly
+
+```typescript
+test('should categorize outcomes correctly (business/technical/user/quality)', () => {
+  // Arrange
+  const criteria = [
+    'Increase revenue by 15%',  // business
+    'Reduce latency to <100ms',  // technical
+    'Improve user satisfaction', // user
+    'Achieve 95% test coverage'  // quality
+  ];
+  const plan = createPlanWithCriteria(criteria);
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const outcomes = extractor.extractOutcomes(plan);
+
+  // Assert
+  expect(outcomes[0].category).toBe('business');
+  expect(outcomes[1].category).toBe('technical');
+  expect(outcomes[2].category).toBe('user');
+  expect(outcomes[3].category).toBe('quality');
+});
+```
+
+**Evidence**: component-spec.yaml section 3.1.2
+
+---
+
+#### Test 3: Extract Multiple Outcomes
+
+```typescript
+test('should extract multiple outcomes from array', () => {
+  // Arrange
+  const criteria = Array.from({ length: 10 }, (_, i) =>
+    `Success criterion ${i + 1}`
+  );
+  const plan = createPlanWithCriteria(criteria);
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const outcomes = extractor.extractOutcomes(plan);
+
+  // Assert
+  expect(outcomes).toHaveLength(10);
+  outcomes.forEach((outcome, i) => {
+    expect(outcome.title).toContain(`${i + 1}`);
+    expect(outcome.id).toBeDefined();
+  });
+});
+```
+
+**Evidence**: component-spec.yaml section 3.1.1
+
+---
+
+#### Test 4: Handle Empty Success Criteria
+
+```typescript
+test('should handle empty success_criteria array', () => {
+  // Arrange
+  const plan: ExecutionPlan = {
+    /* ... */
+    requirements: {
+      /* ... */
+      success_criteria: [],
+      out_of_scope: []
+    }
+  };
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const outcomes = extractor.extractOutcomes(plan);
+
+  // Assert
+  expect(outcomes).toEqual([]);
+});
+```
+
+**Evidence**: component-spec.yaml section 6.1
+
+---
+
+#### Test 5: Deduplicate Outcomes
+
+```typescript
+test('should handle duplicate outcomes (deduplicate)', () => {
+  // Arrange
+  const criteria = [
+    'Increase user retention by 20%',
+    'Increase user retention by 20%',  // duplicate
+    'Reduce page load time'
+  ];
+  const plan = createPlanWithCriteria(criteria);
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const outcomes = extractor.extractOutcomes(plan);
+
+  // Assert
+  expect(outcomes).toHaveLength(2);
+  expect(outcomes[0].title).toBe('Increase user retention by 20%');
+});
+```
+
+**Evidence**: component-spec.yaml section 6.1
+
+---
+
+#### Test 6: Extract Complex KPIs
+
+```typescript
+test('should extract outcomes with complex KPI descriptions', () => {
+  // Arrange
+  const criteria = [
+    'Achieve 20% increase in user retention while maintaining 95% satisfaction score within 6 months'
+  ];
+  const plan = createPlanWithCriteria(criteria);
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const outcomes = extractor.extractOutcomes(plan);
+
+  // Assert
+  expect(outcomes[0].kpis).toHaveLength(2);
+  expect(outcomes[0].kpis[0].name).toContain('retention');
+  expect(outcomes[0].kpis[1].name).toContain('satisfaction');
+});
+```
+
+**Evidence**: component-spec.yaml section 3.1.3
+
+---
+
+#### Test 7: Preserve Source References
+
+```typescript
+test('should preserve source references', () => {
+  // Arrange
+  const plan = createPlanWithCriteria(['Increase retention']);
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const outcomes = extractor.extractOutcomes(plan);
+
+  // Assert
+  expect(outcomes[0].source).toEqual({
+    section: 'requirements.success_criteria'
+  });
+});
+```
+
+**Evidence**: component-spec.yaml section 3.1.1
+
+---
+
+#### Test 8: Handle Malformed Criteria
+
+```typescript
+test('should handle malformed success criteria gracefully', () => {
+  // Arrange
+  const criteria = [
+    '',  // empty
+    '   ',  // whitespace only
+    'Increase retention'  // valid
+  ];
+  const plan = createPlanWithCriteria(criteria);
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const outcomes = extractor.extractOutcomes(plan);
+
+  // Assert
+  expect(outcomes).toHaveLength(1);
+  expect(outcomes[0].title).toBe('Increase retention');
+});
+```
+
+**Evidence**: component-spec.yaml section 6.1
+
+---
+
+### 2.2 KPI Extraction Tests (6 tests)
+
+#### Test 9: Extract Percentage-Based KPIs
+
+```typescript
+test('should extract percentage-based KPIs', () => {
+  // Arrange
+  const text = 'Achieve 20% increase in user retention';
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const kpis = extractor.extractKPIs(text);
+
+  // Assert
+  expect(kpis).toHaveLength(1);
+  expect(kpis[0].targetValue).toBe('20%');
+  expect(kpis[0].quantifiable).toBe(true);
+});
+```
+
+**Evidence**: component-spec.yaml section 3.1.3
+
+---
+
+#### Test 10: Extract Time-Based Thresholds
+
+```typescript
+test('should extract time-based thresholds', () => {
+  // Arrange
+  const text = 'Reduce page load time to <2 seconds';
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const kpis = extractor.extractKPIs(text);
+
+  // Assert
+  expect(kpis).toHaveLength(1);
+  expect(kpis[0].targetValue).toBe('<2s');
+  expect(kpis[0].quantifiable).toBe(true);
+});
+```
+
+**Evidence**: component-spec.yaml section 3.1.3
+
+---
+
+#### Test 11: Extract Quantitative Targets
+
+```typescript
+test('should extract quantitative targets', () => {
+  // Arrange
+  const text = 'Target 1000 daily active users';
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const kpis = extractor.extractKPIs(text);
+
+  // Assert
+  expect(kpis).toHaveLength(1);
+  expect(kpis[0].targetValue).toBe('1000');
+  expect(kpis[0].quantifiable).toBe(true);
+});
+```
+
+**Evidence**: component-spec.yaml section 3.1.3
+
+---
+
+#### Test 12: Detect SMART Criteria
+
+```typescript
+test('should detect SMART criteria', () => {
+  // Arrange
+  const text = 'Increase retention by 20% within 6 months using cohort analysis';
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const kpis = extractor.extractKPIs(text);
+
+  // Assert
+  expect(kpis[0].measurementMethod).toBe('cohort analysis');
+  expect(kpis[0].timeframe).toBe('6 months');
+});
+```
+
+**Evidence**: component-spec.yaml section 3.1.3
+
+---
+
+#### Test 13: Handle Non-Quantifiable KPIs
+
+```typescript
+test('should handle non-quantifiable KPIs', () => {
+  // Arrange
+  const text = 'Improve user experience';
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const kpis = extractor.extractKPIs(text);
+
+  // Assert
+  expect(kpis).toHaveLength(1);
+  expect(kpis[0].quantifiable).toBe(false);
+});
+```
+
+**Evidence**: component-spec.yaml section 3.1.3
+
+---
+
+#### Test 14: Parse Measurement Methods and Timeframes
+
+```typescript
+test('should parse measurement methods and timeframes', () => {
+  // Arrange
+  const text = 'Achieve 95% coverage measured by code coverage tools within 3 months';
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const kpis = extractor.extractKPIs(text);
+
+  // Assert
+  expect(kpis[0].measurementMethod).toBe('code coverage tools');
+  expect(kpis[0].timeframe).toBe('3 months');
+});
+```
+
+**Evidence**: component-spec.yaml section 3.1.3
+
+---
+
+### 2.3 Validation Tests (6 tests)
+
+#### Test 15: Pass Validation for Complete Outcomes
+
+```typescript
+test('should pass validation for complete outcomes', () => {
+  // Arrange
+  const outcomes: BusinessOutcome[] = [createCompleteOutcome()];
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const result = extractor.validateOutcomes(outcomes);
+
+  // Assert
+  expect(result.passed).toBe(true);
+  expect(result.issues).toHaveLength(0);
+});
+
+function createCompleteOutcome(): BusinessOutcome {
+  return {
+    id: 'outcome-1',
+    category: 'business',
+    title: 'Increase retention',
+    description: 'Increase user retention by 20%',
+    kpis: [{
+      name: 'Retention Rate',
+      targetValue: '20%',
+      measurementMethod: 'Cohort analysis',
+      timeframe: '6 months',
+      quantifiable: true
+    }],
+    successCriteria: ['Achieve 20% increase'],
+    impactMetrics: [{
+      name: 'Revenue Impact',
+      expectedImpact: '+$50k ARR',
+      measurement: 'Revenue analysis',
+      confidence: 0.8
+    }],
+    priority: 'must',
+    measurable: true,
+    source: { section: 'requirements' }
+  };
+}
+```
+
+**Evidence**: component-spec.yaml section 3.2
+
+---
+
+#### Test 16: Fail Validation for Measurable Without KPIs
+
+```typescript
+test('should fail validation for measurable outcomes without KPIs', () => {
+  // Arrange
+  const outcomes: BusinessOutcome[] = [{
+    ...createCompleteOutcome(),
+    kpis: [],
+    measurable: true
+  }];
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const result = extractor.validateOutcomes(outcomes);
+
+  // Assert
+  expect(result.passed).toBe(false);
+  expect(result.issues).toHaveLength(1);
+  expect(result.issues[0].code).toBe('NO_KPIS_FOR_MEASURABLE');
+  expect(result.issues[0].severity).toBe('error');
+});
+```
+
+**Evidence**: component-spec.yaml section 3.2
+
+---
+
+#### Test 17: Warn About Non-Quantifiable KPIs
+
+```typescript
+test('should warn about non-quantifiable KPIs', () => {
+  // Arrange
+  const outcomes: BusinessOutcome[] = [{
+    ...createCompleteOutcome(),
+    kpis: [{
+      name: 'User Satisfaction',
+      targetValue: 'high',
+      measurementMethod: 'Surveys',
+      timeframe: 'unknown',
+      quantifiable: false
+    }]
+  }];
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const result = extractor.validateOutcomes(outcomes);
+
+  // Assert
+  expect(result.issues.some(i => i.code === 'NON_QUANTIFIABLE_KPI')).toBe(true);
+  expect(result.issues.find(i => i.code === 'NON_QUANTIFIABLE_KPI')?.severity).toBe('warning');
+});
+```
+
+**Evidence**: component-spec.yaml section 3.2
+
+---
+
+#### Test 18: Fail Validation for Missing Success Criteria
+
+```typescript
+test('should fail validation for missing success criteria', () => {
+  // Arrange
+  const outcomes: BusinessOutcome[] = [{
+    ...createCompleteOutcome(),
+    successCriteria: []
+  }];
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const result = extractor.validateOutcomes(outcomes);
+
+  // Assert
+  expect(result.passed).toBe(false);
+  expect(result.issues[0].code).toBe('NO_SUCCESS_CRITERIA');
+});
+```
+
+**Evidence**: component-spec.yaml section 3.2
+
+---
+
+#### Test 19: Warn About Missing Priority
+
+```typescript
+test('should warn about missing priority', () => {
+  // Arrange
+  const outcomes: BusinessOutcome[] = [{
+    ...createCompleteOutcome(),
+    priority: undefined as any
+  }];
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const result = extractor.validateOutcomes(outcomes);
+
+  // Assert
+  expect(result.issues.some(i => i.code === 'NO_PRIORITY')).toBe(true);
+});
+```
+
+**Evidence**: component-spec.yaml section 3.2
+
+---
+
+#### Test 20: Report Low Confidence Metrics
+
+```typescript
+test('should report low confidence metrics as info', () => {
+  // Arrange
+  const outcomes: BusinessOutcome[] = [{
+    ...createCompleteOutcome(),
+    impactMetrics: [{
+      name: 'Revenue Impact',
+      expectedImpact: 'Unknown',
+      measurement: 'TBD',
+      confidence: 0.3
+    }]
+  }];
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const result = extractor.validateOutcomes(outcomes);
+
+  // Assert
+  expect(result.issues.some(i => i.code === 'LOW_CONFIDENCE_METRICS')).toBe(true);
+  expect(result.issues.find(i => i.code === 'LOW_CONFIDENCE_METRICS')?.severity).toBe('info');
+});
+```
+
+**Evidence**: component-spec.yaml section 3.2
+
+---
+
+## 3. Integration Tests (6 tests)
+
+### 3.1 Plan Skill Integration
+
+#### Test 21: Extract from Full ExecutionPlan
+
+```typescript
+test('should extract from full ExecutionPlan with all fields', () => {
+  // Arrange
+  const plan = createCompleteExecutionPlan();
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const outcomes = extractor.extractOutcomes(plan);
+
+  // Assert
+  expect(outcomes.length).toBeGreaterThan(0);
+  expect(outcomes.every(o => o.id)).toBe(true);
+  expect(outcomes.every(o => o.category)).toBe(true);
+  expect(outcomes.every(o => o.title)).toBe(true);
+});
+```
+
+**Evidence**: component-spec.yaml section 5.1
+
+---
+
+#### Test 22: Extract from StructuredRequirements
+
+```typescript
+test('should extract from StructuredRequirements directly', () => {
+  // Arrange
+  const requirements: StructuredRequirements = {
+    query: 'Build dashboard',
+    coreFeature: 'Dashboard',
+    techStack: 'React',
+    timeline: 'this-week',
+    successCriteria: [
+      'Increase retention by 20%',
+      'Reduce load time'
+    ],
+    outOfScope: [],
+    complexity: 'medium',
+    estimatedStories: 5,
+    gatheredAt: new Date().toISOString()
+  };
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const outcomes = extractor.extractFromRequirements(requirements);
+
+  // Assert
+  expect(outcomes).toHaveLength(2);
+});
+```
+
+**Evidence**: component-spec.yaml section 2.2
+
+---
+
+#### Test 23: Extract from ResearchFindings
+
+```typescript
+test('should extract from ResearchFindings', () => {
+  // Arrange
+  const research: ResearchFindings = {
+    feasibility: {
+      feasible: true,
+      approaches: [],
+      risks: [
+        { risk: 'Security vulnerability', mitigation: 'Implement authentication' }
+      ],
+      complexity: 'medium'
+    },
+    bestPractices: {
+      practices: [],
+      pitfalls: [],
+      securityConsiderations: [
+        { risk: 'Data breach', mitigation: 'Encrypt all data' }
+      ]
+    },
+    evidence: [],
+    timestamp: new Date().toISOString()
+  };
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const outcomes = extractor.extractFromResearch(research);
+
+  // Assert
+  expect(outcomes.length).toBeGreaterThan(0);
+  expect(outcomes.some(o => o.category === 'quality')).toBe(true);
+});
+```
+
+**Evidence**: component-spec.yaml section 3.1.4
+
+---
+
+#### Test 24: Combine Outcomes from Multiple Sources
+
+```typescript
+test('should combine outcomes from multiple sources', () => {
+  // Arrange
+  const plan = createCompleteExecutionPlan();
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const planOutcomes = extractor.extractOutcomes(plan);
+  const researchOutcomes = extractor.extractFromResearch(plan.research || {});
+  const combined = [...planOutcomes, ...researchOutcomes];
+
+  // Assert
+  expect(combined.length).toBeGreaterThan(0);
+  expect(new Set(combined.map(o => o.id)).size).toBe(combined.length); // unique IDs
+});
+```
+
+**Evidence**: component-spec.yaml section 3.1
+
+---
+
+#### Test 25: Generate Injection Format
+
+```typescript
+test('should inject outcomes into agent prompt format', () => {
+  // Arrange
+  const outcomes: BusinessOutcome[] = [
+    createCompleteOutcome(),
+    { ...createCompleteOutcome(), id: 'outcome-2', category: 'technical' }
+  ];
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const injection = extractor.toInjectionFormat(outcomes);
+
+  // Assert
+  expect(injection).toContain('## Business Outcomes');
+  expect(injection).toContain('### Business Outcomes');
+  expect(injection).toContain('### Technical Outcomes');
+  expect(injection).toContain('[must]');
+  expect(injection).toContain('KPIs:');
+  expect(injection).toContain('Success Criteria:');
+});
+```
+
+**Evidence**: component-spec.yaml section 3.3
+
+---
+
+#### Test 26: Integrate with Plan Skill Output
+
+```typescript
+test('should integrate with /plan skill output', () => {
+  // Arrange
+  const planGenerator = new ExecutionPlanGenerator();
+  const requirements = createSampleRequirements();
+  const research = createSampleResearch();
+
+  const plan = planGenerator.generateExecutionPlan(requirements, research);
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const outcomes = extractor.extractOutcomes(plan);
+
+  // Assert
+  expect(outcomes.length).toBeGreaterThan(0);
+  expect(outcomes.every(o => o.source.section)).toBe(true);
+});
+```
+
+**Evidence**: component-spec.yaml section 5.1
+
+---
+
+## 4. Edge Case Tests (6 tests)
+
+### 4.1 Edge Cases
+
+#### Test 27: Handle Mixed Format Criteria
+
+```typescript
+test('should handle success criteria with mixed formats', () => {
+  // Arrange
+  const criteria = [
+    'RETENTION: 20% increase',  // uppercase prefix
+    '20% - Increase retention',  // number first
+    'Increase retention (20%)',  // parenthetical
+    'Reduce load time (<2s)'     // symbolic
+  ];
+  const plan = createPlanWithCriteria(criteria);
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const outcomes = extractor.extractOutcomes(plan);
+
+  // Assert
+  expect(outcomes).toHaveLength(4);
+  outcomes.forEach(outcome => {
+    expect(outcome.title).toBeDefined();
+    expect(outcome.kpis.length).toBeGreaterThanOrEqual(0);
+  });
+});
+```
+
+**Evidence**: component-spec.yaml section 6.1
+
+---
+
+#### Test 28: Handle Unicode and Special Characters
+
+```typescript
+test('should handle unicode and special characters in KPIs', () => {
+  // Arrange
+  const criteria = [
+    'Achieve 100% user satisfaction 😊',
+    'Reduce load time to <2s (±0.1s)',
+    'Support for café, résumé, naïve'
+  ];
+  const plan = createPlanWithCriteria(criteria);
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const outcomes = extractor.extractOutcomes(plan);
+
+  // Assert
+  expect(outcomes).toHaveLength(3);
+  expect(outcomes[0].title).toContain('😊');
+});
+```
+
+**Evidence**: component-spec.yaml section 6.4
+
+---
+
+#### Test 29: Handle Very Long Criteria
+
+```typescript
+test('should handle very long success criteria (>500 chars)', () => {
+  // Arrange
+  const longCriteria = 'Increase retention by 20% '.repeat(50); // >500 chars
+  const plan = createPlanWithCriteria([longCriteria]);
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const outcomes = extractor.extractOutcomes(plan);
+
+  // Assert
+  expect(outcomes).toHaveLength(1);
+  expect(outcomes[0].description.length).toBeLessThanOrEqual(500);
+});
+```
+
+**Evidence**: component-spec.yaml section 6.4
+
+---
+
+#### Test 30: Handle Ambiguous Categorization
+
+```typescript
+test('should handle ambiguous categorization', () => {
+  // Arrange
+  const criteria = [
+    'Improve system performance'  // could be technical or business
+  ];
+  const plan = createPlanWithCriteria(criteria);
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const outcomes = extractor.extractOutcomes(plan);
+
+  // Assert
+  expect(outcomes).toHaveLength(1);
+  expect(['business', 'technical']).toContain(outcomes[0].category);
+});
+```
+
+**Evidence**: component-spec.yaml section 6.4
+
+---
+
+#### Test 31: Handle Conflicting KPIs
+
+```typescript
+test('should handle conflicting KPIs', () => {
+  // Arrange
+  const criteria = [
+    'Achieve 20% increase within 3 months',
+    'Achieve 20% increase within 6 months'  // conflicting timeframe
+  ];
+  const plan = createPlanWithCriteria(criteria);
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const outcomes = extractor.extractOutcomes(plan);
+
+  // Assert
+  expect(outcomes).toHaveLength(2);
+  // Deduplication should prevent true conflicts
+  // Or warn about conflicting timeframes
+});
+```
+
+**Evidence**: component-spec.yaml section 6.2
+
+---
+
+#### Test 32: Handle Missing Optional Fields
+
+```typescript
+test('should handle missing optional fields', () => {
+  // Arrange
+  const outcome: Partial<BusinessOutcome> = {
+    id: 'outcome-1',
+    category: 'business',
+    title: 'Test Outcome',
+    description: 'Test',
+    kpis: [],
+    successCriteria: ['Test'],
+    impactMetrics: [],
+    // priority, measurable, source missing
+  };
+  const extractor = new BusinessOutcomeExtractor();
+
+  // Act
+  const result = extractor.validateOutcomes([outcome as BusinessOutcome]);
+
+  // Assert
+  expect(result.issues.some(i => i.code === 'NO_PRIORITY')).toBe(true);
+  // Should still process, not throw
+});
+```
+
+**Evidence**: component-spec.yaml section 6.1
+
+---
+
+## 5. Test Helpers
+
+### 5.1 Factory Functions
+
+```typescript
+function createPlanWithCriteria(criteria: string[]): ExecutionPlan {
+  return {
+    execution_metadata: {
+      version: '1.0',
+      schema: 'test',
+      project: 'test-project',
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+      source: 'test',
+      researchSessionId: 'test-session'
+    },
+    requirements: {
+      query: 'Test query',
+      core_feature: 'Test feature',
+      tech_stack: 'Test stack',
+      timeline: 'flexible',
+      success_criteria: criteria,
+      out_of_scope: []
+    },
+    waves: [],
+    integration_tests: [],
+    quality_gates: []
+  };
+}
+
+function createCompleteExecutionPlan(): ExecutionPlan {
+  return {
+    execution_metadata: {
+      version: '1.0',
+      schema: 'test',
+      project: 'test-project',
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+      source: '/plan skill',
+      researchSessionId: 'session-123'
+    },
+    requirements: {
+      query: 'Build user dashboard',
+      core_feature: 'Dashboard',
+      tech_stack: 'React',
+      timeline: 'this-week',
+      success_criteria: [
+        'Increase user retention by 20%',
+        'Reduce page load time to <2s',
+        'Achieve 95% test coverage'
+      ],
+      out_of_scope: ['Mobile app']
+    },
+    waves: [],
+    integration_tests: [],
+    quality_gates: [],
+    evidence: []
+  };
+}
+
+function createSampleRequirements(): StructuredRequirements {
+  return {
+    query: 'Build dashboard',
+    coreFeature: 'Dashboard',
+    techStack: 'React',
+    timeline: 'this-week',
+    successCriteria: ['Increase retention'],
+    outOfScope: [],
+    complexity: 'medium',
+    estimatedStories: 5,
+    gatheredAt: new Date().toISOString()
+  };
+}
+
+function createSampleResearch(): ResearchFindings {
+  return {
+    feasibility: {
+      feasible: true,
+      approaches: [],
+      risks: [],
+      complexity: 'medium'
+    },
+    evidence: [],
+    timestamp: new Date().toISOString()
+  };
+}
+```
+
+---
+
+## 6. Test Execution
+
+### 6.1 Running Tests
+
+```bash
+# Run all tests
+bun test test/plan/BusinessOutcomeExtractor.test.ts
+
+# Run unit tests only
+bun test test/plan/BusinessOutcomeExtractor.test.ts --test-name-pattern="should extract|should categorize|should handle|should extract KPIs|should detect|should parse|should pass|should fail|should warn|should report"
+
+# Run integration tests only
+bun test test/plan/BusinessOutcomeExtractor.test.ts --test-name-pattern="should extract from|should combine|should inject|should integrate"
+
+# Run edge case tests only
+bun test test/plan/BusinessOutcomeExtractor.test.ts --test-name-pattern="Handle unicode|Handle very long|Handle ambiguous|Handle conflicting|Handle missing"
+
+# Run with coverage
+bun test --coverage test/plan/BusinessOutcomeExtractor.test.ts
+```
+
+### 6.2 Coverage Targets
+
+| Metric | Target | Evidence |
+|--------|--------|----------|
+| Line Coverage | ≥95% | component-spec.yaml section 7.2 |
+| Branch Coverage | ≥90% | component-spec.yaml section 7.2 |
+| Function Coverage | ≥95% | component-spec.yaml section 7.2 |
+
+### 6.3 Quality Gates
+
+```bash
+# TypeScript compilation
+pnpm typecheck  # Must have 0 errors
+
+# ESLint
+pnpm lint  # Must have 0 errors, 0 warnings
+
+# Tests
+bun test  # All 32 tests must pass
+
+# Coverage
+bun test --coverage  # Must meet targets above
+```
+
+---
+
+## 7. Test Data
+
+### 7.1 Sample Outcomes
+
+```typescript
+const sampleOutcomes: BusinessOutcome[] = [
+  {
+    id: 'outcome-1',
+    category: 'business',
+    title: 'Increase user retention by 20%',
+    description: 'Increase user retention by 20% within 6 months',
+    kpis: [
+      {
+        name: 'User Retention Rate',
+        targetValue: '20%',
+        measurementMethod: 'Cohort analysis',
+        timeframe: '6 months',
+        quantifiable: true
+      }
+    ],
+    successCriteria: [
+      'Cohort analysis shows 20% improvement in 6-month retention',
+      'Churn rate reduced by 15%'
+    ],
+    impactMetrics: [
+      {
+        name: 'Revenue Impact',
+        expectedImpact: '+$50k ARR',
+        measurement: 'Revenue analysis',
+        confidence: 0.8
+      }
+    ],
+    priority: 'must',
+    measurable: true,
+    source: {
+      section: 'requirements.success_criteria',
+      lineReference: '1'
+    }
+  },
+  {
+    id: 'outcome-2',
+    category: 'technical',
+    title: 'Reduce page load time',
+    description: 'Reduce page load time to <2 seconds',
+    kpis: [
+      {
+        name: 'Page Load Time',
+        targetValue: '<2s',
+        measurementMethod: 'Lighthouse',
+        timeframe: '3 months',
+        quantifiable: true
+      }
+    ],
+    successCriteria: [
+      '95th percentile load time <2s',
+      'Lighthouse performance score >90'
+    ],
+    impactMetrics: [],
+    priority: 'must',
+    measurable: true,
+    source: {
+      section: 'requirements.success_criteria',
+      lineReference: '2'
+    }
+  }
+];
+```
+
+---
+
+## 8. Validation
+
+### 8.1 Test Checklist
+
+- [ ] All 20 unit tests implemented
+- [ ] All 6 integration tests implemented
+- [ ] All 6 edge case tests implemented
+- [ ] Total 32 tests passing
+- [ ] Coverage ≥95% lines, ≥90% branches, ≥95% functions
+- [ ] TypeScript typecheck: 0 errors
+- [ ] ESLint: 0 errors, 0 warnings
+- [ ] All tests run in <2 seconds
+- [ ] Test helpers documented
+- [ ] Sample test data provided
+
+### 8.2 Evidence Verification
+
+Each test references:
+- **Component Spec Section**: Specific section from component-spec.yaml
+- **Expected Behavior**: What the test validates
+- **Actual Output**: Measurable assertion
+
+---
+
+## 9. Version History
+
+| Version | Date | Changes | Author |
+|---------|------|---------|--------|
+| 1.0.0 | 2026-01-08 | Initial test specification (32 tests) | Orchestrator |
+
+---
+
+**Test Specification Status**: ✅ COMPLETE
+**Total Tests**: 32 (20 unit + 6 integration + 6 edge cases)
+**Coverage Target**: ≥95%
+**Ready for Implementation**: YES

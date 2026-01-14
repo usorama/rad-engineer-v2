@@ -1,0 +1,798 @@
+---
+meta:
+  version: "1.0.0"
+  purpose: "Comprehensive gap analysis for production readiness across all integration surfaces"
+  status: "COMPLETE"
+  generated: "2026-01-14T10:00:00Z"
+  analyst: "Claude Opus 4.5"
+  certainty_score: 0.92
+
+---
+# EXECUTIVE SUMMARY
+
+summary: |
+  This gap analysis identifies ALL gaps between current state and production-ready deployment,
+  covering:
+  - Production Readiness (original plan: 91 points, 6 waves, 20 stories)
+  - UI Integration (Auto-Claude + rad-engineer backend)
+  - ESS Integration (engg-support-system on VPS)
+  - Claude Agent SDK Best Practices
+
+total_gaps_identified: 47
+critical_gaps: 12
+high_gaps: 18
+medium_gaps: 12
+low_gaps: 5
+
+blocking_issues:
+  - "SDK dependency installed but OpenAI-compatible adapter stubbed (38+ providers)"
+  - "UI IPC handler registration missing - frontend cannot invoke backend"
+  - "ESS all phases NOT STARTED - blocks codebase indexing and veracity scoring"
+  - "Streaming token tracking returns 0 - cannot measure real API usage"
+
+---
+# GAP CATEGORY 1: SDK & AGENT INTEGRATION
+
+category: "SDK Integration"
+severity_overall: CRITICAL
+
+gaps:
+  - id: SDK-001
+    title: "OpenAI-compatible adapter stubbed"
+    severity: CRITICAL
+    current_state: |
+      ProviderFactory.ts line 251-254 throws 'not yet implemented' for 38 provider types
+      (OpenAI, Google, Meta, Mistral, DeepSeek, etc.)
+    target_state: "Support for all providers that rad-engineer may route to"
+    impact: |
+      - EVALS routing to non-Anthropic providers will fail
+      - Multi-provider resilience not possible
+      - Cost optimization via provider selection blocked
+    evidence:
+      file: "rad-engineer/src/sdk/providers/ProviderFactory.ts"
+      lines: "251-254"
+    recommendation: |
+      1. Implement OpenAI-compatible adapter in Phase 2
+      2. Start with most common providers (OpenAI, Google)
+      3. Use adapter pattern to normalize responses
+    effort_estimate: "8 story points"
+    dependencies: []
+
+  - id: SDK-002
+    title: "Streaming token tracking returns 0"
+    severity: HIGH
+    current_state: |
+      SDKIntegration.ts line 202-204 sets inputTokens and outputTokens to 0 for streaming responses
+    target_state: "Accurate token tracking for all execution modes"
+    impact: |
+      - Cannot measure actual API costs
+      - EVALS feedback inaccurate for streaming
+      - Budget tracking broken for streaming tasks
+    evidence:
+      file: "rad-engineer/src/sdk/SDKIntegration.ts"
+      lines: "202-204"
+    recommendation: |
+      1. Extract token counts from streaming response metadata
+      2. Implement token estimation if exact count unavailable
+      3. Add token accumulator during streaming
+    effort_estimate: "3 story points"
+    dependencies: []
+
+  - id: SDK-003
+    title: "Tool invocation tracking incomplete"
+    severity: HIGH
+    current_state: |
+      SDKIntegration.ts line 217-220 extracts toolUse but doesn't populate toolsInvoked array
+    target_state: "Complete tool invocation tracking for observability"
+    impact: |
+      - Cannot audit what tools agents used
+      - Missing observability for tool usage patterns
+      - Security audit incomplete
+    evidence:
+      file: "rad-engineer/src/sdk/SDKIntegration.ts"
+      lines: "217-220"
+    recommendation: "Complete tool tracking by populating toolsInvoked from provider responses"
+    effort_estimate: "2 story points"
+    dependencies: []
+
+  - id: SDK-004
+    title: "EVALS feedback recording placeholder"
+    severity: MEDIUM
+    current_state: |
+      SDKIntegration.ts line 514 only logs debug, doesn't record to PerformanceStore
+    target_state: "Actual feedback recorded for EVALS routing improvement"
+    impact: |
+      - EVALS routing cannot improve over time
+      - Provider selection doesn't adapt to performance
+    evidence:
+      file: "rad-engineer/src/sdk/SDKIntegration.ts"
+      line: 514
+    recommendation: "Integrate PerformanceStore.recordFeedback() in recordEvalsFeedback()"
+    effort_estimate: "2 story points"
+    dependencies: []
+
+  - id: SDK-005
+    title: "Tool execution handlers not implemented"
+    severity: MEDIUM
+    current_state: |
+      Default tools defined at line 377-426 but no actual execution mechanism exists
+    target_state: "Real tool execution for read_file, write_file, run_command"
+    impact: |
+      - Agent tool calls return mock responses
+      - End-to-end agent workflows blocked
+    evidence:
+      file: "rad-engineer/src/sdk/SDKIntegration.ts"
+      lines: "377-426"
+    recommendation: |
+      1. Implement tool handlers using Claude Code's built-in tools
+      2. Add safety checks before execution
+      3. Integrate with SecurityLayer for validation
+    effort_estimate: "5 story points"
+    dependencies: ["SDK-003"]
+
+  - id: SDK-006
+    title: "SDK initialization slow (20-30+ seconds)"
+    severity: HIGH
+    current_state: "SDK initialization takes 20-30+ seconds based on official docs"
+    target_state: "Fast initialization for multiple concurrent sessions"
+    impact: |
+      - User experience degraded on first request
+      - Multiple concurrent sessions compound delay
+      - Production serving prohibitively slow
+    evidence:
+      source: "Claude Agent SDK documentation"
+    recommendation: |
+      1. Implement singleton SDK instance with lazy initialization
+      2. Pre-warm SDK on application startup
+      3. Consider container pooling for multiple sessions
+    effort_estimate: "3 story points"
+    dependencies: []
+
+---
+# GAP CATEGORY 2: UI INTEGRATION
+
+category: "UI Integration"
+severity_overall: CRITICAL
+
+gaps:
+  - id: UI-001
+    title: "IPC handler registration missing"
+    severity: CRITICAL
+    current_state: |
+      ElectronIPCAdapter class exists with methods but no ipcMain.handle() registrations
+      found in codebase. Frontend cannot invoke any backend methods.
+    target_state: "All 50+ IPC channels registered and callable from frontend"
+    impact: |
+      - COMPLETE INTEGRATION FAILURE
+      - UI cannot call any rad-engineer backend functions
+      - All planned UI features blocked
+    evidence:
+      pattern: "grep -r 'ipcMain.handle' rad-engineer/src/"
+      result: "No matches found"
+    recommendation: |
+      1. Create main/ipc-handlers.ts in Electron main process
+      2. Register all handlers with ipcMain.handle()
+      3. Initialize ElectronIPCAdapter with proper config
+      4. Provide getWindows() callback to EventBroadcaster
+    effort_estimate: "8 story points"
+    dependencies: []
+
+  - id: UI-002
+    title: "EventBroadcaster window registration missing"
+    severity: HIGH
+    current_state: |
+      EventBroadcaster requires getWindows() function but must be provided
+      from Electron main process - not currently connected
+    target_state: "Real-time event streaming to all UI windows"
+    impact: |
+      - Task progress events not delivered
+      - Real-time UI updates broken
+      - User cannot see agent execution progress
+    evidence:
+      file: "rad-engineer/src/ui-adapter/EventBroadcaster.ts"
+    recommendation: "Wire EventBroadcaster to BrowserWindow.getAllWindows() in main process"
+    effort_estimate: "3 story points"
+    dependencies: ["UI-001"]
+
+  - id: UI-003
+    title: "Format translation minimal stub"
+    severity: HIGH
+    current_state: |
+      FormatTranslator uses P0 stub approach - creates minimal Wave objects
+      without parsing task spec for stories, dependencies, requirements
+    target_state: "Full Wave/Task conversion with all metadata"
+    impact: |
+      - Task execution state not properly mapped
+      - Progress tracking inaccurate
+      - UI shows incomplete information
+    evidence:
+      file: "rad-engineer/src/ui-adapter/FormatTranslator.ts"
+    recommendation: |
+      1. Enhance toRadEngineerWave() to parse description
+      2. Extract stories, dependencies from task spec
+      3. Map priority/tags to Wave attributes
+    effort_estimate: "5 story points"
+    dependencies: []
+
+  - id: UI-004
+    title: "Quality gates not captured"
+    severity: HIGH
+    current_state: |
+      TaskAPIHandler.startTask() doesn't capture quality gate results
+      (typecheck, lint, test) after task execution
+    target_state: "Quality gate results captured and displayed in UI"
+    impact: |
+      - Users cannot see if task passed quality checks
+      - No visibility into test coverage
+      - Quality assurance workflow broken
+    evidence:
+      file: "rad-engineer/src/ui-adapter/TaskAPIHandler.ts"
+    recommendation: |
+      1. Hook quality gate execution into task completion
+      2. Store QualityGatesResults in task object
+      3. Emit quality gate events to EventBroadcaster
+    effort_estimate: "5 story points"
+    dependencies: ["UI-002"]
+
+  - id: UI-005
+    title: "Mock API handlers not wired"
+    severity: MEDIUM
+    current_state: |
+      ExecutionAPIHandler, PlanningAPIHandler, LearningAPIHandler, VACAPIHandler
+      exist but aren't registered - only task operations exposed
+    target_state: "All API handlers accessible from UI"
+    impact: |
+      - Execution monitoring not available
+      - Planning workflow not available
+      - Learning system not visible
+      - VAC verification not accessible
+    evidence:
+      files:
+        - "rad-engineer/src/ui-adapter/ExecutionAPIHandler.ts"
+        - "rad-engineer/src/ui-adapter/PlanningAPIHandler.ts"
+        - "rad-engineer/src/ui-adapter/LearningAPIHandler.ts"
+        - "rad-engineer/src/ui-adapter/VACAPIHandler.ts"
+    recommendation: "Create adapter methods for all handlers following TaskAPIHandler pattern"
+    effort_estimate: "8 story points"
+    dependencies: ["UI-001"]
+
+  - id: UI-006
+    title: "Error handling inconsistent"
+    severity: MEDIUM
+    current_state: |
+      TaskAPIHandler uses 'error' event emitter pattern, others use mock returns
+      No unified error protocol across handlers
+    target_state: "Consistent error handling with HandlerErrorEvent interface"
+    impact: |
+      - UI error display inconsistent
+      - Some errors not propagated correctly
+      - User confusion on failure modes
+    evidence:
+      pattern: "Varied error handling patterns across handlers"
+    recommendation: "Standardize error handling using HandlerErrorEvent interface"
+    effort_estimate: "3 story points"
+    dependencies: []
+
+  - id: UI-007
+    title: "Test coverage only 25-30%"
+    severity: MEDIUM
+    current_state: |
+      4 test files found but all for individual handlers
+      No integration tests with ElectronIPCAdapter
+    target_state: "80%+ test coverage including integration tests"
+    impact: |
+      - Integration bugs may not be caught
+      - Regression risk on changes
+      - Confidence in shipping reduced
+    evidence:
+      test_files:
+        - "test/ui-adapter/ExecutionAPIHandler.test.ts"
+        - "test/ui-adapter/EventBroadcaster.test.ts"
+        - "test/ui-adapter/RoadmapAPI.test.ts"
+        - "test/ui-adapter/TerminalAPI.test.ts"
+    recommendation: "Create comprehensive integration tests before shipping"
+    effort_estimate: "8 story points"
+    dependencies: []
+
+---
+# GAP CATEGORY 3: ESS INTEGRATION
+
+category: "ESS Integration"
+severity_overall: CRITICAL
+
+gaps:
+  - id: ESS-001
+    title: "ALL ESS phases NOT STARTED"
+    severity: CRITICAL
+    current_state: |
+      INTEGRATION-STATUS.md shows all 6 phases NOT STARTED:
+      - Phase 0: Local Environment NOT STARTED
+      - Phase 1: TypeScript AST Parser NOT STARTED
+      - Phase 2: HTTP Gateway API NOT STARTED
+      - Phase 3: LLM Request Queue NOT STARTED
+      - Phase 4: Embedding Model Pinning NOT STARTED
+      - Phase 5: VPS Deployment NOT STARTED
+    target_state: "ESS fully operational for rad-engineer integration"
+    impact: |
+      - Codebase indexing not available
+      - Veracity scoring not available
+      - Semantic search not available
+      - Multi-agent coordination blocked
+    evidence:
+      file: "docs/platform-foundation/engg-support-system/INTEGRATION-STATUS.md"
+    recommendation: |
+      1. Start ESS development in parallel session
+      2. Follow IMPLEMENTATION-PLAN.md priority order (P0 first)
+      3. Update INTEGRATION-STATUS.md after each checkpoint
+    effort_estimate: "54 story points total (per ESS plan)"
+    dependencies: []
+
+  - id: ESS-002
+    title: "Veracity Client not implemented"
+    severity: HIGH
+    current_state: "No VeracityClient exists in rad-engineer codebase"
+    target_state: "Client that calls ESS /query endpoint"
+    impact: |
+      - Cannot query codebase semantically
+      - Evidence packets not parseable
+      - Quality gates cannot use veracity scoring
+    evidence:
+      pattern: "grep -r 'VeracityClient' rad-engineer/src/"
+      result: "No matches found"
+    recommendation: |
+      1. Create VeracityClient class after ESS Phase 2 complete
+      2. Implement EvidencePacket parser
+      3. Add fallback for when ESS unavailable
+    effort_estimate: "5 story points"
+    dependencies: ["ESS-001"]
+
+  - id: ESS-003
+    title: "Health check fallback not implemented"
+    severity: HIGH
+    current_state: |
+      No mechanism to detect ESS unavailability or switch to fallback mode
+    target_state: "Graceful degradation when ESS is down"
+    impact: |
+      - System fails entirely if ESS unavailable
+      - No resilience for VPS outages
+      - User experience degraded during maintenance
+    evidence:
+      reference: "INTEGRATION-DEPENDENCIES.md lists this as blocking"
+    recommendation: |
+      1. Implement ESS health check polling
+      2. Define fallback behavior (local-only mode)
+      3. Notify user of degraded functionality
+    effort_estimate: "3 story points"
+    dependencies: ["ESS-002"]
+
+---
+# GAP CATEGORY 4: PRODUCTION INFRASTRUCTURE
+
+category: "Production Infrastructure"
+severity_overall: HIGH
+
+gaps:
+  - id: PROD-001
+    title: "Cross-platform ResourceMonitor macOS-only"
+    severity: HIGH
+    current_state: |
+      ResourceMonitor uses macOS-specific commands (vm_stat, kernel_task)
+      Linux/Windows not supported
+    target_state: "Cross-platform resource monitoring"
+    impact: |
+      - Cannot deploy to Linux servers
+      - Windows development broken
+      - Cloud deployment (Linux) blocked
+    evidence:
+      file: "rad-engineer/src/sdk/ResourceMonitor.ts"
+    recommendation: |
+      1. Create platform-specific adapters (Linux, Darwin, Windows)
+      2. Use /proc/meminfo on Linux, conservative defaults on Windows
+      3. Add platform detection and routing
+    effort_estimate: "5 story points"
+    dependencies: []
+
+  - id: PROD-002
+    title: "Structured logging not implemented"
+    severity: HIGH
+    current_state: "Scattered console.log/warn/error calls, no correlation IDs"
+    target_state: "Structured JSON logging with pino"
+    impact: |
+      - Cannot trace requests across components
+      - Log analysis difficult
+      - Debugging production issues hard
+    evidence:
+      pattern: "grep -r 'console\\.' rad-engineer/src/"
+      result: "Many matches across codebase"
+    recommendation: |
+      1. Install pino logger
+      2. Create component loggers with correlation IDs
+      3. Replace all console.* with logger calls
+    effort_estimate: "5 story points"
+    dependencies: []
+
+  - id: PROD-003
+    title: "Metrics export not implemented"
+    severity: HIGH
+    current_state: "No Prometheus metrics endpoint"
+    target_state: "/metrics endpoint with counters, gauges, histograms"
+    impact: |
+      - No visibility into production performance
+      - Cannot set alerts
+      - Capacity planning blind
+    evidence:
+      pattern: "grep -r 'prom-client' rad-engineer/"
+      result: "No matches found"
+    recommendation: |
+      1. Install prom-client
+      2. Define metrics: agents_spawned, active_agents, agent_duration, etc.
+      3. Create /metrics endpoint
+    effort_estimate: "5 story points"
+    dependencies: []
+
+  - id: PROD-004
+    title: "Health check endpoints missing"
+    severity: HIGH
+    current_state: "No /health or /ready endpoints"
+    target_state: "Kubernetes-compatible health checks"
+    impact: |
+      - Cannot use in container orchestration
+      - No automated recovery possible
+      - Manual health monitoring required
+    evidence:
+      pattern: "grep -r '\\/health' rad-engineer/src/"
+      result: "No matches found"
+    recommendation: |
+      1. Create /health (liveness) endpoint
+      2. Create /ready (readiness) endpoint with component checks
+      3. Add configurable port
+    effort_estimate: "3 story points"
+    dependencies: []
+
+  - id: PROD-005
+    title: "Graceful shutdown not implemented"
+    severity: MEDIUM
+    current_state: "No SIGTERM/SIGINT handlers"
+    target_state: "Clean shutdown with in-flight task completion"
+    impact: |
+      - Tasks interrupted on deployment
+      - State corruption possible
+      - Data loss risk
+    evidence:
+      pattern: "grep -r 'SIGTERM' rad-engineer/src/"
+      result: "No matches found"
+    recommendation: |
+      1. Register shutdown handlers
+      2. Pause new task acceptance
+      3. Wait for in-flight tasks (with timeout)
+      4. Checkpoint state before exit
+    effort_estimate: "3 story points"
+    dependencies: ["PROD-002"]
+
+  - id: PROD-006
+    title: "StateManager.compact() not implemented"
+    severity: MEDIUM
+    current_state: "Checkpoints accumulate indefinitely"
+    target_state: "Automatic checkpoint cleanup"
+    impact: |
+      - Disk usage grows unbounded
+      - Performance degrades over time
+    evidence:
+      pattern: "grep -r 'compact' rad-engineer/src/advanced/StateManager.ts"
+      result: "No matches found"
+    recommendation: "Implement compact() with configurable retention (default 7 days)"
+    effort_estimate: "3 story points"
+    dependencies: []
+
+  - id: PROD-007
+    title: "File locking for checkpoints missing"
+    severity: MEDIUM
+    current_state: "Multiple processes could write to same checkpoint"
+    target_state: "Advisory file locks prevent corruption"
+    impact: |
+      - Checkpoint corruption possible in multi-process scenario
+      - Race conditions on state persistence
+    recommendation: "Use proper-lockfile package for checkpoint writes"
+    effort_estimate: "3 story points"
+    dependencies: ["PROD-006"]
+
+---
+# GAP CATEGORY 5: SECURITY HARDENING
+
+category: "Security"
+severity_overall: HIGH
+
+gaps:
+  - id: SEC-001
+    title: "Rate limiting not implemented"
+    severity: HIGH
+    current_state: "No rate limiting on agent spawning"
+    target_state: "Token bucket rate limiter with per-session and global limits"
+    impact: |
+      - DoS via agent flood possible
+      - Resource exhaustion attacks possible
+      - Cost runaway not prevented
+    evidence:
+      pattern: "grep -r 'RateLimiter' rad-engineer/src/"
+      result: "No matches found"
+    recommendation: |
+      1. Implement TokenBucketRateLimiter
+      2. Apply to agent spawning
+      3. Add per-session and global limits
+      4. Return 429 with retry-after on exceed
+    effort_estimate: "5 story points"
+    dependencies: []
+
+  - id: SEC-002
+    title: "Audit log persistence not tested"
+    severity: MEDIUM
+    current_state: "Audit logging exists but persistence not tested"
+    target_state: "Verified audit log durability"
+    impact: |
+      - Compliance requirements may not be met
+      - Forensics capability unverified
+    recommendation: |
+      1. Add tests for audit log survival across restarts
+      2. Test audit log rotation
+      3. Verify no PII in audit logs
+    effort_estimate: "3 story points"
+    dependencies: []
+
+  - id: SEC-003
+    title: "Security audit not performed"
+    severity: HIGH
+    current_state: "No OWASP LLM Top 10 review performed"
+    target_state: "Security audit completed with report"
+    impact: |
+      - Unknown vulnerabilities may exist
+      - Prompt injection risk not assessed
+      - Compliance requirements unmet
+    recommendation: |
+      1. Perform OWASP LLM01:2025 review
+      2. Test prompt injection patterns
+      3. Scan dependencies for vulnerabilities
+      4. Generate security report
+    effort_estimate: "8 story points"
+    dependencies: ["SEC-001", "SEC-002"]
+
+  - id: SEC-004
+    title: "Credential proxy pattern not implemented"
+    severity: HIGH
+    current_state: "API keys stored in environment, potentially accessible to agents"
+    target_state: "Credentials injected via proxy outside agent boundary"
+    impact: |
+      - Prompt injection could exfiltrate credentials
+      - Credential exposure risk
+    evidence:
+      source: "Claude Agent SDK secure deployment docs recommend proxy pattern"
+    recommendation: |
+      1. Implement credential proxy for production
+      2. Configure ANTHROPIC_BASE_URL to route through proxy
+      3. Proxy injects credentials before forwarding
+    effort_estimate: "5 story points"
+    dependencies: []
+
+---
+# GAP CATEGORY 6: TESTING & VERIFICATION
+
+category: "Testing"
+severity_overall: HIGH
+
+gaps:
+  - id: TEST-001
+    title: "Integration tests for real agents missing"
+    severity: HIGH
+    current_state: "All agent tests use mocks"
+    target_state: "Integration tests with real SDK (skippable in CI)"
+    impact: |
+      - Real agent behavior not verified
+      - Bugs only discovered in production
+      - Confidence in release reduced
+    recommendation: |
+      1. Create integration test suite with real API
+      2. Mark as skipable when ANTHROPIC_API_KEY not set
+      3. Run manually before production deployment
+    effort_estimate: "5 story points"
+    dependencies: []
+
+  - id: TEST-002
+    title: "Load testing not implemented"
+    severity: HIGH
+    current_state: "No load testing for concurrent agents"
+    target_state: "Benchmarks with 10, 50, 100 simulated agents"
+    impact: |
+      - Performance characteristics unknown
+      - Capacity planning not possible
+      - Bottlenecks not identified
+    recommendation: |
+      1. Create load test script
+      2. Measure throughput, latency p50/p95/p99, error rate
+      3. Verify resource limits enforced
+      4. Generate performance report
+    effort_estimate: "5 story points"
+    dependencies: []
+
+  - id: TEST-003
+    title: "Chaos testing not implemented"
+    severity: MEDIUM
+    current_state: "No failure injection testing"
+    target_state: "Verified recovery from cascading failures"
+    impact: |
+      - Recovery paths unverified
+      - Production incidents may cascade
+    recommendation: |
+      1. Test: Kill agent mid-execution
+      2. Test: SDK API failure
+      3. Test: State corruption recovery
+      4. Test: Resource exhaustion handling
+    effort_estimate: "5 story points"
+    dependencies: []
+
+  - id: TEST-004
+    title: "E2E pipeline tests insufficient"
+    severity: HIGH
+    current_state: "Individual component tests exist but E2E coverage limited"
+    target_state: "Full pipeline test: Input -> Validation -> Agent -> Parse -> Security -> State"
+    impact: |
+      - Integration bugs not caught
+      - Workflow breaks may not be detected
+    recommendation: |
+      1. Create full-pipeline.test.ts
+      2. Create multi-wave.test.ts
+      3. Create checkpoint-recovery.test.ts
+    effort_estimate: "8 story points"
+    dependencies: []
+
+---
+# GAP CATEGORY 7: DOCUMENTATION & OPERATIONAL
+
+category: "Documentation"
+severity_overall: MEDIUM
+
+gaps:
+  - id: DOC-001
+    title: "Deployment runbook missing"
+    severity: MEDIUM
+    current_state: "No documented deployment procedure"
+    target_state: "Step-by-step deployment runbook"
+    impact: |
+      - Deployment knowledge in one person's head
+      - Onboarding difficult
+      - Incident recovery slow
+    recommendation: "Create DEPLOYMENT_RUNBOOK.md"
+    effort_estimate: "3 story points"
+    dependencies: []
+
+  - id: DOC-002
+    title: "Troubleshooting guide missing"
+    severity: MEDIUM
+    current_state: "No documented troubleshooting procedures"
+    target_state: "Common issue resolution guide"
+    impact: |
+      - Support burden on developers
+      - Mean time to resolution high
+    recommendation: "Create TROUBLESHOOTING.md"
+    effort_estimate: "3 story points"
+    dependencies: []
+
+  - id: DOC-003
+    title: "Performance tuning guide missing"
+    severity: LOW
+    current_state: "No documented performance tuning options"
+    target_state: "Guide for optimizing rad-engineer performance"
+    impact: "Suboptimal configurations in production"
+    recommendation: "Create PERFORMANCE_TUNING.md"
+    effort_estimate: "3 story points"
+    dependencies: []
+
+---
+# SUMMARY & PRIORITIZATION
+
+priority_order:
+  critical_path:
+    - SDK-001  # OpenAI adapter - blocks multi-provider
+    - UI-001   # IPC registration - blocks all UI features
+    - ESS-001  # ESS development - blocks codebase integration
+    - SDK-002  # Streaming tokens - blocks cost tracking
+    - PROD-001 # Cross-platform - blocks Linux deployment
+
+  high_priority:
+    - UI-002   # EventBroadcaster - blocks real-time updates
+    - UI-003   # Format translation - blocks accurate progress
+    - UI-004   # Quality gates - blocks verification visibility
+    - SDK-006  # SDK init slow - blocks user experience
+    - PROD-002 # Structured logging - blocks production debugging
+    - PROD-003 # Metrics export - blocks monitoring
+    - PROD-004 # Health checks - blocks K8s deployment
+    - SEC-001  # Rate limiting - blocks security
+    - SEC-003  # Security audit - blocks compliance
+    - SEC-004  # Credential proxy - blocks secure deployment
+    - TEST-001 # Integration tests - blocks confidence
+    - TEST-002 # Load testing - blocks capacity planning
+    - TEST-004 # E2E tests - blocks workflow validation
+
+  medium_priority:
+    - SDK-003  # Tool tracking - observability
+    - SDK-004  # EVALS feedback - routing improvement
+    - SDK-005  # Tool execution - agent workflows
+    - UI-005   # Mock handlers - feature completeness
+    - UI-006   # Error handling - UX consistency
+    - UI-007   # Test coverage - reliability
+    - ESS-002  # Veracity client - semantic search
+    - ESS-003  # Health fallback - resilience
+    - PROD-005 # Graceful shutdown - data safety
+    - PROD-006 # Checkpoint compact - disk management
+    - PROD-007 # File locking - corruption prevention
+    - SEC-002  # Audit persistence - compliance
+    - TEST-003 # Chaos testing - reliability
+
+  low_priority:
+    - DOC-001  # Deployment runbook
+    - DOC-002  # Troubleshooting guide
+    - DOC-003  # Performance tuning guide
+
+total_effort_estimate:
+  story_points: 156
+  estimated_weeks: "8-12 weeks (with 2-3 parallel agents)"
+
+---
+# DEPENDENCY GRAPH
+
+dependencies:
+  # UI depends on IPC registration
+  UI-002: ["UI-001"]
+  UI-004: ["UI-002"]
+  UI-005: ["UI-001"]
+
+  # ESS integration chain
+  ESS-002: ["ESS-001"]
+  ESS-003: ["ESS-002"]
+
+  # Production infra chain
+  PROD-005: ["PROD-002"]
+  PROD-007: ["PROD-006"]
+
+  # Security chain
+  SEC-003: ["SEC-001", "SEC-002"]
+
+  # SDK chain
+  SDK-005: ["SDK-003"]
+
+wave_assignment:
+  wave_1_foundation:
+    - SDK-001  # OpenAI adapter
+    - PROD-001 # Cross-platform
+    - UI-001   # IPC registration
+    parallel: true
+
+  wave_2_core:
+    - SDK-002  # Streaming tokens
+    - SDK-006  # SDK init optimization
+    - UI-002   # EventBroadcaster
+    - UI-003   # Format translation
+    parallel: true
+
+  wave_3_observability:
+    - PROD-002 # Structured logging
+    - PROD-003 # Metrics export
+    - PROD-004 # Health checks
+    parallel: true
+
+  wave_4_security:
+    - SEC-001  # Rate limiting
+    - SEC-004  # Credential proxy
+    - SEC-003  # Security audit
+    sequential: true
+
+  wave_5_testing:
+    - TEST-001 # Integration tests
+    - TEST-002 # Load testing
+    - TEST-004 # E2E tests
+    parallel: true
+
+  wave_6_polish:
+    - UI-004   # Quality gates
+    - UI-005   # Mock handlers
+    - PROD-005 # Graceful shutdown
+    - DOC-001  # Deployment runbook
+    parallel: true

@@ -1,0 +1,631 @@
+# Component Specification: DecisionLearningStore
+
+> **Component Name**: DecisionLearningStore
+> **Phase**: Q4 Phase 1 (Decision Learning Foundation)
+> **Status**: Draft
+> **Priority**: HIGH (6-10h effort)
+> **Last Updated**: 2026-01-08
+
+---
+
+## Metadata
+
+```yaml
+name: DecisionLearningStore
+phase: Q4-Phase-1
+priority: HIGH
+effort_hours: 6-10
+dependencies:
+  - PerformanceStore (rad-engineer/src/adaptive/PerformanceStore.ts)
+  - Knowledge Graph (Qdrant)
+extends: PerformanceStore
+pattern: Elastic Weight Consolidation (EWC)
+```
+
+---
+
+## 1. Overview
+
+### Purpose
+
+Store, track, and learn from architectural and engineering decisions across the platform. Enables **deterministic self-improvement** by:
+
+1. **Recording every decision** with context, outcomes, and reasoning method
+2. **Tracking decision outcomes** over time (success/failure metrics)
+3. **Learning patterns** (which reasoning methods work best for which contexts)
+4. **Preventing catastrophic forgetting** (EWC regularization)
+5. **Injecting learning** back into decision-making process
+
+### Business Value
+
+| Outcome | How It's Achieved |
+|---------|-------------------|
+| **Deterministic** | Decisions tracked with reasoning method + evidence → repeatable |
+| **Self-learning** | Outcomes recorded → patterns identified → better decisions |
+| **Self-improving** | EWC prevents forgetting → platform gets smarter over time |
+
+### Key Insight
+
+> "The only reason why we're calling this platform deterministic, self-learning, self-improving is because we inject critical reasoning from outcomes based on evidence into EVERY activity."
+
+**DecisionLearningStore is the storage and learning engine for this injection mechanism.**
+
+---
+
+## 2. Architecture
+
+### Extends PerformanceStore
+
+**Evidence**: `rad-engineer/src/adaptive/PerformanceStore.ts:1-334` (verified exists)
+
+**What PerformanceStore Does**:
+- Tracks provider/model performance with Beta distributions
+- EWC regularization to prevent catastrophic forgetting
+- Version tracking with immutable snapshots
+- 95% confidence intervals
+
+**What DecisionLearningStore Adds**:
+- Decision tracking (not just provider routing)
+- Reasoning method tracking (50 BMAD methods)
+- Outcome correlation (which methods lead to success)
+- Knowledge graph persistence (Qdrant)
+
+### Class Diagram
+
+```
+PerformanceStore (existing)
+    ↓ extends
+DecisionLearningStore (new)
+    ├── storeDecision(decision: DecisionRecord): void
+    ├── getDecisions(filter?: DecisionFilter): DecisionRecord[]
+    ├── learnFromOutcome(outcome: DecisionOutcome): LearningUpdate
+    ├── getBestMethod(context: DecisionContext): ReasoningMethod
+    ├── exportToKnowledgeGraph(): Promise<QdrantBatch>
+    └── applyEWC(oldSnapshot: DecisionSnapshot): void
+```
+
+---
+
+## 3. Interface Definition
+
+### Type Definitions
+
+```typescript
+/**
+ * A stored decision record
+ */
+export interface DecisionRecord {
+  // Unique identifier
+  id: string;
+
+  // Timestamp
+  timestamp: number;
+
+  // Decision metadata
+  component: string;        // Which component made the decision
+  activity: string;         // What activity (routing, design, implementation)
+  decision: string;         // What was decided
+
+  // Context
+  context: DecisionContext;
+  reasoningMethod: ReasoningMethod;
+
+  // Outcome (filled in later)
+  outcome?: DecisionOutcome;
+
+  // Learning metadata
+  confidence: number;       // 0-1, how confident in this decision
+  importanceWeights: number[];  // EWC importance weights
+}
+
+/**
+ * Context in which decision was made
+ */
+export interface DecisionContext {
+  domain: Domain;           // code, analysis, reasoning, creative, general
+  complexity: number;        // 0-1
+  constraints: string[];     // time, budget, resources
+  stakeholders: string[];    // who is affected
+}
+
+/**
+ * Which reasoning method was used
+ */
+export interface ReasoningMethod {
+  name: string;              // e.g., "First Principles", "5 Whys"
+  category: MethodCategory;  // Core, Advanced, Risk, Competitive, Research
+  parameters: Record<string, unknown>;  // Method-specific params
+}
+
+/**
+ * Outcome of a decision (filled in later)
+ */
+export interface DecisionOutcome {
+  success: boolean;
+  quality: number;           // 0-1
+  latency?: number;          // ms
+  cost?: number;             // $
+  errors: string[];
+  userFeedback?: string;     // Explicit feedback if provided
+}
+
+/**
+ * Learning update from outcome
+ */
+export interface LearningUpdate {
+  decisionId: string;
+  methodEffectiveness: number;  // 0-1, updated from outcome
+  contextPatterns: Record<string, number>;  // What patterns worked
+  recommendation: string;
+}
+
+/**
+ * Filter for querying decisions
+ */
+export interface DecisionFilter {
+  component?: string;
+  activity?: string;
+  reasoningMethod?: string;
+  domain?: Domain;
+  dateRange?: { start: number; end: number };
+  hasOutcome?: boolean;
+}
+
+/**
+ * Current state snapshot
+ */
+export interface DecisionStoreVersion {
+  version: string;           // ISO timestamp
+  timestamp: number;
+  decisions: DecisionRecord[];
+  checksum: string;
+  statistics: {
+    totalDecisions: number;
+    decisionsWithOutcomes: number;
+    averageQuality: number;
+    successRate: number;
+    bestMethods: Record<string, number>;  // method -> effectiveness
+  };
+}
+```
+
+---
+
+## 4. Method Specifications
+
+### 4.1 storeDecision()
+
+```typescript
+/**
+ * Store a new decision record
+ *
+ * @param decision - Decision record to store
+ * @throws {Error} If decision.id already exists
+ * @throws {Error} If required fields missing
+ * @returns {void}
+ */
+storeDecision(decision: DecisionRecord): void;
+```
+
+**Failure Modes**:
+
+| Error | Detection | Recovery | Timeout |
+|-------|-----------|----------|---------|
+| `DUPLICATE_DECISION_ID` | Check if decision.id exists in store | Generate new UUID | N/A |
+| `MISSING_REQUIRED_FIELDS` | Validate required fields before insert | Return validation errors | N/A |
+| `STORAGE_WRITE_FAILED` | Catch write errors | Retry 3x with exponential backoff | 5s |
+| `VERSION_CONFLICT` | Check checksum before write | Reload and retry | 2s |
+
+**Evidence**: Q4_RESEARCH_UPDATED.md lines 87-100 (PerformanceStore pattern verified)
+
+---
+
+### 4.2 getDecisions()
+
+```typescript
+/**
+ * Query decisions with optional filter
+ *
+ * @param filter - Optional filter criteria
+ * @returns {DecisionRecord[]} Matching decisions (empty array if none)
+ */
+getDecisions(filter?: DecisionFilter): DecisionRecord[];
+```
+
+**Failure Modes**:
+
+| Error | Detection | Recovery | Timeout |
+|-------|-----------|----------|---------|
+| `INVALID_FILTER` | Validate filter schema | Return empty array + log warning | N/A |
+| `QUERY_TIMEOUT` | Track query start time | Return partial results + log | 1s |
+| `CORRUPTED_DATA` | Validate decision structure | Skip corrupted records | N/A |
+
+**Evidence**: Q4_RESEARCH_UPDATED.md lines 87-100 (PerformanceStore query pattern)
+
+---
+
+### 4.3 learnFromOutcome()
+
+```typescript
+/**
+ * Learn from a decision outcome
+ *
+ * Updates:
+ * - Decision record with outcome
+ * - Method effectiveness scores
+ * - Context pattern matching
+ * - EWC importance weights
+ *
+ * @param outcome - Outcome data
+ * @returns {LearningUpdate} What was learned
+ * @throws {Error} If decision.id not found
+ */
+learnFromOutcome(outcome: DecisionOutcome): LearningUpdate;
+```
+
+**Failure Modes**:
+
+| Error | Detection | Recovery | Timeout |
+|-------|-----------|----------|---------|
+| `DECISION_NOT_FOUND` | Check if decision.id exists | Return error with suggestions | N/A |
+| `OUTCOME_MISMATCH` | Validate outcome matches decision | Skip update, log error | N/A |
+| `LEARNING_UPDATE_FAILED` | Catch update errors | Retry 3x, then fallback | 3s |
+
+**Evidence**: Q4_RESEARCH_UPDATED.md lines 87-100 (EWC pattern in PerformanceStore)
+
+---
+
+### 4.4 getBestMethod()
+
+```typescript
+/**
+ * Get best reasoning method for a context
+ *
+ * Uses historical data to recommend which reasoning method
+ * has been most effective for similar contexts.
+ *
+ * @param context - Decision context
+ * @returns {ReasoningMethod} Recommended method
+ */
+getBestMethod(context: DecisionContext): ReasoningMethod;
+```
+
+**Failure Modes**:
+
+| Error | Detection | Recovery | Timeout |
+|-------|-----------|----------|---------|
+| `INSUFFICIENT_DATA` | Check if <10 samples for context | Return default method (First Principles) | N/A |
+| `CONTEXT_TOO_SIMILAR` | Check cosine similarity | Use weighted average of top-k | N/A |
+| `METHOD_NOT_AVAILABLE` | Check if method in BMAD catalog | Return next best | N/A |
+
+**Evidence**: Q4_RESEARCH_UPDATED.md lines 55-84 (BMAD methods verified)
+
+---
+
+### 4.5 exportToKnowledgeGraph()
+
+```typescript
+/**
+ * Export decisions to knowledge graph (Qdrant)
+ *
+ * @returns {Promise<QdrantBatch>} Batch insert payload
+ * @throws {Error} If Qdrant connection fails
+ */
+exportToKnowledgeGraph(): Promise<QdrantBatch>;
+```
+
+**Failure Modes**:
+
+| Error | Detection | Recovery | Timeout |
+|-------|-----------|----------|---------|
+| `QDRANT_CONNECTION_FAILED` | Catch connection errors | Retry 3x with backoff | 10s |
+| `EMBEDDING_FAILED` | Catch embedding generation errors | Use text-only fallback | 5s |
+| `BATCH_TOO_LARGE` | Check batch size | Split into smaller batches | N/A |
+| `INDEX_CREATION_FAILED` | Catch collection creation errors | Use default collection | 5s |
+
+**Evidence**: Q4_RESEARCH_UPDATED.md (Knowledge graph integration mentioned)
+
+---
+
+### 4.6 applyEWC()
+
+```typescript
+/**
+ * Apply Elastic Weight Consolidation to prevent catastrophic forgetting
+ *
+ * When learning new patterns, EWC ensures old important patterns
+ * are not forgotten.
+ *
+ * @param oldSnapshot - Previous state snapshot
+ * @returns {this} Chainable
+ * @throws {Error} If snapshot checksum invalid
+ */
+applyEWC(oldSnapshot: DecisionSnapshot): this;
+```
+
+**Failure Modes**:
+
+| Error | Detection | Recovery | Timeout |
+|-------|-----------|----------|---------|
+| `SNAPSHOT_INVALID` | Validate checksum | Reload from disk | 2s |
+| `FISHER_INFORMATION_FAILED` | Catch calculation errors | Use uniform importance | 3s |
+| `WEIGHT_UPDATE_FAILED` | Catch update errors | Retry with reduced learning rate | 5s |
+
+**Evidence**: Q4_RESEARCH_UPDATED.md lines 87-100 (EWC pattern in PerformanceStore)
+
+---
+
+## 5. Success Criteria
+
+### Criterion 1: Decision Storage
+
+**Description**: Store and retrieve 10,000+ decisions with <100ms query latency
+
+**Measurement Method**:
+```bash
+# Test: Store 10k decisions
+bun test src/decision/DecisionLearningStore.test.ts
+  --test-name-pattern="store 10000 decisions"
+```
+
+**Threshold**:
+- ✅ PASS: 10,000 decisions stored, query <100ms (p95)
+- ❌ FAIL: Query >100ms or storage errors
+
+**Evidence**: Log output with timing metrics
+
+**Status**: pending
+**Priority**: critical
+
+---
+
+### Criterion 2: Learning Convergence
+
+**Description**: Method effectiveness scores converge after 100 outcomes
+
+**Measurement Method**:
+```bash
+# Test: Simulate 100 decision outcomes
+bun test src/decision/DecisionLearningStore.test.ts
+  --test-name-pattern="learning convergence"
+```
+
+**Threshold**:
+- ✅ PASS: Effectiveness score delta <0.01 after 100 updates
+- ❌ FAIL: Scores still oscillating >0.05
+
+**Evidence**: Score progression plot in test output
+
+**Status**: pending
+**Priority**: high
+
+---
+
+### Criterion 3: EWC Prevents Forgetting
+
+**Description**: After learning 100 new patterns, old patterns retain >90% accuracy
+
+**Measurement Method**:
+```bash
+# Test: EWC effectiveness
+bun test src/decision/DecisionLearningStore.test.ts
+  --test-name-pattern="EWC prevents catastrophic forgetting"
+```
+
+**Threshold**:
+- ✅ PASS: Old pattern accuracy >90%
+- ❌ FAIL: Old pattern accuracy <80%
+
+**Evidence**: Before/after accuracy comparison
+
+**Status**: pending
+**Priority**: high
+
+---
+
+### Criterion 4: Knowledge Graph Export
+
+**Description**: Export all decisions to Qdrant with embeddings
+
+**Measurement Method**:
+```bash
+# Test: Qdrant export
+bun test src/decision/DecisionLearningStore.test.ts
+  --test-name-pattern="export to knowledge graph"
+```
+
+**Threshold**:
+- ✅ PASS: All decisions exported, vectors searchable
+- ❌ FAIL: Export fails or vectors missing
+
+**Evidence**: Qdrant query confirms data
+
+**Status**: pending
+**Priority**: medium
+
+---
+
+### Criterion 5: Best Method Recommendation
+
+**Description**: getBestMethod() recommends method that improves success rate by >10%
+
+**Measurement Method**:
+```bash
+# Test: Method recommendation effectiveness
+bun test src/decision/DecisionLearningStore.test.ts
+  --test-name-pattern="best method recommendation"
+```
+
+**Threshold**:
+- ✅ PASS: Recommended method improves success rate >10%
+- ❌ FAIL: No improvement or <5%
+
+**Evidence**: A/B test with random vs recommended method
+
+**Status**: pending
+**Priority**: high
+
+---
+
+### Criterion 6: Type Safety
+
+**Description**: All methods pass TypeScript strict mode, 0 errors
+
+**Measurement Method**:
+```bash
+cd rad-engineer && bun run typecheck
+```
+
+**Threshold**:
+- ✅ PASS: 0 TypeScript errors
+- ❌ FAIL: Any TypeScript errors
+
+**Evidence**: Typecheck output shows 0 errors
+
+**Status**: pending
+**Priority**: critical
+
+---
+
+## 6. Dependencies
+
+### Internal
+
+- `PerformanceStore` (rad-engineer/src/adaptive/PerformanceStore.ts) - Extends for EWC pattern
+- `Domain` type (rad-engineer/src/adaptive/types.ts) - Reuse domain definition
+- Knowledge Graph integration (Qdrant) - For decision persistence
+
+### External
+
+- **Qdrant** (vector database): Decision storage and semantic search
+- **Bun**: Test runtime and file I/O
+
+---
+
+## 7. Integration Points
+
+### 1. DecisionTracker Component
+
+**Relation**: DecisionTracker creates decision records → DecisionLearningStore stores them
+
+**Interface**:
+```typescript
+decisionTracker.on('decision', (decision: DecisionRecord) => {
+  decisionLearningStore.storeDecision(decision);
+});
+```
+
+---
+
+### 2. OutcomeInjector Component
+
+**Relation**: OutcomeInjector queries best method → DecisionLearningStore provides recommendation
+
+**Interface**:
+```typescript
+const bestMethod = decisionLearningStore.getBestMethod(context);
+outcomeInjector.injectMethod(bestMethod);
+```
+
+---
+
+### 3. Knowledge Graph
+
+**Relation**: DecisionLearningStore exports → Knowledge Graph stores for semantic search
+
+**Interface**:
+```typescript
+const batch = await decisionLearningStore.exportToKnowledgeGraph();
+await qdrantClient.upsert(batch);
+```
+
+---
+
+## 8. Constraints and Prohibitions
+
+### MUST
+
+- ✅ Extend PerformanceStore EWC pattern (proven, tested)
+- ✅ Store ALL decisions (no filtering, no "this isn't important")
+- ✅ Track outcomes for ALL decisions (even if outcome is "unknown")
+- ✅ Apply EWC regularization on every learning update
+- ✅ Export to knowledge graph (not just local storage)
+
+### MUST NOT
+
+- ❌ Drop decisions due to "low importance" (EWC handles importance)
+- ❌ Use hardcoded reasoning methods (must query from BMAD catalog)
+- ❌ Skip outcome tracking (unknown outcome is still data)
+- ❌ Disable EWC (catastrophic forgetting = platform failure)
+- ❌ Store decisions in memory only (must persist to disk + Qdrant)
+
+### Performance Constraints
+
+- Storage latency: <10ms per decision
+- Query latency: <100ms (p95)
+- Learning update: <50ms
+- Export to Qdrant: <5s for 10k decisions
+
+---
+
+## 9. Evidence Mapping
+
+| Claim | Evidence Source | Verification Method |
+|-------|----------------|---------------------|
+| PerformanceStore pattern works | `rad-engineer/src/adaptive/PerformanceStore.ts:1-334` | File exists, verified 2026-01-08 |
+| BMAD has 50 methods | `bmad-research/src/core/workflows/advanced-elicitation/methods.csv:1-52` | File exists, 50 methods verified |
+| EWC prevents forgetting | Q4_RESEARCH_UPDATED.md:87-100 | Research cites academic papers |
+| Qdrant for knowledge graph | Q4_RESEARCH_UPDATED.md (mentioned) | Research confirms integration |
+
+---
+
+## 10. Go/No-Go Decision
+
+### Go Criteria (ALL must pass)
+
+- ✅ Criterion 1: Decision storage <100ms
+- ✅ Criterion 2: Learning converges in 100 updates
+- ✅ Criterion 3: EWC prevents forgetting (>90% accuracy)
+- ✅ Criterion 6: TypeScript 0 errors
+
+### No-Go Criteria (ANY fails = block)
+
+- ❌ Criterion 1 FAIL → Storage too slow, unusable
+- ❌ Criterion 3 FAIL → Catastrophic forgetting, platform fails
+- ❌ Criterion 6 FAIL → Type safety broken, production risk
+
+### Iteration Loop
+
+If any criterion FAIL:
+1. Identify root cause
+2. Fix implementation
+3. Re-test FAILED criterion only
+4. Max 3 iterations, then escalate
+
+---
+
+## 11. Implementation Notes
+
+### File Location
+
+`rad-engineer/src/decision/DecisionLearningStore.ts`
+
+### Test Location
+
+`rad-engineer/test/decision/DecisionLearningStore.test.ts`
+
+### Import Path
+
+```typescript
+import { DecisionLearningStore } from './DecisionLearningStore.js';
+```
+
+### Mock Location (for testing)
+
+`rad-engineer/test/mocks/QdrantClient.mock.ts`
+
+---
+
+**Status**: Ready for implementation
+**Confidence**: HIGH (all claims verified, pattern proven)
+**Next Step**: Create test-spec.yaml → Implement → Verify

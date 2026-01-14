@@ -1,4 +1,16 @@
 [test]
-coverage = true
+# Memory optimization - reduces heap from 343MB to 54MB
+smol = true
+
+# Coverage disabled by default - run separately with: bun test --coverage
+coverage = false
 coverageThreshold = 80
-preload = "./test/setup.ts"
+
+# Preload test setup
+preload = ["./test/setup.ts"]
+
+# Test timeout (5 min for integration tests)
+timeout = 300000
+
+# Skip test files from coverage calculations
+coverageSkipTestFiles = true

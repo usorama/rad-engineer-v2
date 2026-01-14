@@ -14,10 +14,12 @@ export { Anthropic };
  * Configuration for SDK initialization
  */
 export interface SDKConfig {
-  /** Anthropic API key from environment variable */
-  apiKey: string;
+  /** Anthropic API key from environment variable (optional for local providers) */
+  apiKey?: string;
   /** Model identifier (e.g., 'claude-3-5-sonnet-20241022') */
   model: string;
+  /** Custom base URL (e.g., 'https://api.z.ai/api/anthropic' for GLM) */
+  baseUrl?: string;
   /** Enable streaming responses */
   stream?: boolean;
   /** Event hooks for tool execution lifecycle */
@@ -52,6 +54,8 @@ export interface TaskContext {
  * Agent task definition
  */
 export interface AgentTask {
+  /** Schema version for forward compatibility */
+  version: "1.0";
   /** Task prompt for agent (≤500 characters enforced by PromptValidator) */
   prompt: string;
   /** Available tools for agent execution */
@@ -79,6 +83,10 @@ export interface TestResult {
   duration: number; // milliseconds
   toolsInvoked: string[];
   error: Error | null;
+  /** Provider used for this execution (when using ProviderFactory) */
+  providerUsed?: string;
+  /** Model used for this execution (when using ProviderFactory) */
+  modelUsed?: string;
 }
 
 /**

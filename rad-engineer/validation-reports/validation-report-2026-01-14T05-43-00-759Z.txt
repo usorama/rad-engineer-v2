@@ -1,0 +1,121 @@
+============================================================
+PRODUCTION VALIDATION REPORT
+============================================================
+
+Timestamp: 2026-01-14T05:43:00.759Z
+Overall Status: ⚠ WARN
+
+Total Checks: 20
+✓ Passed: 15
+✗ Failed: 0
+⚠ Warnings: 5
+
+------------------------------------------------------------
+📦 DEPENDENCIES
+------------------------------------------------------------
+
+✓ bun version check
+   bun 1.3.5 installed (>= 1.0.0)
+   Details: 1.3.5
+
+✓ node version check
+   node 25.2.1 installed (>= 20.0.0)
+   Details: 25.2.1
+
+✓ @anthropic-ai/sdk package
+   @anthropic-ai/sdk is installed
+   Details: ^0.32.0
+
+✓ zod package
+   zod is installed
+   Details: ^4.3.5
+
+✓ pino package
+   pino is installed
+   Details: ^10.1.1
+
+✓ @opentelemetry/api package
+   @opentelemetry/api is installed
+   Details: ^1.9.0
+
+------------------------------------------------------------
+⚙️ CONFIGURATION
+------------------------------------------------------------
+
+⚠ RAD_USE_REAL_AGENTS environment variable
+   Optional environment variable RAD_USE_REAL_AGENTS is not set, using defaults
+   Details: Use real Claude agents (true/false)
+
+⚠ RAD_API_KEY environment variable
+   Optional environment variable RAD_API_KEY is not set, using defaults
+   Details: Anthropic API key (required if useRealAgents=true)
+
+⚠ RAD_MAX_AGENTS environment variable
+   Optional environment variable RAD_MAX_AGENTS is not set, using defaults
+   Details: Maximum concurrent agents (1-10)
+
+⚠ RAD_TIMEOUT environment variable
+   Optional environment variable RAD_TIMEOUT is not set, using defaults
+   Details: Agent timeout in ms
+
+⚠ RAD_LOG_LEVEL environment variable
+   Optional environment variable RAD_LOG_LEVEL is not set, using defaults
+   Details: Log level (debug/info/warn/error)
+
+✓ Configuration schema validation
+   Configuration passes schema validation
+   Details: {
+  "useRealAgents": false,
+  "maxAgents": 3,
+  "timeout": 300000,
+  "logLevel": "info"
+}
+
+------------------------------------------------------------
+🔒 SECURITY
+------------------------------------------------------------
+
+✓ package.json permissions
+   package.json has appropriate permissions
+
+✓ tsconfig.json permissions
+   tsconfig.json has appropriate permissions
+
+------------------------------------------------------------
+📁 FILESYSTEM
+------------------------------------------------------------
+
+✓ package.json file
+   package.json exists and is readable
+   Details: Package manifest
+
+✓ tsconfig.json file
+   tsconfig.json exists and is readable
+   Details: TypeScript configuration
+
+✓ src dir
+   src exists and is readable
+   Details: Source directory
+
+✓ src/config dir
+   src/config exists and is readable
+   Details: Configuration directory
+
+✓ src/observability dir
+   src/observability exists and is readable
+   Details: Observability directory
+
+✓ test dir
+   test exists and is readable
+   Details: Test directory
+
+============================================================
+SUMMARY
+============================================================
+
+Total checks: 20
+Passed: 15
+Failed: 0
+Warnings: 5
+
+⚠ System has warnings but may be production-ready
