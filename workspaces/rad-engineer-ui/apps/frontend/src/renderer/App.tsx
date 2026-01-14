@@ -44,7 +44,7 @@ import { GitLabMergeRequests } from './components/gitlab-merge-requests';
 import { Changelog } from './components/Changelog';
 import { Worktrees } from './components/Worktrees';
 import { AgentTools } from './components/AgentTools';
-import { ExecutionDashboardEnhanced } from './components';
+import { ExecutionDashboardEnhanced, Monitoring } from './components';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { RateLimitModal } from './components/RateLimitModal';
 import { SDKRateLimitModal } from './components/SDKRateLimitModal';
@@ -895,6 +895,7 @@ export function App() {
                     recentEvents={[]}
                   />
                 )}
+                {activeView === 'monitoring' && <Monitoring />}
               </>
             ) : (
               <WelcomeScreen

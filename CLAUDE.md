@@ -378,18 +378,22 @@ flock -w 300 "$LOCK" sh -c 'bun run typecheck && bun run lint && bun test'
 | VerificationReport | ✅ VerificationReporter | ✅ Component | ✅ Via Dashboard | Integrated |
 | StepReplay | ✅ ResumeDecisionEngine | ✅ Component | ✅ Via Dashboard | Integrated |
 | ExecutionDashboardEnhanced | ✅ DashboardDataProvider | ✅ Component | ✅ Sidebar + App.tsx | **COMPLETE** |
-| Prometheus | ✅ Running on :9091 | ❌ No embed | ❌ No nav | External service |
-| Grafana | ✅ Running on :3001 | ❌ No embed | ❌ No nav | External service |
+| Prometheus | ✅ Running on :9091 | ✅ Embedded iframe | ✅ Sidebar (O) | **COMPLETE** |
+| Grafana | ✅ Running on :3001 | ✅ Embedded iframe | ✅ Sidebar (O) | **COMPLETE** |
 
 **Completed UI Integration Steps**:
 1. ✅ Added 'execution' to SidebarView type in Sidebar.tsx
-2. ✅ Added navigation item with Activity icon and 'E' shortcut
+2. ✅ Added execution navigation item with Activity icon and 'E' shortcut
 3. ✅ Added i18n keys for execution in en/fr navigation.json
 4. ✅ Wired ExecutionDashboardEnhanced into App.tsx activeView switch
-5. ✅ Frontend builds successfully (3175 modules)
+5. ✅ Added 'monitoring' to SidebarView type
+6. ✅ Added monitoring navigation item with Gauge icon and 'O' shortcut
+7. ✅ Added i18n keys for monitoring in en/fr navigation.json
+8. ✅ Created Monitoring.tsx component with Grafana/Prometheus iframe embeds
+9. ✅ Wired Monitoring into App.tsx activeView switch
+10. ✅ Frontend builds successfully (3176 modules)
 
-**Optional Future Enhancement**:
-- Consider embedding Grafana via iframe for metrics visualization
+**All UI Integration Complete** - Execution Dashboard + Monitoring (Grafana/Prometheus) fully integrated.
 
 ### Skills
 - **Execute Skill**: `.claude/skills/execute/SKILL.md` (deterministic execution)

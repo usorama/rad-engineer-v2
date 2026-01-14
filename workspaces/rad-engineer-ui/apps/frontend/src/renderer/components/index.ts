@@ -12,6 +12,7 @@ export * from './Changelog';
 export * from './WelcomeScreen';
 export * from './EnvConfigModal';
 export * from './AddProjectModal';
+export * from './Monitoring';
 
 // Execution components (Phase 7: Step-level visibility)
 export { default as StepTimeline } from './execution/StepTimeline';
