@@ -43,4 +43,5 @@ test-checkpoints-*/
 # Audit logs (SecurityLayer)
 .audit/
 bmad-research/
-workspaces/
+
+# Note: workspaces/Auto-Claude is now integrated into rad-engineer

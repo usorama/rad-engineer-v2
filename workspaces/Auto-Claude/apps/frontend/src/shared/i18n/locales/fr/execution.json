@@ -1,0 +1,99 @@
+{
+  "tabs": {
+    "overview": "Aperçu",
+    "waves": "Vagues",
+    "timeline": "Chronologie"
+  },
+  "status": {
+    "pending": "En attente",
+    "running": "En cours",
+    "completed": "Terminé",
+    "failed": "Échoué",
+    "idle": "Inactif"
+  },
+  "labels": {
+    "waveNumber": "Vague {{number}}",
+    "agentCount": "{{count}} agent",
+    "agentCount_plural": "{{count}} agents",
+    "progress": "Progrès: {{percent}}%",
+    "startedAt": "Démarré à {{time}}",
+    "completedAt": "Terminé à {{time}}",
+    "duration": "Durée: {{duration}}"
+  },
+  "noWaves": "Aucune vague d'exécution pour le moment",
+  "errors": {
+    "fetchFailed": "Échec du chargement de l'état d'exécution",
+    "agentStatusFailed": "Échec du chargement de l'état des agents",
+    "stateMachineFailed": "Échec du chargement de l'état de la machine d'états"
+  },
+  "overview": {
+    "title": "Aperçu de l'exécution",
+    "totalWaves": "Vagues totales",
+    "currentWave": "Vague actuelle",
+    "completedWaves": "Vagues terminées",
+    "totalAgents": "Agents totaux"
+  },
+  "agentMonitor": {
+    "title": "Agents actifs",
+    "noActiveAgents": "Aucun agent actif",
+    "cpuUsage": "CPU: {{percent}}%",
+    "memoryUsage": "Mémoire: {{mb}}MB",
+    "currentTask": "Tâche en cours",
+    "noTask": "Inactif",
+    "elapsed": "Écoulé: {{time}}"
+  },
+  "qualityGates": {
+    "title": "Portes de qualité",
+    "noGates": "Aucune porte de qualité exécutée pour le moment",
+    "types": {
+      "typecheck": "Vérification TypeScript",
+      "lint": "Vérification lint",
+      "test": "Tests"
+    },
+    "status": {
+      "passed": "Réussi",
+      "failed": "Échoué",
+      "running": "En cours",
+      "pending": "En attente"
+    },
+    "duration": "Durée: {{duration}}ms",
+    "errors": {
+      "fetchFailed": "Échec du chargement des portes de qualité"
+    }
+  },
+  "stateMachine": {
+    "title": "Machine d'états",
+    "noStates": "Aucune donnée de machine d'états disponible",
+    "currentState": "État actuel: {{state}}",
+    "stateStatus": {
+      "pending": "En attente",
+      "active": "Actif",
+      "completed": "Terminé",
+      "failed": "Échoué"
+    }
+  },
+  "errorRecovery": {
+    "title": "Récupération d'erreur",
+    "noErrors": "Aucune erreur à récupérer",
+    "errorMessage": "Erreur: {{message}}",
+    "failedStep": "Étape échouée: {{step}}",
+    "availableCheckpoints": "Points de contrôle disponibles",
+    "loading": "Chargement...",
+    "fetchFailed": "Échec du chargement de l'état de récupération d'erreur",
+    "actions": {
+      "retryWave": "Réessayer la vague",
+      "retryTask": "Réessayer la tâche",
+      "restoreCheckpoint": "Restaurer le point de contrôle"
+    },
+    "confirm": {
+      "retryWaveTitle": "Réessayer la vague?",
+      "retryWaveMessage": "Cela réessaiera toute la vague. Tout progrès dans cette vague sera perdu. Êtes-vous sûr?",
+      "retryTaskTitle": "Réessayer la tâche?",
+      "retryTaskMessage": "Cela réessaiera uniquement la tâche échouée. Êtes-vous sûr?",
+      "restoreCheckpointTitle": "Restaurer le point de contrôle?",
+      "restoreCheckpointMessage": "Cela restaurera le système au point de contrôle \"{{checkpoint}}\". Tout progrès après ce point de contrôle sera perdu. Êtes-vous sûr?",
+      "cancel": "Annuler",
+      "confirm": "Confirmer"
+    }
+  }
+}

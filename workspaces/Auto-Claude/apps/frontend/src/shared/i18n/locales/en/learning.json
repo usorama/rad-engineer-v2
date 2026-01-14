@@ -1,0 +1,101 @@
+{
+  "dashboard": {
+    "title": "Learning Dashboard",
+    "subtitle": "Track quality metrics and knowledge consolidation",
+    "tabs": {
+      "trends": "Quality Trends",
+      "patterns": "Learning Patterns",
+      "timeline": "Timeline"
+    },
+    "errors": {
+      "loadTrends": "Failed to load quality trends",
+      "loadCurves": "Failed to load learning curves",
+      "noData": "No data available"
+    },
+    "charts": {
+      "qualityScore": "Quality Score",
+      "time": "Time",
+      "shortTerm": "Short Term",
+      "mediumTerm": "Medium Term",
+      "longTerm": "Long Term",
+      "knowledgeConsolidation": "Knowledge Consolidation"
+    }
+  },
+  "patterns": {
+    "title": "Pattern Browser",
+    "searchPlaceholder": "Search patterns...",
+    "empty": "No patterns found",
+    "errors": {
+      "loadFailed": "Failed to load patterns"
+    },
+    "filters": {
+      "category": "Category",
+      "confidence": "Confidence",
+      "minConfidence": "Minimum Confidence",
+      "clear": "Clear Filters"
+    },
+    "card": {
+      "confidence": "Confidence",
+      "appliedCount": "Applied",
+      "successRate": "Success Rate",
+      "times": "times"
+    }
+  },
+  "timeline": {
+    "title": "Decision Timeline",
+    "subtitle": "Chronological history of decision-making outcomes",
+    "noDecisions": "No decisions recorded yet",
+    "errors": {
+      "loadDecisions": "Failed to load decision history"
+    },
+    "outcomes": {
+      "success": "Success",
+      "adjusted": "Adjusted",
+      "failed": "Failed"
+    },
+    "metrics": {
+      "quality": "Quality",
+      "confidence": "Confidence",
+      "impact": "Impact"
+    },
+    "methods": {
+      "VAC": "VAC",
+      "EWC": "EWC",
+      "Hybrid": "Hybrid"
+    }
+  },
+  "methodSelector": {
+    "title": "Select Learning Method",
+    "subtitle": "Choose a BMAD method to optimize your learning approach",
+    "searchPlaceholder": "Search methods by name or description...",
+    "filters": {
+      "domain": "Filter by Domain",
+      "allDomains": "All Domains",
+      "effectiveness": "Minimum Effectiveness"
+    },
+    "catalog": {
+      "noMethods": "No methods match your filters"
+    },
+    "card": {
+      "effectiveness": "Effectiveness"
+    },
+    "details": {
+      "title": "Method Details",
+      "domain": "Domain",
+      "effectiveness": "Effectiveness",
+      "description": "Description",
+      "research": "Research Backing",
+      "whenToUse": "When to Use"
+    },
+    "actions": {
+      "confirm": "Confirm Selection",
+      "cancel": "Cancel",
+      "back": "Back to Catalog"
+    },
+    "success": "Method selected successfully",
+    "errors": {
+      "selectFailed": "Failed to select method",
+      "loadFailed": "Failed to load methods"
+    }
+  }
+}

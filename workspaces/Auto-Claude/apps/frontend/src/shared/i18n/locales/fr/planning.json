@@ -1,0 +1,178 @@
+{
+  "intake": {
+    "wizard": {
+      "title": "Prise d'informations pour la planification du projet",
+      "loading": "Chargement des questions...",
+      "error": "Échec du chargement des questions",
+      "submitting": "Envoi en cours...",
+      "progressLabel": "Étape {{current}} sur {{total}}",
+      "progressAriaLabel": "Progression de la prise d'informations : étape {{current}} sur {{total}}"
+    },
+    "buttons": {
+      "next": "Suivant",
+      "back": "Retour",
+      "review": "Réviser les réponses",
+      "submit": "Soumettre",
+      "cancel": "Annuler",
+      "edit": "Modifier"
+    },
+    "step": {
+      "answerRequired": "Ce champ est obligatoire",
+      "textPlaceholder": "Entrez votre réponse...",
+      "textareaPlaceholder": "Entrez des informations détaillées..."
+    },
+    "summary": {
+      "title": "Révisez vos réponses",
+      "description": "Veuillez réviser vos réponses avant de soumettre. Cliquez sur 'Modifier' pour apporter des modifications à n'importe quelle question.",
+      "question": "Question {{number}}",
+      "answer": "Réponse",
+      "noAnswer": "Aucune réponse fournie"
+    },
+    "errors": {
+      "initializationFailed": "Échec de l'initialisation : {{error}}",
+      "submissionFailed": "Échec de l'envoi des réponses : {{error}}",
+      "genericError": "Une erreur s'est produite. Veuillez réessayer."
+    },
+    "success": {
+      "submitted": "Vos réponses ont été soumises avec succès !"
+    }
+  },
+  "research": {
+    "title": "Progrès de la recherche",
+    "loading": "Chargement du statut de la recherche...",
+    "error": "Échec du chargement des données de recherche",
+    "noAgents": "Aucun agent de recherche trouvé",
+    "status": {
+      "pending": "En attente",
+      "running": "En cours",
+      "completed": "Terminé",
+      "failed": "Échoué"
+    },
+    "agent": {
+      "progress": "{{progress}}% terminé"
+    },
+    "findings": {
+      "title": "Résultats",
+      "noFindings": "Aucun résultat pour le moment",
+      "category": {
+        "context": "Contexte",
+        "requirements": "Exigences",
+        "research": "Recherche",
+        "analysis": "Analyse"
+      }
+    }
+  },
+  "visualizer": {
+    "tabs": {
+      "graph": "Graphe de dépendances",
+      "timeline": "Chronologie",
+      "list": "Liste des stories"
+    },
+    "graph": {
+      "title": "Dépendances des stories",
+      "noStories": "Aucune story à afficher"
+    },
+    "timeline": {
+      "title": "Chronologie des vagues",
+      "noWaves": "Aucune vague définie",
+      "dateRange": "{{start}} - {{end}}"
+    },
+    "list": {
+      "title": "Toutes les stories",
+      "noStories": "Aucune story disponible",
+      "columns": {
+        "id": "ID",
+        "title": "Titre",
+        "wave": "Vague",
+        "status": "Statut"
+      },
+      "status": {
+        "pending": "En attente",
+        "in_progress": "En cours",
+        "completed": "Terminé",
+        "blocked": "Bloqué"
+      }
+    },
+    "empty": {
+      "title": "Aucune donnée de plan",
+      "description": "Créez un plan pour visualiser les dépendances et la chronologie"
+    }
+  },
+  "approval": {
+    "title": "Approbation du plan",
+    "description": "Examiner et approuver ou rejeter le plan de mise en œuvre",
+    "summary": {
+      "title": "Résumé du plan",
+      "subtasks": "Total des sous-tâches",
+      "phases": "Phases",
+      "effort": "Effort estimé",
+      "hours": "{{count}} heures"
+    },
+    "comments": {
+      "title": "Commentaires et retours",
+      "placeholder": "Ajoutez des commentaires ou des retours (facultatif)...",
+      "characterCount": "{{count}}/{{max}} caractères",
+      "maxLength": "Le commentaire ne peut pas dépasser {{max}} caractères"
+    },
+    "buttons": {
+      "approve": "Approuver le plan",
+      "reject": "Rejeter le plan",
+      "confirm": "Confirmer",
+      "cancel": "Annuler"
+    },
+    "dialog": {
+      "approve": {
+        "title": "Confirmer l'approbation",
+        "description": "Êtes-vous sûr de vouloir approuver ce plan ? Cela démarrera le processus de mise en œuvre.",
+        "warning": "Cette action ne peut pas être annulée."
+      },
+      "reject": {
+        "title": "Confirmer le rejet",
+        "description": "Êtes-vous sûr de vouloir rejeter ce plan ? Vous devrez créer un nouveau plan.",
+        "warning": "Cette action ne peut pas être annulée."
+      }
+    },
+    "success": {
+      "approved": "Plan approuvé avec succès !",
+      "rejected": "Plan rejeté avec succès !"
+    },
+    "errors": {
+      "approveFailed": "Échec de l'approbation du plan : {{error}}",
+      "rejectFailed": "Échec du rejet du plan : {{error}}"
+    }
+  },
+  "editor": {
+    "title": "Éditeur de plan",
+    "yaml": {
+      "label": "Contenu YAML",
+      "placeholder": "Saisissez votre plan au format YAML...",
+      "characters": "{{count}} caractères"
+    },
+    "validation": {
+      "title": "Validation",
+      "valid": "Valide",
+      "invalid": "Invalide",
+      "errors": "Erreurs",
+      "warnings": "Avertissements",
+      "noErrors": "Aucune erreur de validation",
+      "noWarnings": "Aucun avertissement de validation",
+      "validating": "Validation en cours..."
+    },
+    "preview": {
+      "title": "Aperçu",
+      "empty": "Aucun contenu de plan",
+      "emptyDescription": "Commencez à taper pour voir un aperçu de votre plan"
+    },
+    "actions": {
+      "save": "Enregistrer",
+      "saving": "Enregistrement...",
+      "saved": "Enregistré avec succès",
+      "cancel": "Annuler"
+    },
+    "errors": {
+      "saveFailed": "Échec de l'enregistrement du plan : {{error}}",
+      "validationFailed": "Échec de la validation du plan : {{error}}",
+      "genericError": "Une erreur s'est produite. Veuillez réessayer."
+    }
+  }
+}

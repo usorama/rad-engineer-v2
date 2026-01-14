@@ -1,0 +1,81 @@
+{
+  "dashboard": {
+    "title": "Tableau de Bord d'Apprentissage",
+    "subtitle": "Suivre les métriques de qualité et la consolidation des connaissances",
+    "tabs": {
+      "trends": "Tendances de Qualité",
+      "patterns": "Modèles d'Apprentissage",
+      "timeline": "Chronologie"
+    },
+    "errors": {
+      "loadTrends": "Échec du chargement des tendances de qualité",
+      "loadCurves": "Échec du chargement des courbes d'apprentissage",
+      "noData": "Aucune donnée disponible"
+    },
+    "charts": {
+      "qualityScore": "Score de Qualité",
+      "time": "Temps",
+      "shortTerm": "Court Terme",
+      "mediumTerm": "Moyen Terme",
+      "longTerm": "Long Terme",
+      "knowledgeConsolidation": "Consolidation des Connaissances"
+    }
+  },
+  "timeline": {
+    "title": "Chronologie des Décisions",
+    "subtitle": "Historique chronologique des résultats de prise de décision",
+    "noDecisions": "Aucune décision enregistrée pour le moment",
+    "errors": {
+      "loadDecisions": "Échec du chargement de l'historique des décisions"
+    },
+    "outcomes": {
+      "success": "Succès",
+      "adjusted": "Ajusté",
+      "failed": "Échec"
+    },
+    "metrics": {
+      "quality": "Qualité",
+      "confidence": "Confiance",
+      "impact": "Impact"
+    },
+    "methods": {
+      "VAC": "VAC",
+      "EWC": "EWC",
+      "Hybrid": "Hybride"
+    }
+  },
+  "methodSelector": {
+    "title": "Sélectionner une Méthode d'Apprentissage",
+    "subtitle": "Choisissez une méthode BMAD pour optimiser votre approche d'apprentissage",
+    "searchPlaceholder": "Rechercher des méthodes par nom ou description...",
+    "filters": {
+      "domain": "Filtrer par Domaine",
+      "allDomains": "Tous les Domaines",
+      "effectiveness": "Efficacité Minimale"
+    },
+    "catalog": {
+      "noMethods": "Aucune méthode ne correspond à vos filtres"
+    },
+    "card": {
+      "effectiveness": "Efficacité"
+    },
+    "details": {
+      "title": "Détails de la Méthode",
+      "domain": "Domaine",
+      "effectiveness": "Efficacité",
+      "description": "Description",
+      "research": "Recherche Scientifique",
+      "whenToUse": "Quand Utiliser"
+    },
+    "actions": {
+      "confirm": "Confirmer la Sélection",
+      "cancel": "Annuler",
+      "back": "Retour au Catalogue"
+    },
+    "success": "Méthode sélectionnée avec succès",
+    "errors": {
+      "selectFailed": "Échec de la sélection de la méthode",
+      "loadFailed": "Échec du chargement des méthodes"
+    }
+  }
+}

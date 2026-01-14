@@ -1,0 +1,74 @@
+{
+  "contracts": {
+    "title": "VAC Contracts",
+    "description": "Browse and manage Verifiable Agentic Contracts",
+    "loading": "Loading contracts...",
+    "error": "Failed to load contracts",
+    "empty": {
+      "title": "No contracts found",
+      "description": "Create your first VAC contract to ensure deterministic code verification"
+    },
+    "noResults": "No contracts match your search",
+    "searchPlaceholder": "Search contracts by name...",
+    "status": {
+      "all": "All",
+      "verified": "Verified",
+      "pending": "Pending",
+      "failed": "Failed"
+    },
+    "preconditions": "Preconditions",
+    "postconditions": "Postconditions",
+    "invariants": "Invariants",
+    "createdAt": "Created {{date}}"
+  },
+  "runner": {
+    "title": "Verification Runner",
+    "selectContract": "Select a contract to verify",
+    "runVerification": "Run Verification",
+    "running": "Running verification...",
+    "error": "Verification failed. Please try again.",
+    "history": {
+      "title": "Verification History",
+      "empty": "No verification runs yet"
+    }
+  },
+  "results": {
+    "title": "Verification Results",
+    "timestamp": "Verified at",
+    "preconditions": "Preconditions",
+    "postconditions": "Postconditions",
+    "invariants": "Invariants",
+    "summary": "Summary",
+    "conditionsTested": "conditions tested",
+    "failureCount": "Failures",
+    "status": {
+      "passed": "Passed",
+      "failed": "Failed"
+    }
+  },
+  "drift": {
+    "title": "Drift Detection",
+    "description": "Monitor code drift from verified contracts",
+    "loading": "Checking for drift...",
+    "error": "Failed to load drift data",
+    "currentRate": "Current Drift Rate",
+    "trend": "Drift Trend",
+    "noData": "No drift data available"
+  },
+  "astComparison": {
+    "title": "AST Comparison",
+    "description": "Compare Abstract Syntax Trees of code files",
+    "selectFiles": "Select Files to Compare",
+    "file1Placeholder": "Path to first file...",
+    "file2Placeholder": "Path to second file...",
+    "compareButton": "Compare",
+    "comparing": "Comparing files...",
+    "error": "Failed to compare files",
+    "codeDiff": "Code Differences",
+    "structuralSimilarity": "Structural Similarity",
+    "contentSimilarity": "Content Similarity",
+    "addedLines": "Added Lines",
+    "removedLines": "Removed Lines",
+    "noChanges": "No differences found"
+  }
+}

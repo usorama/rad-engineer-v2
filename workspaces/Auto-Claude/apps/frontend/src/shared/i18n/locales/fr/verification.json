@@ -1,0 +1,74 @@
+{
+  "contracts": {
+    "title": "Contrats VAC",
+    "description": "Parcourir et gérer les contrats agentiques vérifiables",
+    "loading": "Chargement des contrats...",
+    "error": "Échec du chargement des contrats",
+    "empty": {
+      "title": "Aucun contrat trouvé",
+      "description": "Créez votre premier contrat VAC pour assurer une vérification de code déterministe"
+    },
+    "noResults": "Aucun contrat ne correspond à votre recherche",
+    "searchPlaceholder": "Rechercher des contrats par nom...",
+    "status": {
+      "all": "Tous",
+      "verified": "Vérifié",
+      "pending": "En attente",
+      "failed": "Échoué"
+    },
+    "preconditions": "Préconditions",
+    "postconditions": "Postconditions",
+    "invariants": "Invariants",
+    "createdAt": "Créé {{date}}"
+  },
+  "runner": {
+    "title": "Exécuteur de Vérification",
+    "selectContract": "Sélectionnez un contrat à vérifier",
+    "runVerification": "Exécuter la Vérification",
+    "running": "Vérification en cours...",
+    "error": "La vérification a échoué. Veuillez réessayer.",
+    "history": {
+      "title": "Historique de Vérification",
+      "empty": "Aucune exécution de vérification pour le moment"
+    }
+  },
+  "results": {
+    "title": "Résultats de Vérification",
+    "timestamp": "Vérifié à",
+    "preconditions": "Préconditions",
+    "postconditions": "Postconditions",
+    "invariants": "Invariants",
+    "summary": "Résumé",
+    "conditionsTested": "conditions testées",
+    "failureCount": "Échecs",
+    "status": {
+      "passed": "Réussi",
+      "failed": "Échoué"
+    }
+  },
+  "drift": {
+    "title": "Détection de Dérive",
+    "description": "Surveiller la dérive du code par rapport aux contrats vérifiés",
+    "loading": "Vérification de la dérive...",
+    "error": "Échec du chargement des données de dérive",
+    "currentRate": "Taux de Dérive Actuel",
+    "trend": "Tendance de Dérive",
+    "noData": "Aucune donnée de dérive disponible"
+  },
+  "astComparison": {
+    "title": "Comparaison AST",
+    "description": "Comparer les arbres syntaxiques abstraits des fichiers de code",
+    "selectFiles": "Sélectionner les fichiers à comparer",
+    "file1Placeholder": "Chemin vers le premier fichier...",
+    "file2Placeholder": "Chemin vers le deuxième fichier...",
+    "compareButton": "Comparer",
+    "comparing": "Comparaison des fichiers...",
+    "error": "Échec de la comparaison des fichiers",
+    "codeDiff": "Différences de code",
+    "structuralSimilarity": "Similarité structurelle",
+    "contentSimilarity": "Similarité de contenu",
+    "addedLines": "Lignes ajoutées",
+    "removedLines": "Lignes supprimées",
+    "noChanges": "Aucune différence trouvée"
+  }
+}

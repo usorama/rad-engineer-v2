@@ -1,0 +1,218 @@
+{
+  "tabs": {
+    "overview": "Overview",
+    "waves": "Waves",
+    "timeline": "Timeline",
+    "steps": "Steps",
+    "replay": "Replay",
+    "decisions": "Decisions",
+    "verification": "Verification"
+  },
+  "actions": {
+    "pause": "Pause",
+    "resume": "Resume",
+    "checkpoint": "Checkpoint",
+    "decisions": "Decisions"
+  },
+  "currentStep": {
+    "title": "Current Step",
+    "phase": "Phase",
+    "attempt": "Attempt",
+    "progress": "Progress",
+    "noActiveStep": "No active step"
+  },
+  "stepTimeline": {
+    "title": "Step Timeline"
+  },
+  "steps": {
+    "noSteps": "No steps to display",
+    "hasCheckpoint": "Has checkpoint",
+    "status": {
+      "pending": "Pending",
+      "executing": "Executing",
+      "completed": "Completed",
+      "failed": "Failed",
+      "skipped": "Skipped"
+    }
+  },
+  "step": {
+    "phase": {
+      "pending": "Pending",
+      "preconditions": "Preconditions",
+      "executing": "Executing",
+      "postconditions": "Postconditions",
+      "completed": "Completed",
+      "failed": "Failed"
+    }
+  },
+  "loop": {
+    "status": {
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "iteration": "Iteration {{current}}/{{max}}",
+    "exitConditions": "Exit Conditions",
+    "recentIterations": "Recent Iterations",
+    "forceExit": "Force Exit",
+    "estimatedRemaining": "Est. remaining: {{time}}"
+  },
+  "decisions": {
+    "searchPlaceholder": "Search decisions...",
+    "allCategories": "All Categories",
+    "noDecisions": "No decisions recorded",
+    "noMatchingDecisions": "No matching decisions",
+    "rationale": "Rationale",
+    "alternatives": "Alternatives Considered",
+    "exportMarkdown": "Export Markdown"
+  },
+  "replay": {
+    "availableCheckpoints": "Available Checkpoints",
+    "noCheckpoints": "No checkpoints available",
+    "selectCheckpoint": "Select a checkpoint to view details",
+    "checkpointDetails": "Checkpoint Details",
+    "memoryContext": "Memory Context",
+    "gitCommit": "Git Commit",
+    "filesModified": "Files Modified",
+    "resumeFromCheckpoint": "Resume from Selected Checkpoint",
+    "options": "Replay Options",
+    "recommendation": {
+      "title": "Recommendation",
+      "resume": "Resume",
+      "skip": "Skip Step",
+      "restart": "Restart",
+      "abort": "Abort",
+      "confidence": "Confidence"
+    },
+    "options": {
+      "skipFailedStep": "Skip failed step",
+      "restoreFiles": "Restore file system state",
+      "restoreGit": "Restore git state"
+    }
+  },
+  "verification": {
+    "title": "Verification Report",
+    "statusVerified": "VERIFIED",
+    "statusFailed": "FAILED",
+    "statusPartial": "PARTIAL",
+    "statusUnknown": "Unknown",
+    "certaintyScore": "Certainty Score",
+    "generatedAt": "Generated",
+    "stepVerification": "Step Verification Summary",
+    "step": "Step",
+    "preconditions": "Preconditions",
+    "postconditions": "Postconditions",
+    "qualityGates": "Quality Gates",
+    "downloadJson": "Download JSON",
+    "downloadPdf": "Download PDF",
+    "shareLink": "Share Link",
+    "totalSteps": "Total Steps",
+    "verifiedSteps": "Verified",
+    "totalGates": "Quality Gates",
+    "passedGates": "Passed",
+    "pending": "Pending",
+    "lastChecked": "Last checked"
+  },
+  "metrics": {
+    "title": "Metrics",
+    "stepsCompleted": "Steps Completed",
+    "firstPassRate": "First Pass Rate",
+    "avgDuration": "Avg Duration"
+  },
+  "events": {
+    "title": "Recent Events"
+  },
+  "status": {
+    "pending": "Pending",
+    "running": "Running",
+    "completed": "Completed",
+    "failed": "Failed",
+    "idle": "Idle"
+  },
+  "labels": {
+    "waveNumber": "Wave {{number}}",
+    "agentCount": "{{count}} agent",
+    "agentCount_plural": "{{count}} agents",
+    "progress": "Progress: {{percent}}%",
+    "startedAt": "Started at {{time}}",
+    "completedAt": "Completed at {{time}}",
+    "duration": "Duration: {{duration}}"
+  },
+  "noWaves": "No execution waves yet",
+  "errors": {
+    "fetchFailed": "Failed to load execution status",
+    "agentStatusFailed": "Failed to load agent status",
+    "stateMachineFailed": "Failed to load state machine status"
+  },
+  "overview": {
+    "title": "Execution Overview",
+    "totalWaves": "Total Waves",
+    "currentWave": "Current Wave",
+    "completedWaves": "Completed Waves",
+    "totalAgents": "Total Agents"
+  },
+  "agentMonitor": {
+    "title": "Active Agents",
+    "noActiveAgents": "No active agents",
+    "cpuUsage": "CPU: {{percent}}%",
+    "memoryUsage": "Memory: {{mb}}MB",
+    "currentTask": "Current Task",
+    "noTask": "Idle",
+    "elapsed": "Elapsed: {{time}}"
+  },
+  "qualityGates": {
+    "title": "Quality Gates",
+    "noGates": "No quality gates run yet",
+    "types": {
+      "typecheck": "TypeScript Check",
+      "lint": "Lint Check",
+      "test": "Tests"
+    },
+    "status": {
+      "passed": "Passed",
+      "failed": "Failed",
+      "running": "Running",
+      "pending": "Pending"
+    },
+    "duration": "Duration: {{duration}}ms",
+    "errors": {
+      "fetchFailed": "Failed to load quality gates"
+    }
+  },
+  "stateMachine": {
+    "title": "State Machine",
+    "noStates": "No state machine data available",
+    "currentState": "Current State: {{state}}",
+    "stateStatus": {
+      "pending": "Pending",
+      "active": "Active",
+      "completed": "Completed",
+      "failed": "Failed"
+    }
+  },
+  "errorRecovery": {
+    "title": "Error Recovery",
+    "noErrors": "No errors to recover from",
+    "errorMessage": "Error: {{message}}",
+    "failedStep": "Failed Step: {{step}}",
+    "availableCheckpoints": "Available Checkpoints",
+    "loading": "Loading...",
+    "fetchFailed": "Failed to load error recovery status",
+    "actions": {
+      "retryWave": "Retry Wave",
+      "retryTask": "Retry Task",
+      "restoreCheckpoint": "Restore Checkpoint"
+    },
+    "confirm": {
+      "retryWaveTitle": "Retry Wave?",
+      "retryWaveMessage": "This will retry the entire wave. All progress in this wave will be lost. Are you sure?",
+      "retryTaskTitle": "Retry Task?",
+      "retryTaskMessage": "This will retry only the failed task. Are you sure?",
+      "restoreCheckpointTitle": "Restore Checkpoint?",
+      "restoreCheckpointMessage": "This will restore the system to checkpoint \"{{checkpoint}}\". All progress after this checkpoint will be lost. Are you sure?",
+      "cancel": "Cancel",
+      "confirm": "Confirm"
+    }
+  }
+}

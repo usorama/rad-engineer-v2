@@ -1,0 +1,178 @@
+{
+  "intake": {
+    "wizard": {
+      "title": "Project Planning Intake",
+      "loading": "Loading questions...",
+      "error": "Failed to load intake questions",
+      "submitting": "Submitting...",
+      "progressLabel": "Step {{current}} of {{total}}",
+      "progressAriaLabel": "Planning intake progress: step {{current}} of {{total}}"
+    },
+    "buttons": {
+      "next": "Next",
+      "back": "Back",
+      "review": "Review Answers",
+      "submit": "Submit",
+      "cancel": "Cancel",
+      "edit": "Edit"
+    },
+    "step": {
+      "answerRequired": "This field is required",
+      "textPlaceholder": "Enter your answer...",
+      "textareaPlaceholder": "Enter detailed information..."
+    },
+    "summary": {
+      "title": "Review Your Answers",
+      "description": "Please review your answers before submitting. Click 'Edit' to make changes to any question.",
+      "question": "Question {{number}}",
+      "answer": "Answer",
+      "noAnswer": "No answer provided"
+    },
+    "errors": {
+      "initializationFailed": "Failed to initialize intake: {{error}}",
+      "submissionFailed": "Failed to submit answers: {{error}}",
+      "genericError": "An error occurred. Please try again."
+    },
+    "success": {
+      "submitted": "Your answers have been submitted successfully!"
+    }
+  },
+  "research": {
+    "title": "Research Progress",
+    "loading": "Loading research status...",
+    "error": "Failed to load research data",
+    "noAgents": "No research agents found",
+    "status": {
+      "pending": "Pending",
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed"
+    },
+    "agent": {
+      "progress": "{{progress}}% complete"
+    },
+    "findings": {
+      "title": "Findings",
+      "noFindings": "No findings yet",
+      "category": {
+        "context": "Context",
+        "requirements": "Requirements",
+        "research": "Research",
+        "analysis": "Analysis"
+      }
+    }
+  },
+  "visualizer": {
+    "tabs": {
+      "graph": "Dependency Graph",
+      "timeline": "Timeline",
+      "list": "Story List"
+    },
+    "graph": {
+      "title": "Story Dependencies",
+      "noStories": "No stories to display"
+    },
+    "timeline": {
+      "title": "Wave Timeline",
+      "noWaves": "No waves defined",
+      "dateRange": "{{start}} - {{end}}"
+    },
+    "list": {
+      "title": "All Stories",
+      "noStories": "No stories available",
+      "columns": {
+        "id": "ID",
+        "title": "Title",
+        "wave": "Wave",
+        "status": "Status"
+      },
+      "status": {
+        "pending": "Pending",
+        "in_progress": "In Progress",
+        "completed": "Completed",
+        "blocked": "Blocked"
+      }
+    },
+    "empty": {
+      "title": "No Plan Data",
+      "description": "Create a plan to visualize dependencies and timeline"
+    }
+  },
+  "approval": {
+    "title": "Plan Approval",
+    "description": "Review and approve or reject the implementation plan",
+    "summary": {
+      "title": "Plan Summary",
+      "subtasks": "Total Subtasks",
+      "phases": "Phases",
+      "effort": "Estimated Effort",
+      "hours": "{{count}} hours"
+    },
+    "comments": {
+      "title": "Comments & Feedback",
+      "placeholder": "Add comments or feedback (optional)...",
+      "characterCount": "{{count}}/{{max}} characters",
+      "maxLength": "Comment cannot exceed {{max}} characters"
+    },
+    "buttons": {
+      "approve": "Approve Plan",
+      "reject": "Reject Plan",
+      "confirm": "Confirm",
+      "cancel": "Cancel"
+    },
+    "dialog": {
+      "approve": {
+        "title": "Confirm Approval",
+        "description": "Are you sure you want to approve this plan? This will start the implementation process.",
+        "warning": "This action cannot be undone."
+      },
+      "reject": {
+        "title": "Confirm Rejection",
+        "description": "Are you sure you want to reject this plan? You will need to create a new plan.",
+        "warning": "This action cannot be undone."
+      }
+    },
+    "success": {
+      "approved": "Plan approved successfully!",
+      "rejected": "Plan rejected successfully!"
+    },
+    "errors": {
+      "approveFailed": "Failed to approve plan: {{error}}",
+      "rejectFailed": "Failed to reject plan: {{error}}"
+    }
+  },
+  "editor": {
+    "title": "Plan Editor",
+    "yaml": {
+      "label": "YAML Content",
+      "placeholder": "Enter your plan in YAML format...",
+      "characters": "{{count}} characters"
+    },
+    "validation": {
+      "title": "Validation",
+      "valid": "Valid",
+      "invalid": "Invalid",
+      "errors": "Errors",
+      "warnings": "Warnings",
+      "noErrors": "No validation errors",
+      "noWarnings": "No validation warnings",
+      "validating": "Validating..."
+    },
+    "preview": {
+      "title": "Preview",
+      "empty": "No plan content",
+      "emptyDescription": "Start typing to see a preview of your plan"
+    },
+    "actions": {
+      "save": "Save",
+      "saving": "Saving...",
+      "saved": "Saved successfully",
+      "cancel": "Cancel"
+    },
+    "errors": {
+      "saveFailed": "Failed to save plan: {{error}}",
+      "validationFailed": "Failed to validate plan: {{error}}",
+      "genericError": "An error occurred. Please try again."
+    }
+  }
+}
