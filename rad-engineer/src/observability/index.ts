@@ -19,3 +19,6 @@ export type {
 export { Metrics } from "./Metrics.js";
 export { MetricsRegistry } from "./MetricsRegistry.js";
 export type { TaskCompletionParams } from "./Metrics.js";
+
+export { TracingProvider, createTracingProvider } from "./Tracing.js";
+export type { TracingConfig, SpanOptions } from "./Tracing.js";
