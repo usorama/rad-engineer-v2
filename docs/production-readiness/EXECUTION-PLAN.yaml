@@ -1,0 +1,727 @@
+---
+meta:
+  version: "1.0.0"
+  purpose: "Machine-readable execution plan for /execute skill"
+  status: "READY_FOR_EXECUTION"
+  generated: "2026-01-14T10:00:00Z"
+  total_stories: 23
+  total_points: 107
+  estimated_weeks: "8-12"
+
+---
+# GLOBAL SCOPE (Immutable Context)
+
+global:
+  vision: |
+    Transform rad-engineer-v2 from proof-of-concept (97% test coverage, mock agent execution)
+    to production-ready system with real SDK integration, observability, and operational tooling.
+
+  target_capabilities:
+    - Real Claude Agent SDK integration (not mocks)
+    - Cross-platform support (Linux, macOS, Windows fallback)
+    - Full observability (structured logging, Prometheus metrics, distributed tracing)
+    - Production operational tooling (health checks, graceful shutdown)
+    - Hardened security (rate limiting, audit persistence, security audit)
+    - UI integration (IPC registration, event streaming)
+
+  constraints:
+    - max_parallel_agents: 3
+    - quality_gate_required: true
+    - test_coverage_minimum: 0.80
+    - typecheck_errors_allowed: 0
+
+  quality_gates:
+    pre_story: ["bun run typecheck", "bun run lint"]
+    post_story: ["bun run typecheck", "bun run lint", "bun test"]
+    post_wave: ["bun test --coverage"]
+    post_final: ["bun test --filter integration", "bun test --filter e2e"]
+
+---
+# WAVES
+
+waves:
+  - id: wave-1
+    name: "Critical Foundation"
+    parallel: true
+    stories:
+      - id: W1-S1
+        title: "Install SDK and Fix Tests"
+        points: 3
+        agent: developer
+        dependencies: []
+        tasks:
+          - id: "1.1.1"
+            description: "Verify SDK installed in package.json"
+            files: ["rad-engineer/package.json"]
+          - id: "1.1.2"
+            description: "Run SDK-dependent tests"
+            command: "bun test src/sdk/"
+          - id: "1.1.3"
+            description: "Fix any failing tests"
+            files: ["rad-engineer/test/sdk/*.test.ts"]
+          - id: "1.1.4"
+            description: "Verify TypeScript types"
+            command: "bun run typecheck"
+        acceptance_criteria:
+          - "SDK tests pass with 0 failures"
+          - "Typecheck shows 0 errors"
+          - "SDK import works without errors"
+
+      - id: W1-S2
+        title: "Cross-Platform ResourceMonitor"
+        points: 5
+        agent: developer
+        dependencies: []
+        tasks:
+          - id: "1.2.1"
+            description: "Create PlatformMonitor interface"
+            files: ["rad-engineer/src/sdk/ResourceMonitor.ts"]
+          - id: "1.2.2"
+            description: "Implement LinuxMonitor"
+            files: ["rad-engineer/src/sdk/monitors/LinuxMonitor.ts"]
+          - id: "1.2.3"
+            description: "Refactor DarwinMonitor"
+            files: ["rad-engineer/src/sdk/monitors/DarwinMonitor.ts"]
+          - id: "1.2.4"
+            description: "Implement FallbackMonitor"
+            files: ["rad-engineer/src/sdk/monitors/FallbackMonitor.ts"]
+          - id: "1.2.5"
+            description: "Add platform detection factory"
+            files: ["rad-engineer/src/sdk/ResourceMonitor.ts"]
+          - id: "1.2.6"
+            description: "Add platform-specific tests"
+            files: ["rad-engineer/test/sdk/ResourceMonitor.test.ts"]
+        acceptance_criteria:
+          - "Platform detection returns correct monitor"
+          - "LinuxMonitor parses /proc/meminfo"
+          - "DarwinMonitor works on macOS"
+          - "FallbackMonitor provides safe defaults"
+
+      - id: W1-S3
+        title: "Centralized Configuration System"
+        points: 3
+        agent: developer
+        dependencies: []
+        tasks:
+          - id: "1.3.1"
+            description: "Create Zod schema"
+            files: ["rad-engineer/src/config/schema.ts"]
+          - id: "1.3.2"
+            description: "Add environment variable support"
+            files: ["rad-engineer/src/config/index.ts"]
+          - id: "1.3.3"
+            description: "Add startup validation"
+            files: ["rad-engineer/src/config/index.ts"]
+          - id: "1.3.4"
+            description: "Write config tests"
+            files: ["rad-engineer/test/config/config.test.ts"]
+        acceptance_criteria:
+          - "Schema validates correct config"
+          - "Schema rejects invalid config"
+          - "Environment variables override defaults"
+
+  - id: wave-2
+    name: "Real Agent Integration"
+    parallel: false
+    dependencies: [wave-1]
+    stories:
+      - id: W2-S1
+        title: "Real Agent Spawning"
+        points: 8
+        agent: developer
+        dependencies: [W1-S1, W1-S3]
+        tasks:
+          - id: "2.1.1"
+            description: "Read WaveOrchestrator.executeTask()"
+            files: ["rad-engineer/src/advanced/WaveOrchestrator.ts"]
+          - id: "2.1.2"
+            description: "Add real agent execution path"
+            files: ["rad-engineer/src/advanced/WaveOrchestrator.ts"]
+          - id: "2.1.3"
+            description: "Integrate SDKIntegration.executeAgent()"
+            files: ["rad-engineer/src/advanced/WaveOrchestrator.ts"]
+          - id: "2.1.4"
+            description: "Wire ResponseParser"
+            files: ["rad-engineer/src/advanced/WaveOrchestrator.ts"]
+          - id: "2.1.5"
+            description: "Wire SecurityLayer"
+            files: ["rad-engineer/src/advanced/WaveOrchestrator.ts"]
+          - id: "2.1.6"
+            description: "Add metrics collection"
+            files: ["rad-engineer/src/advanced/WaveOrchestrator.ts"]
+          - id: "2.1.7"
+            description: "Preserve mock behavior"
+            files: ["rad-engineer/src/advanced/WaveOrchestrator.ts"]
+          - id: "2.1.8"
+            description: "Add integration test"
+            files: ["rad-engineer/test/advanced/WaveOrchestrator.integration.test.ts"]
+        acceptance_criteria:
+          - "Mock mode works identically"
+          - "Real mode calls SDKIntegration"
+          - "Responses parsed through ResponseParser"
+          - "Outputs scanned by SecurityLayer"
+
+      - id: W2-S2
+        title: "Integration Tests for Real Agent Flow"
+        points: 5
+        agent: test-writer
+        dependencies: [W2-S1]
+        tasks:
+          - id: "2.2.1"
+            description: "Create real-agent-flow.test.ts"
+            files: ["rad-engineer/test/integration/real-agent-flow.test.ts"]
+          - id: "2.2.2"
+            description: "Write simple task E2E test"
+          - id: "2.2.3"
+            description: "Write timeout handling test"
+          - id: "2.2.4"
+            description: "Write metrics collection test"
+          - id: "2.2.5"
+            description: "Write state checkpointing test"
+          - id: "2.2.6"
+            description: "Write error recovery test"
+          - id: "2.2.7"
+            description: "Add skip logic for CI"
+        acceptance_criteria:
+          - "Simple task executes E2E"
+          - "Timeout triggers correctly"
+          - "Metrics captured accurately"
+          - "State checkpointed"
+
+      - id: W2-S3
+        title: "Mock/Real Mode Toggle"
+        points: 3
+        agent: developer
+        dependencies: [W2-S1]
+        tasks:
+          - id: "2.3.1"
+            description: "Add useRealAgents flag"
+            files: ["rad-engineer/src/config/schema.ts"]
+          - id: "2.3.2"
+            description: "Log mode on startup"
+          - id: "2.3.3"
+            description: "Document mode toggle"
+          - id: "2.3.4"
+            description: "Add environment variable"
+          - id: "2.3.5"
+            description: "Test mode switching"
+        acceptance_criteria:
+          - "Flag defaults to false"
+          - "Env var overrides default"
+          - "Log shows correct mode"
+
+  - id: wave-3
+    name: "Observability"
+    parallel: true
+    dependencies: [wave-1]
+    stories:
+      - id: W3-S1
+        title: "Structured Logging with Pino"
+        points: 5
+        agent: developer
+        dependencies: [W1-S3]
+        tasks:
+          - id: "3.1.1"
+            description: "Install pino"
+            command: "bun add pino"
+          - id: "3.1.2"
+            description: "Create logger module"
+            files: ["rad-engineer/src/logging/index.ts"]
+          - id: "3.1.3"
+            description: "Add correlation ID support"
+            files: ["rad-engineer/src/logging/correlation.ts"]
+          - id: "3.1.4"
+            description: "Create component logger factory"
+          - id: "3.1.5"
+            description: "Replace console.* calls"
+          - id: "3.1.6"
+            description: "Add async logging"
+          - id: "3.1.7"
+            description: "Write logging tests"
+            files: ["rad-engineer/test/logging/logging.test.ts"]
+        acceptance_criteria:
+          - "Logger outputs JSON"
+          - "Correlation IDs propagate"
+          - "No console.* calls remain"
+          - "Async logging doesn't block"
+
+      - id: W3-S2
+        title: "Prometheus Metrics Export"
+        points: 5
+        agent: developer
+        dependencies: [W1-S3]
+        tasks:
+          - id: "3.2.1"
+            description: "Install prom-client"
+            command: "bun add prom-client"
+          - id: "3.2.2"
+            description: "Create metrics registry"
+            files: ["rad-engineer/src/metrics/index.ts"]
+          - id: "3.2.3"
+            description: "Define counters"
+          - id: "3.2.4"
+            description: "Define gauges"
+          - id: "3.2.5"
+            description: "Define histograms"
+          - id: "3.2.6"
+            description: "Create /metrics endpoint"
+            files: ["rad-engineer/src/metrics/server.ts"]
+          - id: "3.2.7"
+            description: "Write metrics tests"
+            files: ["rad-engineer/test/metrics/metrics.test.ts"]
+        acceptance_criteria:
+          - "/metrics returns Prometheus format"
+          - "Counters increment correctly"
+          - "Gauges reflect current state"
+          - "Histograms bucket correctly"
+
+      - id: W3-S3
+        title: "Health Check Endpoints"
+        points: 3
+        agent: developer
+        dependencies: [W1-S3]
+        tasks:
+          - id: "3.3.1"
+            description: "Create /health endpoint"
+            files: ["rad-engineer/src/health/index.ts"]
+          - id: "3.3.2"
+            description: "Create /ready endpoint"
+          - id: "3.3.3"
+            description: "Add component health checks"
+          - id: "3.3.4"
+            description: "Add configurable port"
+          - id: "3.3.5"
+            description: "Write health tests"
+            files: ["rad-engineer/test/health/health.test.ts"]
+        acceptance_criteria:
+          - "/health returns 200 if running"
+          - "/ready returns 200 if resources available"
+          - "/ready returns 503 if unhealthy"
+          - "Port configurable"
+
+  - id: wave-4
+    name: "Reliability"
+    parallel: false
+    dependencies: [wave-3]
+    stories:
+      - id: W4-S1
+        title: "StateManager.compact()"
+        points: 3
+        agent: developer
+        dependencies: []
+        tasks:
+          - id: "4.1.1"
+            description: "Add compact() method"
+            files: ["rad-engineer/src/advanced/StateManager.ts"]
+          - id: "4.1.2"
+            description: "Implement max age config"
+          - id: "4.1.3"
+            description: "Keep minimum checkpoints"
+          - id: "4.1.4"
+            description: "Log compaction results"
+          - id: "4.1.5"
+            description: "Add compact tests"
+            files: ["rad-engineer/test/advanced/StateManager.test.ts"]
+        acceptance_criteria:
+          - "Old checkpoints removed"
+          - "Minimum preserved"
+          - "Age configurable"
+          - "Results logged"
+
+      - id: W4-S2
+        title: "File Locking for Checkpoints"
+        points: 3
+        agent: developer
+        dependencies: [W4-S1]
+        tasks:
+          - id: "4.2.1"
+            description: "Install proper-lockfile"
+            command: "bun add proper-lockfile"
+          - id: "4.2.2"
+            description: "Wrap writes with locks"
+          - id: "4.2.3"
+            description: "Add lock timeout"
+          - id: "4.2.4"
+            description: "Handle stale locks"
+          - id: "4.2.5"
+            description: "Add locking tests"
+        acceptance_criteria:
+          - "Lock acquired before write"
+          - "Lock released after write"
+          - "Timeout on contention"
+          - "Stale locks cleaned"
+
+      - id: W4-S3
+        title: "Graceful Shutdown"
+        points: 3
+        agent: developer
+        dependencies: [W3-S1]
+        tasks:
+          - id: "4.3.1"
+            description: "Register SIGTERM handler"
+            files: ["rad-engineer/src/shutdown/index.ts"]
+          - id: "4.3.2"
+            description: "Register SIGINT handler"
+          - id: "4.3.3"
+            description: "Pause new task acceptance"
+          - id: "4.3.4"
+            description: "Drain in-flight agents"
+          - id: "4.3.5"
+            description: "Checkpoint state"
+          - id: "4.3.6"
+            description: "Clean exit codes"
+          - id: "4.3.7"
+            description: "Add shutdown tests"
+            files: ["rad-engineer/test/shutdown/shutdown.test.ts"]
+        acceptance_criteria:
+          - "SIGTERM triggers shutdown"
+          - "In-flight tasks complete"
+          - "State checkpointed"
+          - "Exit code correct"
+
+      - id: W4-S4
+        title: "Distributed Tracing"
+        points: 5
+        agent: developer
+        dependencies: [W3-S1, W3-S2]
+        tasks:
+          - id: "4.4.1"
+            description: "Install OpenTelemetry"
+            command: "bun add @opentelemetry/api @opentelemetry/sdk-node"
+          - id: "4.4.2"
+            description: "Create tracing init"
+            files: ["rad-engineer/src/tracing/index.ts"]
+          - id: "4.4.3"
+            description: "Add task execution spans"
+          - id: "4.4.4"
+            description: "Add agent spawn spans"
+          - id: "4.4.5"
+            description: "Add parse spans"
+          - id: "4.4.6"
+            description: "Add security scan spans"
+          - id: "4.4.7"
+            description: "Configure export"
+          - id: "4.4.8"
+            description: "Add tracing tests"
+            files: ["rad-engineer/test/tracing/tracing.test.ts"]
+        acceptance_criteria:
+          - "Trace context propagated"
+          - "Spans for key operations"
+          - "Exportable to external systems"
+
+  - id: wave-5
+    name: "Security Hardening"
+    parallel: false
+    dependencies: [wave-2]
+    stories:
+      - id: W5-S1
+        title: "Rate Limiting"
+        points: 5
+        agent: developer
+        dependencies: [W2-S1]
+        tasks:
+          - id: "5.1.1"
+            description: "Create TokenBucketRateLimiter"
+            files: ["rad-engineer/src/security/RateLimiter.ts"]
+          - id: "5.1.2"
+            description: "Configure max tokens and refill"
+          - id: "5.1.3"
+            description: "Add per-session limits"
+          - id: "5.1.4"
+            description: "Add global limits"
+          - id: "5.1.5"
+            description: "Return 429 on exceed"
+          - id: "5.1.6"
+            description: "Add metrics for limit hits"
+          - id: "5.1.7"
+            description: "Integrate with WaveOrchestrator"
+          - id: "5.1.8"
+            description: "Add rate limiter tests"
+            files: ["rad-engineer/test/security/RateLimiter.test.ts"]
+        acceptance_criteria:
+          - "Token bucket works"
+          - "Tokens refill over time"
+          - "429 returned on exceed"
+          - "Retry-after correct"
+
+      - id: W5-S2
+        title: "Audit Log Persistence Tests"
+        points: 3
+        agent: test-writer
+        dependencies: [W3-S1]
+        tasks:
+          - id: "5.2.1"
+            description: "Create audit-persistence.test.ts"
+            files: ["rad-engineer/test/integration/audit-persistence.test.ts"]
+          - id: "5.2.2"
+            description: "Test survival across restart"
+          - id: "5.2.3"
+            description: "Test rotation"
+          - id: "5.2.4"
+            description: "Verify no PII"
+          - id: "5.2.5"
+            description: "Test encryption"
+        acceptance_criteria:
+          - "Audit persists across restart"
+          - "Rotation works"
+          - "No PII in logs"
+
+      - id: W5-S3
+        title: "Security Audit"
+        points: 8
+        agent: code-reviewer
+        dependencies: [W5-S1, W5-S2]
+        tasks:
+          - id: "5.3.1"
+            description: "Review OWASP LLM Top 10"
+          - id: "5.3.2"
+            description: "Test prompt injection"
+          - id: "5.3.3"
+            description: "Verify secret scanning"
+          - id: "5.3.4"
+            description: "Scan dependencies"
+            command: "bun audit"
+          - id: "5.3.5"
+            description: "Review credential handling"
+          - id: "5.3.6"
+            description: "Test rate limiting"
+          - id: "5.3.7"
+            description: "Generate security report"
+            files: ["rad-engineer/docs/SECURITY_AUDIT_REPORT.md"]
+        acceptance_criteria:
+          - "No high/critical findings"
+          - "Prompt injection detected"
+          - "Secrets not exposed"
+          - "Dependencies clean"
+
+  - id: wave-6
+    name: "Integration & Verification"
+    parallel: false
+    dependencies: [wave-4, wave-5]
+    stories:
+      - id: W6-S1
+        title: "Full Pipeline Integration Tests"
+        points: 8
+        agent: test-writer
+        dependencies: [W2-S2, W4-S4]
+        tasks:
+          - id: "6.1.1"
+            description: "Create full-pipeline.test.ts"
+            files: ["rad-engineer/test/e2e/full-pipeline.test.ts"]
+          - id: "6.1.2"
+            description: "Test Input->Validation->Agent->Parse->Security->State"
+          - id: "6.1.3"
+            description: "Create multi-wave.test.ts"
+            files: ["rad-engineer/test/e2e/multi-wave.test.ts"]
+          - id: "6.1.4"
+            description: "Test dependency resolution"
+          - id: "6.1.5"
+            description: "Create checkpoint-recovery.test.ts"
+            files: ["rad-engineer/test/e2e/checkpoint-recovery.test.ts"]
+          - id: "6.1.6"
+            description: "Test recovery"
+        acceptance_criteria:
+          - "Full pipeline works"
+          - "Multi-wave dependencies"
+          - "Checkpoint recovery"
+
+      - id: W6-S2
+        title: "Load Testing"
+        points: 5
+        agent: developer
+        dependencies: [W6-S1]
+        tasks:
+          - id: "6.2.1"
+            description: "Create load-test.ts"
+            files: ["rad-engineer/scripts/load-test.ts"]
+          - id: "6.2.2"
+            description: "10 agent benchmark"
+          - id: "6.2.3"
+            description: "50 agent benchmark"
+          - id: "6.2.4"
+            description: "100 agent benchmark"
+          - id: "6.2.5"
+            description: "Measure latency p50/p95/p99"
+          - id: "6.2.6"
+            description: "Verify resource limits"
+          - id: "6.2.7"
+            description: "Check memory leaks"
+          - id: "6.2.8"
+            description: "Generate report"
+            files: ["rad-engineer/docs/PERFORMANCE_REPORT.md"]
+        acceptance_criteria:
+          - "10 agents: <1% error"
+          - "50 agents: <2% error"
+          - "100 agents: <5% error"
+          - "No memory leaks"
+
+      - id: W6-S3
+        title: "Chaos Testing"
+        points: 5
+        agent: test-writer
+        dependencies: [W6-S1]
+        tasks:
+          - id: "6.3.1"
+            description: "Create cascading-failures.test.ts"
+            files: ["rad-engineer/test/chaos/cascading-failures.test.ts"]
+          - id: "6.3.2"
+            description: "Test agent kill"
+          - id: "6.3.3"
+            description: "Test SDK failure"
+          - id: "6.3.4"
+            description: "Test state corruption"
+          - id: "6.3.5"
+            description: "Test resource exhaustion"
+          - id: "6.3.6"
+            description: "Create recovery-scenarios.test.ts"
+            files: ["rad-engineer/test/chaos/recovery-scenarios.test.ts"]
+        acceptance_criteria:
+          - "Agent kill triggers recovery"
+          - "Circuit breaker trips"
+          - "Checkpoint restore works"
+          - "Graceful degradation"
+
+      - id: W6-S4
+        title: "Documentation"
+        points: 3
+        agent: planner
+        dependencies: [W6-S2, W6-S3]
+        tasks:
+          - id: "6.4.1"
+            description: "Update README"
+          - id: "6.4.2"
+            description: "Create DEPLOYMENT_RUNBOOK.md"
+            files: ["rad-engineer/docs/DEPLOYMENT_RUNBOOK.md"]
+          - id: "6.4.3"
+            description: "Create TROUBLESHOOTING.md"
+            files: ["rad-engineer/docs/TROUBLESHOOTING.md"]
+          - id: "6.4.4"
+            description: "Create PERFORMANCE_TUNING.md"
+            files: ["rad-engineer/docs/PERFORMANCE_TUNING.md"]
+        acceptance_criteria:
+          - "README covers production"
+          - "Runbook tested"
+          - "Troubleshooting complete"
+          - "Performance guide actionable"
+
+---
+# UI INTEGRATION (Parallel Track)
+
+ui_integration:
+  - id: UI-S1
+    title: "IPC Handler Registration"
+    points: 8
+    agent: developer
+    dependencies: []
+    tasks:
+      - id: "U.1.1"
+        description: "Create ipc-handlers.ts"
+        files: ["workspaces/Auto-Claude/apps/frontend/electron/main/ipc-handlers.ts"]
+      - id: "U.1.2"
+        description: "Register task channels"
+      - id: "U.1.3"
+        description: "Initialize ElectronIPCAdapter"
+      - id: "U.1.4"
+        description: "Wire getWindows()"
+      - id: "U.1.5"
+        description: "Handle lifecycle"
+      - id: "U.1.6"
+        description: "Write integration tests"
+    acceptance_criteria:
+      - "All channels registered"
+      - "IPC calls work"
+      - "Windows receive events"
+
+  - id: UI-S2
+    title: "EventBroadcaster Integration"
+    points: 3
+    agent: developer
+    dependencies: [UI-S1]
+    tasks:
+      - id: "U.2.1"
+        description: "Wire to BrowserWindow.getAllWindows()"
+      - id: "U.2.2"
+        description: "Verify multi-window"
+      - id: "U.2.3"
+        description: "Test backpressure"
+      - id: "U.2.4"
+        description: "Add integration tests"
+    acceptance_criteria:
+      - "Events broadcast to all windows"
+      - "Backpressure handled"
+
+  - id: UI-S3
+    title: "Format Translation Enhancement"
+    points: 5
+    agent: developer
+    dependencies: [UI-S1]
+    tasks:
+      - id: "U.3.1"
+        description: "Enhance toRadEngineerWave()"
+        files: ["rad-engineer/src/ui-adapter/FormatTranslator.ts"]
+      - id: "U.3.2"
+        description: "Extract stories from description"
+      - id: "U.3.3"
+        description: "Map priority/tags"
+      - id: "U.3.4"
+        description: "Generate dependencies"
+      - id: "U.3.5"
+        description: "Write translation tests"
+        files: ["rad-engineer/test/ui-adapter/FormatTranslator.test.ts"]
+    acceptance_criteria:
+      - "Description parsed to stories"
+      - "Priority mapped"
+      - "Dependencies generated"
+
+---
+# PROGRESS TRACKING
+
+progress:
+  summary:
+    total_stories: 23
+    completed: 0
+    in_progress: 0
+    pending: 23
+    total_points: 107
+    completed_points: 0
+    percentage: 0
+
+  wave_status:
+    wave-1: pending
+    wave-2: pending
+    wave-3: pending
+    wave-4: pending
+    wave-5: pending
+    wave-6: pending
+    ui-integration: pending
+
+---
+# MEMORY MANAGEMENT (For /execute skill)
+
+memory_strategy:
+  global_scope:
+    token_budget: 500
+    content:
+      - "Production readiness vision"
+      - "Architecture constraints"
+      - "Quality gate commands"
+
+  task_scope:
+    token_budget: 2000
+    content:
+      - "Current wave plan"
+      - "Story specifications"
+      - "Dependency status"
+
+  local_scope:
+    token_budget: 5000
+    content:
+      - "File contents during implementation"
+      - "Test outputs"
+      - "Compilation errors"
+    compression_trigger: "After task completion"
+
+  checkpoints:
+    - "After each wave completion"
+    - "Before risky operations"
+    - "Every 5 stories completed"
