@@ -1,35 +1,44 @@
-# RAD-ENGINEER COMPREHENSIVE REMEDIATION PLAN
+# RAD-ENGINEER REMEDIATION PLAN (Non-Overlapping Issues)
 
-> **Purpose**: Execution plan to fix all identified issues and establish deterministic safeguards
+> **Purpose**: Execution plan for issues NOT covered by PRODUCTION_READINESS_ACTION_PLAN.md
 > **Date**: 2026-01-14
+> **Companion Plan**: `.claude/orchestration/docs/planning/PRODUCTION_READINESS_ACTION_PLAN.md`
 > **Source Documents**:
-> - `RAD-ENGINEER-CODEBASE-ISSUES.md` (67 issues)
+> - `RAD-ENGINEER-CODEBASE-ISSUES.md` (67 issues identified)
 > - `DETERMINISTIC-SAFEGUARDS-FOR-IMPLEMENTATIONS.md` (6 safeguard mechanisms)
-> **Approach**: Fix rad-engineer using its own verification infrastructure
 
 ---
 
-## EXECUTIVE SUMMARY
+## SCOPE CLARIFICATION
 
-This plan addresses two perspectives:
+This plan covers issues **NOT addressed** by the existing PRODUCTION_READINESS_ACTION_PLAN.md:
 
-| Perspective | Goal | Waves | Stories |
-|-------------|------|-------|---------|
-| **Internal** | Fix rad-engineer's own implementation issues | 4 | 22 |
-| **External** | Ensure rad-engineer produces verified systems | 2 | 8 |
-| **Total** | | **6 Waves** | **30 Stories** |
+| Already Covered (Skip) | NEW - This Plan |
+|------------------------|-----------------|
+| Mock agent in WaveOrchestrator | UI-adapter mock handlers (4 files) |
+| Cross-platform ResourceMonitor | Silent failure patterns (4 files) |
+| Centralized config system | Type safety violations (4 files) |
+| Structured logging (pino) | Test coverage for uncovered modules |
+| Prometheus metrics | VAC self-verification |
+| Health checks | Determinism enforcement |
+| Rate limiting | Contract templates |
+| StateManager.compact() | Property test generation |
+| File locking | Drift monitoring |
+| Graceful shutdown | - |
+| Distributed tracing | - |
+| Integration/Load/Chaos testing | - |
 
-**Key Principle**: Apply VAC (Verifiable Agentic Contracts) to rad-engineer itself before using it to generate external systems.
+**This plan: 4 Waves, 22 Stories, ~2 weeks**
 
 ---
 
-## PHASE 1: INTERNAL REMEDIATION (Waves 1-4)
+## WAVE 1: UI-ADAPTER MOCK IMPLEMENTATIONS (Priority: CRITICAL)
 
-### Wave 1: Critical Mock Implementations (Priority: CRITICAL)
+**Objective**: Replace Phase 1 mock implementations in UI-adapter handlers
 
-**Objective**: Replace all Phase 1 mock implementations with real integrations
+> Note: WaveOrchestrator mock→real is covered by W2-S1 in PRODUCTION_READINESS_ACTION_PLAN.md
 
-#### Story 1.1: VACAPIHandler Real Integration
+### Story 1.1: VACAPIHandler Real Integration
 **File**: `src/ui-adapter/VACAPIHandler.ts`
 **Current State**: Returns hardcoded mock contracts (lines 224-261)
 **Target State**: Integrates with `ContractRegistry` from `src/verification/ContractRegistry.ts`
@@ -54,23 +63,16 @@ This plan addresses two perspectives:
 ```typescript
 {
   id: "vac-api-handler-integration",
-  preconditions: [
-    "ContractRegistry is initialized",
-    "ContractValidator is available"
-  ],
-  postconditions: [
-    "getAllContracts returns contracts from registry",
-    "No mock data in responses",
-    "All methods are tested with real data"
-  ]
+  preconditions: ["ContractRegistry is initialized", "ContractValidator is available"],
+  postconditions: ["getAllContracts returns contracts from registry", "No mock data in responses"]
 }
 ```
 
 ---
 
-#### Story 1.2: ExecutionAPIHandler Real Integration
+### Story 1.2: ExecutionAPIHandler Real Integration
 **File**: `src/ui-adapter/ExecutionAPIHandler.ts`
-**Current State**: Returns mock status (45%), mock agents, mock metrics
+**Current State**: Returns mock status (45%), mock agents, mock metrics (lines 173-285)
 **Target State**: Integrates with `WaveOrchestrator` and `StateManager`
 
 **Tasks**:
@@ -80,44 +82,37 @@ This plan addresses two perspectives:
 - [ ] Replace `getWaveStatus()` mock with `orchestrator.getWaveStatus()`
 - [ ] Replace `getAgentStatus()` mock with real agent metrics
 - [ ] Replace `getQualityGates()` mock with actual gate results
+- [ ] Replace `startExecution()` mock with `orchestrator.execute()`
+- [ ] Replace `pauseExecution()` mock with `orchestrator.pause()`
+- [ ] Replace `resumeExecution()` mock with `orchestrator.resume()`
+- [ ] Replace `cancelExecution()` mock with `orchestrator.cancel()`
+- [ ] Replace `retryTask()` mock with `orchestrator.retryTask()`
+- [ ] Replace `getTimeline()` mock with real execution events
 - [ ] Wire up all event emissions to real execution events
 
 **Acceptance Criteria**:
-- `getExecutionStatus()` returns actual progress percentage
+- `getExecutionStatus()` returns actual progress percentage (not hardcoded 45%)
 - `getWaveStatus()` returns real agent states
 - Events emit real execution data
 
-**VAC Contract**:
-```typescript
-{
-  id: "execution-api-handler-integration",
-  preconditions: [
-    "WaveOrchestrator is initialized",
-    "StateManager is available"
-  ],
-  postconditions: [
-    "Progress reflects actual task completion",
-    "Agent status reflects real agent state",
-    "No mock data (45%, hardcoded agents) remains"
-  ]
-}
-```
-
 ---
 
-#### Story 1.3: LearningAPIHandler Real Integration
+### Story 1.3: LearningAPIHandler Real Integration
 **File**: `src/ui-adapter/LearningAPIHandler.ts`
-**Current State**: Returns mock decision history, mock analytics, mock patterns
+**Current State**: Returns mock decision history, mock analytics, mock patterns (lines 254-693)
 **Target State**: Integrates with `DecisionLearningStore` and `DecisionTracker`
 
 **Tasks**:
 - [ ] Import DecisionLearningStore from `src/decision/DecisionLearningStore.ts`
 - [ ] Import DecisionTracker from `src/decision/DecisionTracker.ts`
 - [ ] Replace `getDecisionHistory()` mock with `store.getDecisions()`
-- [ ] Replace `getLearningAnalytics()` mock with calculated analytics
+- [ ] Replace `getLearningAnalytics()` mock with calculated analytics from store
 - [ ] Replace `getPatterns()` mock with `store.findSimilarDecisions()`
-- [ ] Replace `getQualityTrends()` mock with actual trend data
+- [ ] Replace `getQualityTrends()` mock with actual trend data from store
 - [ ] Replace `getEWCCurves()` mock with real EWC calculations
+- [ ] Replace `searchDecisions()` mock with `store.searchByEmbedding()`
+- [ ] Replace `getRecommendations()` mock with pattern-based recommendations
+- [ ] Replace `getConfidenceDistribution()` mock with real distribution
 
 **Acceptance Criteria**:
 - Decision history reflects actual tracked decisions
@@ -126,9 +121,9 @@ This plan addresses two perspectives:
 
 ---
 
-#### Story 1.4: PlanningAPIHandler Real Integration
+### Story 1.4: PlanningAPIHandler Real Integration
 **File**: `src/ui-adapter/PlanningAPIHandler.ts`
-**Current State**: Mock intake sessions, mock research agents, mock plans
+**Current State**: Mock intake sessions, mock research agents, mock plans (lines 159-737)
 **Target State**: Integrates with `IntakeHandler`, `ResearchCoordinator`, `ExecutionPlanGenerator`
 
 **Tasks**:
@@ -137,8 +132,12 @@ This plan addresses two perspectives:
 - [ ] Import ExecutionPlanGenerator from `src/plan/ExecutionPlanGenerator.ts`
 - [ ] Replace `startIntake()` mock with `intakeHandler.start()`
 - [ ] Replace `processIntakeResponse()` mock with `intakeHandler.process()`
+- [ ] Replace `getIntakeStatus()` mock with `intakeHandler.getStatus()`
 - [ ] Replace `startResearch()` mock with `researchCoordinator.coordinate()`
+- [ ] Replace `getResearchStatus()` mock with `researchCoordinator.getStatus()`
 - [ ] Replace `generatePlan()` mock with `planGenerator.generate()`
+- [ ] Replace `validatePlan()` mock with actual validation
+- [ ] Replace `savePlan()` mock with persistence layer
 
 **Acceptance Criteria**:
 - Intake sessions are persisted and stateful
@@ -147,282 +146,297 @@ This plan addresses two perspectives:
 
 ---
 
-### Wave 2: Silent Failure Fixes (Priority: HIGH)
+## WAVE 2: SILENT FAILURE FIXES (Priority: HIGH)
 
 **Objective**: Replace all silent failures with proper error propagation
 
-#### Story 2.1: DecisionLearningIntegration Error Handling
+> Note: Structured logging replacement is covered by W3-S1 in PRODUCTION_READINESS_ACTION_PLAN.md.
+> This wave focuses on the **error handling logic**, not the logging mechanism.
+
+### Story 2.1: DecisionLearningIntegration Error Handling
 **File**: `src/execute/DecisionLearningIntegration.ts`
-**Current State**: 8 catch blocks with `console.warn` and continue
-**Target State**: Fail-fast with structured errors
+**Current State**: 8 catch blocks with `console.warn` and continue (lines 199, 209, 227, 285, 290, 293, 370, 474)
+**Target State**: Fail-fast with structured errors or explicit partial results
 
 **Tasks**:
-- [ ] Create `DecisionLearningError` class with error codes
-- [ ] Replace line 199 catch: propagate or return partial result with error
-- [ ] Replace line 209 catch: propagate or use default with warning flag
-- [ ] Replace line 227 catch: propagate tracking failure
+- [ ] Create `DecisionLearningError` class with error codes:
+  - `OUTCOME_EXTRACTION_FAILED`
+  - `METHOD_SELECTION_FAILED`
+  - `DECISION_TRACKING_FAILED`
+  - `ADR_UPDATE_FAILED`
+- [ ] Replace line 199 catch: return partial result with `errors` field
+- [ ] Replace line 209 catch: use default method with `warnings` field
+- [ ] Replace line 227 catch: propagate tracking failure or mark as untracked
 - [ ] Replace line 285 catch: propagate ADR update failure
-- [ ] Add `errors` field to return type for partial failures
-- [ ] Log errors with structured logger, not console.warn
+- [ ] Add `errors` and `warnings` fields to `EnhancedPromptResult` type
+- [ ] Callers can check `result.errors.length > 0` for partial failures
 
 **VAC Contract**:
 ```typescript
 {
   id: "decision-learning-error-handling",
-  preconditions: ["Logger is available"],
+  preconditions: [],
   postconditions: [
-    "No console.warn calls remain",
-    "All errors are either propagated or included in response",
-    "Partial failures are distinguishable from full failures"
+    "No silent data loss",
+    "All errors included in result.errors array",
+    "Partial failures distinguishable from full failures"
   ],
-  invariants: ["No silent data loss"]
+  invariants: ["No console.warn calls in production code paths"]
 }
 ```
 
 ---
 
-#### Story 2.2: DecisionLearningStore Error Handling
+### Story 2.2: DecisionLearningStore Error Handling
 **File**: `src/decision/DecisionLearningStore.ts`
-**Current State**: Returns empty arrays on failure (lines 229, 246)
-**Target State**: Returns error objects or throws
+**Current State**: Returns empty arrays on failure (lines 229, 246, 721, 801)
+**Target State**: Returns error objects with data
 
 **Tasks**:
-- [ ] Create `QueryResult<T>` type with `data`, `error`, `partial` fields
-- [ ] Replace `return []` with `return { data: [], error: message, partial: true }`
-- [ ] Add timeout handling that preserves partial results with warning
-- [ ] Replace embedding failures with retry or error propagation
+- [ ] Create `QueryResult<T>` type:
+  ```typescript
+  type QueryResult<T> = {
+    data: T;
+    error?: string;
+    partial?: boolean;
+    truncated?: boolean;
+  }
+  ```
+- [ ] Replace line 229 `return []` with `return { data: [], error: "INVALID_FILTER" }`
+- [ ] Replace line 246 `return []` with `return { data: partial, error: "QUERY_TIMEOUT", partial: true }`
+- [ ] Replace line 721 embedding failure with retry logic (max 3)
+- [ ] Replace line 801 null return with explicit `{ data: null, error: "NOT_FOUND" }`
+
+**Acceptance Criteria**:
+- Callers can distinguish "no results" from "query failed"
+- Timeouts return partial results with warning
+- Embedding failures retry before failing
 
 ---
 
-#### Story 2.3: DecisionTracker Error Handling
+### Story 2.3: DecisionTracker Error Handling
 **File**: `src/decision/DecisionTracker.ts`
-**Current State**: Silent failures on ADR operations
-**Target State**: Explicit error handling
+**Current State**: Silent failures on ADR operations (lines 434, 492, 497, 524, 594, 668, 671, 721, 789, 794)
+**Target State**: Explicit error handling with transaction semantics
 
 **Tasks**:
-- [ ] Replace line 524 warn with proper validation error
-- [ ] Replace line 594 warn with duplicate handling strategy
-- [ ] Replace line 668-671 timeout with retry or explicit failure
-- [ ] Add transaction-like semantics for multi-step operations
+- [ ] Replace line 524 warn with `ValidationError` throw
+- [ ] Replace line 594 warn with duplicate handling strategy (update vs ignore)
+- [ ] Replace line 668-671 timeout with configurable retry (default 3)
+- [ ] Add transaction wrapper for multi-step operations:
+  ```typescript
+  async recordWithRollback(adr: ADR): Promise<void> {
+    const checkpoint = await this.checkpoint();
+    try {
+      await this.store(adr);
+      await this.syncToDecisionStore(adr);
+    } catch (error) {
+      await this.restore(checkpoint);
+      throw error;
+    }
+  }
+  ```
+- [ ] Expose `lastError` property for debugging
 
 ---
 
-#### Story 2.4: OutcomeInjector Error Handling
+### Story 2.4: OutcomeInjector Error Handling
 **File**: `src/outcome/OutcomeInjector.ts`
-**Current State**: 13 silent failure modes with console.warn
+**Current State**: 13 silent failure modes with console.warn (lines 133, 140, 153, 159, 182, 189, 193, 212, 221, 226, 246, 277, 280)
 **Target State**: Structured error responses
 
 **Tasks**:
-- [ ] Create `InjectionResult` type with `success`, `warnings`, `errors`
-- [ ] Replace all console.warn with structured warnings
-- [ ] Ensure callers can distinguish warnings from errors
-- [ ] Add telemetry for injection success rate
+- [ ] Create `InjectionResult` type:
+  ```typescript
+  type InjectionResult = {
+    success: boolean;
+    enhancedPrompt: string;
+    warnings: InjectionWarning[];
+    errors: InjectionError[];
+    metrics: { injectionTimeMs: number };
+  }
+  ```
+- [ ] Replace line 133 `NO_OUTCOMES_PROVIDED` as warning, not silent continue
+- [ ] Replace line 140 `INVALID_OUTCOME_FORMAT` as error with invalid items listed
+- [ ] Replace line 182 `METHOD_SELECTION_TIMEOUT` with configurable fallback
+- [ ] Replace line 193 `STORE_UNAVAILABLE` with circuit breaker pattern
+- [ ] Add telemetry: `injection_success_rate`, `injection_warning_count`
 
 ---
 
-### Wave 3: Type Safety Fixes (Priority: HIGH)
+## WAVE 3: TYPE SAFETY FIXES (Priority: HIGH)
 
 **Objective**: Replace all `any` types with proper TypeScript types
 
-#### Story 3.1: StateManager Type Safety
+### Story 3.1: StateManager Type Safety
 **File**: `src/adaptive/StateManager.ts`
 **Current State**: `any` types in YAML serialization (lines 160, 190, 193, 197)
 
 **Tasks**:
-- [ ] Define `SerializedState` interface for YAML structure
+- [ ] Define `SerializedState` interface:
+  ```typescript
+  interface SerializedState {
+    version: string;
+    timestamp: string;
+    bandits: Record<string, BanditState>;
+    performance: Record<string, PerformanceMetrics>;
+    decisions: DecisionRecord[];
+  }
+  ```
 - [ ] Replace `toYAML(state: any)` with `toYAML(state: AdaptiveState)`
-- [ ] Replace `fromYAML(): any` with `fromYAML(): SerializedState`
-- [ ] Add Zod schema for runtime validation
-- [ ] Remove `currentStats: any` with proper type
+- [ ] Replace `fromYAML(): any` with `fromYAML(): SerializedState | null`
+- [ ] Add Zod schema for runtime validation of loaded state
+- [ ] Replace `currentStats: any` with `currentStats: PerformanceStats | null`
+- [ ] Add migration logic for old state versions
 
 ---
 
-#### Story 3.2: SDKIntegration Type Safety
+### Story 3.2: SDKIntegration Type Safety
 **File**: `src/sdk/SDKIntegration.ts`
 **Current State**: `as any` casts and untyped parameters (lines 445, 473-475)
 
 **Tasks**:
-- [ ] Define proper types for EVALS integration points
-- [ ] Replace `return config as any` with typed config
-- [ ] Type `banditRouter`, `featureExtractor`, `performanceStore` parameters
-- [ ] Add type guards for conditional type narrowing
+- [ ] Define `EVALSConfig` type:
+  ```typescript
+  interface EVALSConfig {
+    banditRouter: BanditRouter;
+    featureExtractor: QueryFeatureExtractor;
+    performanceStore: PerformanceStore;
+    enabled: boolean;
+  }
+  ```
+- [ ] Replace line 445 `return config as any` with typed return
+- [ ] Replace lines 473-475 untyped parameters with proper types
+- [ ] Add type guard for EVALS availability:
+  ```typescript
+  isEvalsAvailable(): this is { evalsConfig: EVALSConfig } { ... }
+  ```
 
 ---
 
-#### Story 3.3: EventBroadcaster Type Safety
+### Story 3.3: EventBroadcaster Type Safety
 **File**: `src/ui-adapter/EventBroadcaster.ts`
 **Current State**: `any` event data (lines 85, 167, 205)
 
 **Tasks**:
-- [ ] Define `EventPayload` union type for all event types
+- [ ] Define event payload types:
+  ```typescript
+  type EventPayload =
+    | { type: 'wave-started'; data: WaveStartedEvent }
+    | { type: 'task-completed'; data: TaskCompletedEvent }
+    | { type: 'quality-gate-result'; data: QualityGateEvent }
+    | { type: 'error'; data: ErrorEvent };
+  ```
 - [ ] Replace `pendingEvent: any` with `pendingEvent: EventPayload | null`
 - [ ] Replace `broadcast(eventType: string, data: any)` with typed overloads
-- [ ] Add discriminated union for type-safe event handling
+- [ ] Add discriminated union for type-safe event handling in consumers
 
 ---
 
-#### Story 3.4: TaskAPIHandler Type Safety
+### Story 3.4: TaskAPIHandler Type Safety
 **File**: `src/ui-adapter/TaskAPIHandler.ts`
 **Current State**: `any` in wave execution (lines 516, 519)
 
 **Tasks**:
-- [ ] Import `Wave` type from `src/plan/types.ts`
+- [ ] Import `Wave` and `Story` types from `src/plan/types.ts`
 - [ ] Replace `wave: any` with `wave: Wave`
 - [ ] Replace `story: any` with `story: Story`
-- [ ] Add validation for wave structure before execution
+- [ ] Add runtime validation with Zod before execution:
+  ```typescript
+  const validated = WaveSchema.parse(wave);
+  ```
 
 ---
 
-### Wave 4: Test Coverage (Priority: MEDIUM)
+## WAVE 4: SELF-VERIFICATION & DETERMINISM (Priority: MEDIUM)
 
-**Objective**: Increase test coverage from 5.5% to 80%
+**Objective**: Apply rad-engineer's verification tools to itself
 
-#### Story 4.1: Core Module Tests
-**Target**: `src/core/` (ResourceManager, PromptValidator, ResponseParser)
+> Note: Test coverage for new code is covered by PRODUCTION_READINESS_ACTION_PLAN.md.
+> This wave focuses on **verification infrastructure** and **determinism enforcement**.
+
+### Story 4.1: VAC Self-Contracts
+**New Files**: `src/verification/self-contracts/`
 
 **Tasks**:
-- [ ] Create `src/core/__tests__/ResourceManager.test.ts`
-- [ ] Create `src/core/__tests__/PromptValidator.test.ts`
-- [ ] Create `src/core/__tests__/ResponseParser.test.ts`
-- [ ] Achieve 80% coverage per file
+- [ ] Create contract for VACAPIHandler:
+  ```typescript
+  // src/verification/self-contracts/vac-api-handler.contract.ts
+  export const VACAPIHandlerContract: AgentContractDefinition = {
+    id: "self-vac-api-handler",
+    taskType: "implement_feature",
+    preconditions: [{ id: "registry-available", check: ... }],
+    postconditions: [{ id: "no-mock-data", check: ... }],
+  };
+  ```
+- [ ] Create contract for ExecutionAPIHandler
+- [ ] Create contract for LearningAPIHandler
+- [ ] Create contract for PlanningAPIHandler
+- [ ] Add CI step: `bun run verify:self-contracts`
 
 ---
 
-#### Story 4.2: Advanced Module Tests
-**Target**: `src/advanced/` (WaveOrchestrator, StateManager, ErrorRecoveryEngine)
+### Story 4.2: Reproducibility Gate for UI-Adapters
+**New File**: `src/verification/gates/UIAdapterReproducibilityGate.ts`
 
 **Tasks**:
-- [ ] Create `src/advanced/__tests__/WaveOrchestrator.test.ts`
-- [ ] Create `src/advanced/__tests__/StateManager.test.ts`
-- [ ] Create `src/advanced/__tests__/ErrorRecoveryEngine.test.ts`
-- [ ] Test state machine transitions exhaustively
+- [ ] Create reproducibility tests for UI-adapter handlers:
+  ```typescript
+  const gate = new ReproducibilityGate({
+    targets: [
+      { handler: 'VACAPIHandler', method: 'getAllContracts', runs: 10 },
+      { handler: 'ExecutionAPIHandler', method: 'getExecutionStatus', runs: 10 },
+    ],
+    maxDriftRate: 0.05, // 5%
+  });
+  ```
+- [ ] Enforce drift < 5% for all public methods
+- [ ] Generate drift report on failure
+- [ ] Add to quality gate: `bun run verify:ui-adapter-reproducibility`
 
 ---
 
-#### Story 4.3: Verification Module Tests
-**Target**: `src/verification/` (12 files, 0% coverage)
+### Story 4.3: Determinism Lint Rules
+**File**: `.eslintrc.js` or `eslint.config.js`
 
 **Tasks**:
-- [ ] Create tests for ContractValidator
-- [ ] Create tests for PropertyTestRunner
-- [ ] Create tests for DriftDetector
-- [ ] Create tests for StateMachineExecutor
-- [ ] Create tests for ReproducibilityTest
+- [ ] Create custom ESLint rule `no-math-random`:
+  ```javascript
+  // Disallow Math.random() - use SeededRandom instead
+  'no-restricted-syntax': [
+    'error',
+    { selector: 'CallExpression[callee.object.name="Math"][callee.property.name="random"]' }
+  ]
+  ```
+- [ ] Create rule `no-date-now-in-id`:
+  ```javascript
+  // Disallow Date.now() in ID generation
+  ```
+- [ ] Create rule `no-crypto-random-uuid`:
+  ```javascript
+  // Disallow crypto.randomUUID() - use deterministicHash instead
+  ```
+- [ ] Add to CI: `bun run lint:determinism`
 
 ---
 
-#### Story 4.4: Decision Module Tests
-**Target**: `src/decision/` (DecisionTracker, DecisionLearningStore)
+### Story 4.4: Contract Templates for Generated Code
+**New Files**: `src/verification/templates/`
 
 **Tasks**:
-- [ ] Create `src/decision/__tests__/DecisionTracker.test.ts`
-- [ ] Create `src/decision/__tests__/DecisionLearningStore.test.ts`
-- [ ] Test vector similarity search
-- [ ] Test ADR lifecycle
-
----
-
----
-
-## PHASE 2: EXTERNAL SAFEGUARDS (Waves 5-6)
-
-### Wave 5: Verification Infrastructure Activation
-
-**Objective**: Enable verification infrastructure for all generated code
-
-#### Story 5.1: VAC Contract Templates
-**New File**: `src/verification/templates/`
-
-**Tasks**:
-- [ ] Create contract template for API endpoints
-- [ ] Create contract template for database operations
-- [ ] Create contract template for external integrations
-- [ ] Create contract template for state mutations
-- [ ] Document contract creation process
-
----
-
-#### Story 5.2: Reproducibility Gate
-**New File**: `src/verification/ReproducibilityGate.ts`
-
-**Tasks**:
-- [ ] Create gate that runs reproducibility test before deployment
-- [ ] Enforce drift rate < 5% threshold
-- [ ] Block deployment if drift detected
-- [ ] Generate drift report for failed gates
-
----
-
-#### Story 5.3: Determinism Enforcement
-**Enhancement**: `src/adaptive/SeededRandom.ts`
-
-**Tasks**:
-- [ ] Create lint rule to detect `Math.random()` usage
-- [ ] Create lint rule to detect `Date.now()` in IDs
-- [ ] Create lint rule to detect `crypto.randomUUID()`
-- [ ] Add SeededRandom injection to agent prompts
-
----
-
-#### Story 5.4: Property Test Generation
-**Enhancement**: `src/verification/PropertyTestRunner.ts`
-
-**Tasks**:
-- [ ] Auto-generate property tests from contracts
-- [ ] Add idempotency property for all mutations
-- [ ] Add no-negative-balance property for financial ops
-- [ ] Add audit-complete property for all operations
-
----
-
-### Wave 6: Quality Gates Integration
-
-**Objective**: Enforce quality gates before any code is shipped
-
-#### Story 6.1: Pre-Deployment Gate
-**New File**: `src/gates/PreDeploymentGate.ts`
-
-**Tasks**:
-- [ ] Run all VAC contracts
-- [ ] Run reproducibility test (N=10)
-- [ ] Run property tests
-- [ ] Check test coverage ≥ 80%
-- [ ] Block if any gate fails
-
----
-
-#### Story 6.2: Contract Coverage Report
-**New File**: `src/gates/ContractCoverageReport.ts`
-
-**Tasks**:
-- [ ] Calculate contract coverage per feature
-- [ ] Identify features without contracts
-- [ ] Generate coverage report
-- [ ] Block deployment if coverage < 100%
-
----
-
-#### Story 6.3: Drift Monitoring
-**New File**: `src/monitoring/DriftMonitor.ts`
-
-**Tasks**:
-- [ ] Run drift detection on schedule
-- [ ] Alert on drift regression
-- [ ] Track drift trends over time
-- [ ] Auto-generate fix recommendations
-
----
-
-#### Story 6.4: Type Safety Gate
-**Enhancement**: Build process
-
-**Tasks**:
-- [ ] Add `--strict` to tsconfig if not present
-- [ ] Add lint rule for `any` type usage
-- [ ] Add lint rule for `as any` casts
-- [ ] Block build on type violations
-
----
+- [ ] Create `api-endpoint.contract.template.ts`:
+  ```typescript
+  export function createAPIEndpointContract(config: {
+    endpoint: string;
+    method: string;
+    inputSchema: ZodSchema;
+    outputSchema: ZodSchema;
+  }): AgentContractDefinition { ... }
+  ```
+- [ ] Create `database-operation.contract.template.ts`
+- [ ] Create `state-mutation.contract.template.ts`
+- [ ] Create `external-integration.contract.template.ts`
+- [ ] Document usage in `src/verification/templates/README.md`
 
 ---
 
@@ -430,32 +444,45 @@ This plan addresses two perspectives:
 
 | Wave | Stories | Estimated Effort | Dependencies |
 |------|---------|------------------|--------------|
-| Wave 1 | 1.1-1.4 | 5 days | None |
-| Wave 2 | 2.1-2.4 | 3 days | None |
+| Wave 1 | 1.1-1.4 | 4 days | PRODUCTION_READINESS W2-S1 (real agents) |
+| Wave 2 | 2.1-2.4 | 3 days | PRODUCTION_READINESS W3-S1 (logging) |
 | Wave 3 | 3.1-3.4 | 2 days | None |
-| Wave 4 | 4.1-4.4 | 5 days | Waves 1-3 |
-| Wave 5 | 5.1-5.4 | 3 days | Wave 4 |
-| Wave 6 | 6.1-6.4 | 3 days | Wave 5 |
+| Wave 4 | 4.1-4.4 | 3 days | Waves 1-3 |
 
-**Total**: ~21 days (3 weeks)
+**Total**: ~12 days (2 weeks)
+
+---
+
+## DEPENDENCY ON PRODUCTION_READINESS_ACTION_PLAN.md
+
+This plan should be executed **after** or **in parallel with** certain waves from the existing plan:
+
+| This Plan | Depends On |
+|-----------|-----------|
+| Wave 1 (UI-Adapter Mocks) | W2-S1 (Real agent spawning) - so handlers can use real orchestrator |
+| Wave 2 (Silent Failures) | W3-S1 (Structured logging) - so we can log errors properly |
+| Wave 3 (Type Safety) | None - can run independently |
+| Wave 4 (Self-Verification) | Waves 1-3 of this plan |
+
+**Recommended Execution Order**:
+1. PRODUCTION_READINESS Waves 1-3 (Foundation, Real Agent, Observability)
+2. This Plan Waves 1-3 (UI-Adapters, Silent Failures, Type Safety)
+3. PRODUCTION_READINESS Waves 4-6 (Reliability, Security, Integration)
+4. This Plan Wave 4 (Self-Verification)
 
 ---
 
 ## SUCCESS CRITERIA
 
-### Phase 1 Complete When:
-- [ ] All 12 mock handlers replaced with real integrations
-- [ ] All 15+ silent failures converted to explicit errors
+### This Plan Complete When:
+- [ ] All 4 UI-adapter handlers return real data (0 mock implementations)
+- [ ] All 15+ silent failures converted to explicit errors with result types
 - [ ] All 25+ `any` types replaced with proper types
-- [ ] Test coverage ≥ 80%
-
-### Phase 2 Complete When:
-- [ ] VAC contracts defined for all features
+- [ ] Self-contracts pass for all UI-adapters
+- [ ] Determinism lint rules active in CI
 - [ ] Reproducibility gate enforced (drift < 5%)
-- [ ] Property tests generated for all contracts
-- [ ] Quality gates block non-compliant code
 
-### Full Success When:
+### Combined Success (Both Plans):
 - [ ] rad-engineer passes its own verification system
 - [ ] rad-engineer can generate verified external systems
 - [ ] All generated systems meet the same standards
@@ -467,64 +494,55 @@ This plan addresses two perspectives:
 After completing this plan, run:
 
 ```bash
-# 1. Type check
-bun run typecheck  # Must show 0 errors
+# 1. Type check (should be 0 errors after Wave 3)
+bun run typecheck
 
-# 2. Lint
-bun run lint  # Must pass
+# 2. Lint including determinism rules (after Story 4.3)
+bun run lint
 
-# 3. Tests
-bun test  # All pass, coverage ≥ 80%
+# 3. Self-contracts (after Story 4.1)
+bun run verify:self-contracts
 
-# 4. Reproducibility
-bun run verify:reproducibility  # Drift < 5%
+# 4. Reproducibility gate (after Story 4.2)
+bun run verify:ui-adapter-reproducibility
 
-# 5. Contracts
-bun run verify:contracts  # All pass
+# 5. Integration with PRODUCTION_READINESS tests
+bun test
 ```
 
 ---
 
-## APPENDIX: FILES TO MODIFY
+## FILES TO MODIFY
 
-### Wave 1 Files
+### Wave 1 Files (UI-Adapter Mocks)
 - `src/ui-adapter/VACAPIHandler.ts`
 - `src/ui-adapter/ExecutionAPIHandler.ts`
 - `src/ui-adapter/LearningAPIHandler.ts`
 - `src/ui-adapter/PlanningAPIHandler.ts`
 
-### Wave 2 Files
+### Wave 2 Files (Silent Failures)
 - `src/execute/DecisionLearningIntegration.ts`
 - `src/decision/DecisionLearningStore.ts`
 - `src/decision/DecisionTracker.ts`
 - `src/outcome/OutcomeInjector.ts`
 
-### Wave 3 Files
+### Wave 3 Files (Type Safety)
 - `src/adaptive/StateManager.ts`
 - `src/sdk/SDKIntegration.ts`
 - `src/ui-adapter/EventBroadcaster.ts`
 - `src/ui-adapter/TaskAPIHandler.ts`
 
 ### Wave 4 Files (New)
-- `src/core/__tests__/*.test.ts`
-- `src/advanced/__tests__/*.test.ts`
-- `src/verification/__tests__/*.test.ts`
-- `src/decision/__tests__/*.test.ts`
-
-### Wave 5 Files (New)
-- `src/verification/templates/*.ts`
-- `src/verification/ReproducibilityGate.ts`
-- Lint rules in `.eslintrc`
-
-### Wave 6 Files (New)
-- `src/gates/PreDeploymentGate.ts`
-- `src/gates/ContractCoverageReport.ts`
-- `src/monitoring/DriftMonitor.ts`
+- `src/verification/self-contracts/*.contract.ts`
+- `src/verification/gates/UIAdapterReproducibilityGate.ts`
+- `.eslintrc.js` or `eslint.config.js`
+- `src/verification/templates/*.template.ts`
 
 ---
 
-**Document Version**: 1.0
+**Document Version**: 2.0 (Non-Overlapping)
 **Status**: READY FOR EXECUTION
+**Companion Plan**: `.claude/orchestration/docs/planning/PRODUCTION_READINESS_ACTION_PLAN.md`
 **Related Documents**:
 - `RAD-ENGINEER-CODEBASE-ISSUES.md`
 - `DETERMINISTIC-SAFEGUARDS-FOR-IMPLEMENTATIONS.md`
