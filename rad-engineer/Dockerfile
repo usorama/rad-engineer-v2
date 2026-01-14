@@ -4,11 +4,12 @@ FROM oven/bun:1.1.38-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json bun.lockb ./
+# Copy package files (bun.lock is the lockfile name in newer bun versions)
+COPY package.json bun.lock ./
 
-# Install dependencies
-RUN bun install --frozen-lockfile --production=false
+# Install all dependencies (including devDependencies for typecheck)
+# Use --ignore-scripts to skip electron postinstall (not needed in Docker)
+RUN bun install --frozen-lockfile --ignore-scripts
 
 # Copy source code and configuration
 COPY tsconfig.json ./
@@ -21,8 +22,8 @@ RUN bun run typecheck
 # Stage 2: Production runtime
 FROM oven/bun:1.1.38-alpine AS runtime
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# Install dumb-init for proper signal handling and wget for healthcheck
+RUN apk add --no-cache dumb-init wget
 
 # Create non-root user
 RUN addgroup -g 1001 -S radeng && \
@@ -52,7 +53,7 @@ EXPOSE 3000 9090
 
 # Health check configuration
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD bun run src/observability/health-check-example.ts || exit 1
+    CMD wget -q --spider http://localhost:3000/health/live || exit 1
 
 # Set environment variables
 ENV NODE_ENV=production \
@@ -63,5 +64,5 @@ ENV NODE_ENV=production \
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Default command (can be overridden)
-CMD ["bun", "run", "src/cli/evals.ts"]
+# Default command - run the server
+CMD ["bun", "run", "src/server.ts"]

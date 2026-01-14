@@ -17,6 +17,7 @@ import { ProviderType } from "@/sdk/providers/types.js";
 import type { ResourceMetrics } from "@/sdk/types.js";
 import type { Task } from "@/advanced/index.js";
 import { HierarchicalMemory } from "@/memory/HierarchicalMemory.js";
+import type { Config } from "@/config/schema.js";
 
 /**
  * Create a mock SDKIntegration for testing
@@ -92,12 +93,21 @@ describe("WaveOrchestrator: Chaos Tests", () => {
     const sdk = createMockSDK();
     const memory = new HierarchicalMemory();
 
+    const mockConfig: Config = {
+      useRealAgents: false,
+      apiKey: undefined,
+      maxAgents: 3,
+      timeout: 300000,
+      logLevel: "info",
+    };
+
     orchestrator = new WaveOrchestrator({
       resourceManager,
       promptValidator,
       responseParser,
       sdk,
       memory,
+      config: mockConfig,
     });
   });
 
