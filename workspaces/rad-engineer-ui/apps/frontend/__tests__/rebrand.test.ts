@@ -17,7 +17,7 @@ import { describe, it, expect } from 'bun:test';
 import { readFileSync } from 'fs';
 
 describe('Rebranding Verification', () => {
-  const mainIndexPath = '/Users/umasankr/Projects/rad-engineer-v2/workspaces/Auto-Claude/apps/frontend/src/main/index.ts';
+  const mainIndexPath = '/Users/umasankr/Projects/rad-engineer-v2/workspaces/rad-engineer-ui/apps/frontend/src/main/index.ts';
 
   /**
    * Test: Main window should be titled "rad-engineer"
@@ -57,7 +57,7 @@ describe('Rebranding Verification', () => {
  *
  * # Check for any remaining "Auto Claude" patterns in src/
  * grep -r "Auto Claude\|Auto-Claude\|AUTO_CLAUDE\|autoClaude\|AutoClaude" \
- *   /Users/umasankr/Projects/rad-engineer-v2/workspaces/Auto-Claude/apps/frontend/src \
+ *   /Users/umasankr/Projects/rad-engineer-v2/workspaces/rad-engineer-ui/apps/frontend/src \
  *   --include="*.ts" --include="*.tsx" --include="*.json"
  *
  * Expected: No matches (or only in comments/tests)

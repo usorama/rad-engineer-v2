@@ -354,7 +354,7 @@ export function Sidebar({
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => window.open('https://github.com/AndyMik90/rad-engineer/issues', '_blank')}
+                  onClick={() => window.open('https://github.com/usorama/rad-engineer-v2/issues', '_blank')}
                   aria-label={t('tooltips.help')}
                 >
                   <HelpCircle className="h-4 w-4" />

@@ -35,7 +35,7 @@ architecture_constraints:
 integration_context:
   auto_claude_ui:
     status: "EXISTING (276 components, React 19.2.3)"
-    location: "workspaces/Auto-Claude/apps/frontend/"
+    location: "workspaces/rad-engineer-ui/apps/frontend/"
 
   rad_engineer_backend:
     status: "EXISTING (19 modules, 36K LOC, 91% complete)"

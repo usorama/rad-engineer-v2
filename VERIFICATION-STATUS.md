@@ -85,7 +85,7 @@ npx tsc --noEmit --skipLibCheck
 ### 3. Backend Tests ✅
 
 ```bash
-cd workspaces/Auto-Claude/apps/backend
+cd workspaces/rad-engineer-ui/apps/backend
 bun test
 # Output: 149 tests passing
 ```

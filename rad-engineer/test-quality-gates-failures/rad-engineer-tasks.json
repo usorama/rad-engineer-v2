@@ -1,0 +1,60 @@
+{
+  "state": {
+    "waveNumber": 0,
+    "completedTasks": [],
+    "failedTasks": [],
+    "timestamp": "2026-01-14T05:48:02.462Z",
+    "tasks": [
+      {
+        "id": "task-1768369682461-0",
+        "title": "Multiple failures test",
+        "description": "Test multiple failures",
+        "status": "failed",
+        "createdAt": "2026-01-14T05:48:02.461Z",
+        "updatedAt": "2026-01-14T05:48:02.462Z",
+        "progress": 100,
+        "error": "Quality gates failed: typecheck check failed, test check failed",
+        "qualityGates": {
+          "passed": false,
+          "gates": [
+            {
+              "type": "typecheck",
+              "passed": false,
+              "severity": "required",
+              "output": "Error: Type errors",
+              "duration": 0,
+              "error": "Error: Type errors",
+              "timestamp": "2026-01-14T05:48:02.462Z"
+            },
+            {
+              "type": "lint",
+              "passed": true,
+              "severity": "warning",
+              "output": "✓ Lint passed",
+              "duration": 0,
+              "timestamp": "2026-01-14T05:48:02.462Z"
+            },
+            {
+              "type": "test",
+              "passed": false,
+              "severity": "required",
+              "output": "FAIL",
+              "duration": 0,
+              "error": "FAIL",
+              "timestamp": "2026-01-14T05:48:02.462Z"
+            }
+          ],
+          "totalDuration": 0,
+          "startedAt": "2026-01-14T05:48:02.462Z",
+          "completedAt": "2026-01-14T05:48:02.462Z"
+        }
+      }
+    ],
+    "metadata": {
+      "version": "1.0.0",
+      "lastUpdated": "2026-01-14T05:48:02.462Z"
+    }
+  },
+  "checksum": "21ndtp",
+  "savedAt": "2026-01-14T05:48:02.462Z"
+}

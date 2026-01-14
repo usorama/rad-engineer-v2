@@ -1,9 +1,9 @@
 {
-  "name": "rad-engineer",
+  "name": "rad-engineer-ui",
   "version": "2.7.2",
-  "description": "Autonomous engineering platform powered by Claude AI",
+  "description": "Rad Engineer UI - Autonomous engineering platform powered by Claude AI",
   "license": "AGPL-3.0",
-  "author": "Auto Claude Team",
+  "author": "Rad Engineer Team",
   "workspaces": [
     "apps/*",
     "libs/*"
@@ -31,7 +31,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/AndyMik90/Auto-Claude.git"
+    "url": "https://github.com/usorama/rad-engineer-v2.git"
   },
   "keywords": [
     "ai",
@@ -39,7 +39,8 @@
     "autonomous",
     "coding",
     "agents",
-    "electron"
+    "electron",
+    "rad-engineer"
   ],
   "devDependencies": {
     "jsdom": "^27.4.0"

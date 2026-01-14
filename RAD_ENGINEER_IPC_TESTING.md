@@ -8,7 +8,7 @@ The Auto-Claude Electron frontend has been wired to the rad-engineer ElectronIPC
 
 ### 1. Auto-Claude Frontend IPC Handlers
 
-**File**: `workspaces/Auto-Claude/apps/frontend/src/main/ipc-handlers/rad-engineer-handlers.ts`
+**File**: `workspaces/rad-engineer-ui/apps/frontend/src/main/ipc-handlers/rad-engineer-handlers.ts`
 
 New IPC handler registration file that:
 - Initializes the ElectronIPCAdapter
@@ -24,19 +24,19 @@ New IPC handler registration file that:
 
 ### 2. IPC Handler Registration
 
-**File**: `workspaces/Auto-Claude/apps/frontend/src/main/ipc-handlers/index.ts`
+**File**: `workspaces/rad-engineer-ui/apps/frontend/src/main/ipc-handlers/index.ts`
 
 Added registration of rad-engineer handlers in the main IPC setup function.
 
 ### 3. Cleanup on App Shutdown
 
-**File**: `workspaces/Auto-Claude/apps/frontend/src/main/index.ts`
+**File**: `workspaces/rad-engineer-ui/apps/frontend/src/main/index.ts`
 
 Added cleanup for the ElectronIPCAdapter on app shutdown.
 
 ### 4. TypeScript Configuration
 
-**File**: `workspaces/Auto-Claude/apps/frontend/tsconfig.json`
+**File**: `workspaces/rad-engineer-ui/apps/frontend/tsconfig.json`
 
 Added path mappings:
 - `@rad-engineer/*` → `../../../../rad-engineer/src/*`
@@ -44,7 +44,7 @@ Added path mappings:
 
 ### 5. Vite Build Configuration
 
-**File**: `workspaces/Auto-Claude/apps/frontend/electron.vite.config.ts`
+**File**: `workspaces/rad-engineer-ui/apps/frontend/electron.vite.config.ts`
 
 Added resolve aliases for the main process:
 - `@rad-engineer` → rad-engineer/src
@@ -55,7 +55,7 @@ Added resolve aliases for the main process:
 ### Step 1: Start the Auto-Claude App
 
 ```bash
-cd workspaces/Auto-Claude/apps/frontend
+cd workspaces/rad-engineer-ui/apps/frontend
 npm run dev
 ```
 
@@ -152,7 +152,7 @@ Events are emitted every 500ms during the fake execution.
 
 If you see TypeScript errors about missing modules:
 ```bash
-cd workspaces/Auto-Claude/apps/frontend
+cd workspaces/rad-engineer-ui/apps/frontend
 npm run typecheck
 ```
 
@@ -164,7 +164,7 @@ Should complete without errors. If not, check:
 
 If Vite can't resolve imports:
 ```bash
-cd workspaces/Auto-Claude/apps/frontend
+cd workspaces/rad-engineer-ui/apps/frontend
 npm run build
 ```
 

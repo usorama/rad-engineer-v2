@@ -1,6 +1,6 @@
 ---
 name: execute
-description: Deterministic plan execution with mathematical certainty. Use for implementing IMPLEMENTATION-PLAN.md files with triple verification, git workflow, and cross-session context sharing. Works identically for rad-engineer-v2 and engg-support-system.
+description: Deterministic plan execution with mathematical certainty. Use for implementing IMPLEMENTATION-PLAN.md files with triple verification, git workflow, and cross-session context sharing. Works with any project that has an implementation plan.
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, TodoWrite, mcp__memory-keeper__context_save, mcp__memory-keeper__context_get, mcp__memory-keeper__context_checkpoint
 model: claude-sonnet-4-20250514
 ---
@@ -15,7 +15,7 @@ Execute implementation plans with **mathematical certainty**:
 - Evidence-based completion proofs
 - Cross-session context sharing via files + memory-keeper
 
-**Works identically for**: rad-engineer-v2, engg-support-system, any future project
+**Works with any project** that has an IMPLEMENTATION-PLAN.md file
 
 ---
 
@@ -78,20 +78,39 @@ Execute implementation plans with **mathematical certainty**:
 ### Step 1: Identify Project Context
 
 ```bash
-# Determine which project we're executing for
-if [[ -f "docs/platform-foundation/RAD-ENGINEER-IMPLEMENTATION-PLAN.md" ]]; then
-  PROJECT="rad-engineer-v2"
-  PLAN_FILE="docs/platform-foundation/RAD-ENGINEER-IMPLEMENTATION-PLAN.md"
-  TEST_CMD="bun test"
-  TYPECHECK_CMD="bun run typecheck"
-  WORKING_DIR="rad-engineer"
-elif [[ -f "docs/platform-foundation/engg-support-system/IMPLEMENTATION-PLAN.md" ]]; then
-  PROJECT="engg-support-system"
-  PLAN_FILE="docs/platform-foundation/engg-support-system/IMPLEMENTATION-PLAN.md"
-  TEST_CMD="bun test && pytest"  # Both TS and Python
-  TYPECHECK_CMD="bun run typecheck"
-  WORKING_DIR="."
+# Auto-detect project context
+# 1. Find IMPLEMENTATION-PLAN.md in common locations
+PLAN_FILE=$(find . -name "IMPLEMENTATION-PLAN.md" -o -name "*-IMPLEMENTATION-PLAN.md" 2>/dev/null | head -1)
+
+# 2. Detect project name from directory or git
+PROJECT=$(basename $(git rev-parse --show-toplevel 2>/dev/null || pwd))
+
+# 3. Detect test command from package.json or common patterns
+if [[ -f "package.json" ]]; then
+  if grep -q '"test"' package.json; then
+    TEST_CMD="bun test"  # or npm test / pnpm test based on lockfile
+  fi
+  if grep -q '"typecheck"' package.json; then
+    TYPECHECK_CMD="bun run typecheck"
+  fi
+elif [[ -f "pyproject.toml" ]] || [[ -f "setup.py" ]]; then
+  TEST_CMD="pytest"
+  TYPECHECK_CMD="mypy ."
 fi
+
+# 4. Default working directory is current
+WORKING_DIR="."
+
+# Known project overrides (optional)
+case "$PROJECT" in
+  "rad-engineer-v2")
+    PLAN_FILE="${PLAN_FILE:-docs/platform-foundation/RAD-ENGINEER-IMPLEMENTATION-PLAN.md}"
+    WORKING_DIR="rad-engineer"
+    ;;
+  "engg-support-system")
+    TEST_CMD="bun test && pytest"
+    ;;
+esac
 ```
 
 ### Step 2: Load Required Context
@@ -623,6 +642,14 @@ These apply to ALL tasks in ALL projects:
 | `/code-review` | After implementation, before commit |
 | `/progress-tracker` | Quick status check |
 
+### Gap Analysis Skill Integration
+
+When comparing plan vs actual implementation:
+1. Use the **Implementation Verification Protocol** (see section above)
+2. Run verification commands BEFORE marking anything as a gap
+3. Document all evidence with file:line references
+4. Include grep/glob outputs in the analysis
+
 ---
 
 ## CRITICAL: Continue Until Complete Protocol
@@ -683,6 +710,159 @@ When user says "execute full" or "complete all phases":
 
 ---
 
+## MANDATORY: Implementation Verification Protocol
+
+> **CRITICAL**: This section prevents FALSE GAP ANALYSIS by requiring code verification before claiming anything is missing or incomplete.
+
+### The Problem This Solves
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  FAILURE MODE: False Gap Analysis                               │
+│                                                                 │
+│  Symptom: Claiming features are missing when they exist        │
+│  Cause: Reading plan without verifying code                    │
+│                                                                 │
+│  Example (WRONG):                                               │
+│  Plan says: "Implement LinuxMonitor"                           │
+│  Without verification: "LinuxMonitor is missing" (GAP!)        │
+│                                                                 │
+│  Example (CORRECT):                                             │
+│  Plan says: "Implement LinuxMonitor"                           │
+│  Verification: grep -r "class LinuxMonitor" src/               │
+│  Result: src/sdk/monitors/LinuxMonitor.ts (EXISTS!)            │
+│  Conclusion: No gap - already implemented                       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### NEVER Claim Something is Missing Without These Steps
+
+```markdown
+BEFORE claiming ANY feature is missing or incomplete:
+
+1. SEARCH for it first:
+   ```bash
+   # Search by class/function name
+   grep -r "class FeatureName" src/
+   grep -r "function featureName" src/
+   grep -r "FeatureName" src/ --include="*.ts"
+
+   # Search by file pattern
+   find . -name "*FeatureName*" -type f
+   glob "**/*feature*"
+   ```
+
+2. CHECK alternative implementations:
+   - Different naming (compact vs compactState)
+   - Different location (src/ vs lib/ vs test/)
+   - Different pattern (class vs function vs module)
+
+3. READ the actual file if found:
+   ```bash
+   # Verify implementation exists
+   cat src/path/to/File.ts | head -100
+   ```
+
+4. ONLY THEN conclude:
+   - If code found: "Verified - already implemented at {path}:{line}"
+   - If not found: "Verified missing - needs implementation"
+```
+
+### Gap Analysis Verification Checklist
+
+For every item in a plan vs actual comparison:
+
+```markdown
+| Plan Item | Verification Command | Result | Status |
+|-----------|---------------------|--------|--------|
+| LinuxMonitor | `grep -r "class LinuxMonitor" src/` | Found: src/sdk/monitors/LinuxMonitor.ts | ✅ Exists |
+| StateManager.compact() | `grep -r "compact" src/advanced/StateManager.ts` | Found: compactState() at line 329 | ✅ Exists (different name) |
+| Security Audit | `find docs -name "*SECURITY*"` | Found: docs/SECURITY-AUDIT.md | ✅ Exists |
+| Missing Feature | `grep -r "MissingClass" src/` | No results | ❌ Actually missing |
+```
+
+### Acceptance Criteria Verification Protocol
+
+For each story/task in the implementation plan:
+
+```markdown
+## Verification: Story W2-S1 (Real agent spawning)
+
+### Planned Acceptance Criteria:
+1. WaveOrchestrator has mock/real toggle
+2. Integration tests exist
+3. Config supports useRealAgents flag
+
+### Verification Commands:
+```bash
+# Criterion 1: mock/real toggle
+grep -r "mock\|real" src/advanced/WaveOrchestrator.ts
+→ Found: "Initialized with MOCK agents" at line 45
+
+# Criterion 2: Integration tests
+ls test/integration/*agent*.test.ts
+→ Found: real-agent-flow.test.ts
+
+# Criterion 3: Config flag
+grep -r "useRealAgents" src/config/
+→ Found: src/config/schema.ts:12
+```
+
+### Verdict:
+ALL acceptance criteria verified ✅
+Status: COMPLETE (not a gap)
+```
+
+### BEFORE Generating Any Gap Analysis
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  MANDATORY VERIFICATION SEQUENCE                                │
+│                                                                 │
+│  1. Read the plan file                                          │
+│  2. For EACH planned feature/story:                             │
+│     a. Run grep/glob to search for implementation               │
+│     b. Check alternative names/patterns                         │
+│     c. Read actual files if found                               │
+│     d. Document evidence with file:line references              │
+│  3. ONLY mark as "gap" if verification confirms missing         │
+│  4. Include verification evidence in gap analysis               │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Evidence Template for Plan vs Actual
+
+```markdown
+## Plan vs Actual: [Story ID]
+
+**Planned**: [Description from plan]
+**Verification**:
+```bash
+$ grep -r "[keyword]" src/
+[actual output]
+```
+**Evidence**: [file:line reference or "Not found"]
+**Status**: [VERIFIED COMPLETE | VERIFIED MISSING | NEEDS INVESTIGATION]
+**Notes**: [Any naming differences or implementation details]
+```
+
+### Anti-Pattern Detection
+
+If you find yourself writing ANY of these without verification commands, STOP:
+
+- ❌ "This feature is missing"
+- ❌ "Gap: X not implemented"
+- ❌ "Status: PARTIAL - needs work"
+- ❌ "Not found in codebase"
+
+Replace with:
+
+- ✅ "Verification: `grep -r 'X' src/` returned [output]"
+- ✅ "Found at src/path/file.ts:123"
+- ✅ "Not found after searching: [commands run]"
+
+---
+
 ## Mathematical Certainty Definition
 
 A task is **mathematically complete** when:
@@ -702,6 +882,13 @@ This is verified by the skill for every task execution.
 
 ---
 
-**Version**: 1.0.0
+**Version**: 1.2.0 (Global)
 **Created**: 2026-01-13
-**Works With**: rad-engineer-v2, engg-support-system, any IMPLEMENTATION-PLAN.md
+**Updated**: 2026-01-14
+**Changelog**:
+- 1.2.0: Added MANDATORY Implementation Verification Protocol to prevent false gap analysis
+- 1.1.0: Made skill generic for any project with IMPLEMENTATION-PLAN.md
+- 1.0.0: Initial version for rad-engineer-v2
+
+**Works With**: Any project with an IMPLEMENTATION-PLAN.md file
+**Location**: ~/.claude/skills/execute/ (global) or .claude/skills/execute/ (project)

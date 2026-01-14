@@ -798,7 +798,7 @@ grep -r "console\." rad-engineer/src/ # Should return nothing
 - [ ] Errors propagate correctly
 
 ### Files
-- `workspaces/Auto-Claude/apps/frontend/electron/main/ipc-handlers.ts` (new)
+- `workspaces/rad-engineer-ui/apps/frontend/electron/main/ipc-handlers.ts` (new)
 - Integration with ElectronIPCAdapter
 
 ### Wave Assignment
@@ -1121,7 +1121,7 @@ rad-engineer init --name my-project --template web
 ```
 
 ### Files
-- `workspaces/Auto-Claude/apps/frontend/src/components/ProjectWizard.tsx` (new)
+- `workspaces/rad-engineer-ui/apps/frontend/src/components/ProjectWizard.tsx` (new)
 - `rad-engineer/src/cli/commands/init.ts` (new)
 - `rad-engineer/templates/` (new directory)
 - `rad-engineer/src/project/scaffolder.ts` (new)
@@ -1166,7 +1166,7 @@ rad-engineer import .
 ```
 
 ### Files
-- `workspaces/Auto-Claude/apps/frontend/src/components/ProjectImport.tsx` (new)
+- `workspaces/rad-engineer-ui/apps/frontend/src/components/ProjectImport.tsx` (new)
 - `rad-engineer/src/cli/commands/import.ts` (new)
 - `rad-engineer/src/project/detector.ts` (new)
 - `rad-engineer/src/project/indexer.ts` (new)

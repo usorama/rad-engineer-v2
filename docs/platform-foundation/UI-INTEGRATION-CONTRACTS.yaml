@@ -72,7 +72,7 @@ story_2_package_configuration:
 
   preconditions:
     - condition: "Root package.json contains 'auto-claude-ui'"
-      verification: "Grep 'auto-claude' workspaces/Auto-Claude/package.json"
+      verification: "Grep 'auto-claude' workspaces/rad-engineer-ui/package.json"
       status: "VERIFIED"
 
     - condition: "Frontend package.json contains 'auto-claude'"
@@ -81,7 +81,7 @@ story_2_package_configuration:
 
   postconditions:
     - condition: "Root package.json uses 'rad-engineer'"
-      verification: "Grep 'rad-engineer' workspaces/Auto-Claude/package.json"
+      verification: "Grep 'rad-engineer' workspaces/rad-engineer-ui/package.json"
       acceptance: "name, productName, appId all updated"
 
     - condition: "Frontend package.json uses 'rad-engineer'"

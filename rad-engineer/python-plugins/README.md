@@ -402,7 +402,7 @@ See `docs/auto-claude-integration/evidence/AGPL-3.0-COMPLIANCE-PLAN.md` for comp
 - **Evidence Documentation**: `docs/auto-claude-integration/evidence/*-results.md`
 - **PythonPluginBridge**: `src/python-bridge/PythonPluginBridge.ts`
 - **Integration Tests**: `test/python-bridge/*.test.ts`
-- **Auto-Claude Source**: `workspaces/Auto-Claude/apps/backend/`
+- **Auto-Claude Source**: `workspaces/rad-engineer-ui/apps/backend/`
 
 ---
 

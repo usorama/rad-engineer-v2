@@ -147,24 +147,24 @@ See: `UI-INTEGRATION-CONTRACTS.yaml` → `story_1_initialization_bug_fix`
 #### Tasks
 
 - **Task 2.1**: Update root package.json
-  - File: `workspaces/Auto-Claude/package.json`
+  - File: `workspaces/rad-engineer-ui/package.json`
   - Line 2: `"name": "rad-engineer"` (was: "auto-claude-ui")
   - Line 6: `"productName": "rad-engineer"`
   - Lines 32-42: `"appId": "com.radengineer.app"` (was: "com.autoclaude.ui")
   - Update description: "Autonomous engineering platform from ideation to production"
 
 - **Task 2.2**: Update frontend package.json
-  - File: `workspaces/Auto-Claude/apps/frontend/package.json`
+  - File: `workspaces/rad-engineer-ui/apps/frontend/package.json`
   - Line 2: `"name": "rad-engineer"`
   - Lines 143-145: Update build configuration appId
 
 - **Task 2.3**: Update HTML template
-  - File: `workspaces/Auto-Claude/apps/frontend/src/renderer/index.html`
+  - File: `workspaces/rad-engineer-ui/apps/frontend/src/renderer/index.html`
   - Line 10: `<title>rad-engineer</title>` (was: "Auto Claude")
 
 #### Tests
 
-**Test File**: `workspaces/Auto-Claude/apps/frontend/__tests__/config.test.ts`
+**Test File**: `workspaces/rad-engineer-ui/apps/frontend/__tests__/config.test.ts`
 
 **Test Cases**:
 - [ ] Root package.json has correct name and appId

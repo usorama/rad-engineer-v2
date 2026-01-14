@@ -29,7 +29,7 @@ Phase 0 Proof of Concept has been successfully completed in **7.5 hours actual**
 
 **Test Command**:
 ```bash
-cd workspaces/Auto-Claude
+cd workspaces/rad-engineer-ui
 npm run dev
 # Result: App starts, no errors, adapter initialized
 ```
@@ -69,7 +69,7 @@ await window.electron.ipcRenderer.invoke('rad-engineer:start-task', 'demo-1')
 ```
 
 **IPC Handler Implementation**:
-- File: `workspaces/Auto-Claude/apps/frontend/src/main/ipc-handlers/rad-engineer-handlers.ts`
+- File: `workspaces/rad-engineer-ui/apps/frontend/src/main/ipc-handlers/rad-engineer-handlers.ts`
 - All handlers use async/await pattern
 - Error handling implemented
 - Event broadcasting to all renderer windows

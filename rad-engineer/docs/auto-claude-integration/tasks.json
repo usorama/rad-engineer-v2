@@ -54,7 +54,7 @@
       "actualHours": 0.5,
       "assignee": "claude",
       "evidence": [
-        "Repository copied to: /Users/umasankr/Projects/rad-engineer-v2/workspaces/Auto-Claude",
+        "Repository copied to: /Users/umasankr/Projects/rad-engineer-v2/workspaces/rad-engineer-ui",
         "Branch created: rad-engineer-integration (from develop branch)",
         "AGPL-3.0 compliance plan documented: docs/auto-claude-integration/evidence/AGPL-3.0-COMPLIANCE-PLAN.md",
         "Dev environment setup: npm install succeeded (1093 packages)",
@@ -150,7 +150,7 @@
       "actualHours": 3,
       "assignee": "claude",
       "evidence": [
-        "File created: workspaces/Auto-Claude/apps/frontend/src/main/ipc-handlers/rad-engineer-handlers.ts (5 IPC channels)",
+        "File created: workspaces/rad-engineer-ui/apps/frontend/src/main/ipc-handlers/rad-engineer-handlers.ts (5 IPC channels)",
         "Files modified: ipc-handlers/index.ts (registered handlers), main/index.ts (cleanup), tsconfig.json (path mappings), electron.vite.config.ts (resolve aliases)",
         "IPC channels working: rad-engineer:get-all-tasks, create-task, start-task, get-task, task-progress",
         "TypeScript compilation: PASS (0 errors)",

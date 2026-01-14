@@ -21,7 +21,7 @@ Read these at session start to understand what we're building and the research b
 **Active Integration Projects**:
 
 ### 1. UI Integration (Priority 1)
-Auto-Claude UI + rad-engineer-v2 Backend integration
+rad-engineer-ui + rad-engineer Backend integration
 
 **Key Documents**:
 - **Integration Plan**: `~/.claude/plans/stateless-petting-eclipse.md` (approved, 6 weeks, 3 phases)
@@ -367,7 +367,25 @@ flock -w 300 "$LOCK" sh -c 'bun run typecheck && bun run lint && bun test'
 - **Integration Plan**: `~/.claude/plans/stateless-petting-eclipse.md` (6 weeks, 3 phases)
 - **Gap Analysis**: `docs/platform-foundation/UI-INTEGRATION-GAP-ANALYSIS.yaml` (10 gaps)
 - **Implementation**: `rad-engineer/src/ui-adapter/` (backend IPC handlers)
-- **Frontend**: `workspaces/Auto-Claude/apps/frontend/` (React UI)
+- **Frontend**: `workspaces/rad-engineer-ui/apps/frontend/` (React UI)
+
+**UI Integration Status (2026-01-14)**:
+| Component | Backend | Frontend | Navigation | Status |
+|-----------|---------|----------|------------|--------|
+| StepTimeline | ✅ StepAPIHandler | ✅ Component | ❌ Not wired | Needs App.tsx route |
+| LoopMonitor | ✅ LoopAPIHandler | ✅ Component | ❌ Not wired | Needs App.tsx route |
+| DecisionLog | ✅ StepExecutor | ✅ Component | ❌ Not wired | Needs App.tsx route |
+| VerificationReport | ✅ VerificationReporter | ✅ Component | ❌ Not wired | Needs App.tsx route |
+| StepReplay | ✅ ResumeDecisionEngine | ✅ Component | ❌ Not wired | Needs App.tsx route |
+| ExecutionDashboardEnhanced | ✅ DashboardDataProvider | ✅ Component | ❌ Not wired | Needs Sidebar + App.tsx |
+| Prometheus | ✅ Running on :9091 | ❌ No embed | ❌ No nav | Separate service |
+| Grafana | ✅ Running on :3001 | ❌ No embed | ❌ No nav | Separate service |
+
+**Next Steps for UI Integration**:
+1. Add 'execution' to SidebarView type in Sidebar.tsx
+2. Add navigation item for execution dashboard
+3. Wire ExecutionDashboardEnhanced into App.tsx activeView switch
+4. Consider embedding Grafana via iframe for metrics visualization
 
 ### Skills
 - **Execute Skill**: `.claude/skills/execute/SKILL.md` (deterministic execution)
@@ -380,9 +398,113 @@ flock -w 300 "$LOCK" sh -c 'bun run typecheck && bun run lint && bun test'
 
 ---
 
-**Version**: 2.0.0
+## 🐳 DEPLOYMENT (OrbStack/Docker on MacBook)
+
+### Current Deployment Status
+
+rad-engineer runs on **local OrbStack** (Docker on macOS). All containers are already deployed and running.
+
+### Services & Ports
+
+| Service | Container Name | Port | Health Check |
+|---------|---------------|------|--------------|
+| rad-engineer-app | rad-engineer-app | 3000, 9090 | `curl http://localhost:3000/health` |
+| Prometheus | rad-engineer-prometheus | 9091 | `curl http://localhost:9091/-/healthy` |
+| Grafana | rad-engineer-grafana | 3001 | `curl http://localhost:3001/api/health` |
+
+### File Locations
+
+```
+rad-engineer/
+├── docker-compose.yml       # Main compose file
+├── Dockerfile               # Multi-stage build (target: runtime)
+├── .env.docker              # Environment variables (ALREADY CONFIGURED)
+├── .env.docker.template     # Template for reference
+├── prometheus.yml           # Prometheus config
+└── grafana/
+    ├── provisioning/        # Grafana datasources
+    └── dashboards/          # Grafana dashboards
+```
+
+### Environment Configuration (.env.docker)
+
+```bash
+# Already configured for local mock mode:
+ANTHROPIC_API_KEY=sk-mock-key-for-local-testing
+RAD_USE_REAL_AGENTS=false
+LOG_LEVEL=info
+GRAFANA_ADMIN_USER=admin
+GRAFANA_ADMIN_PASSWORD=admin
+```
+
+**Note**: Mock mode (`RAD_USE_REAL_AGENTS=false`) allows testing without real API key.
+
+### Credentials Location
+
+All project credentials are stored in: `~/Projects/.creds/`
+- `anthropic_api_key.txt` - Anthropic API key (placeholder for E2B testing)
+
+### Deployment Commands
+
+```bash
+# Navigate to rad-engineer
+cd /Users/umasankr/Projects/rad-engineer-v2/rad-engineer
+
+# Check status
+docker compose --env-file .env.docker ps
+
+# View logs
+docker compose --env-file .env.docker logs -f
+
+# Rebuild and deploy (after code changes)
+docker compose --env-file .env.docker build && docker compose --env-file .env.docker up -d
+
+# Full restart
+docker compose --env-file .env.docker down && docker compose --env-file .env.docker up -d --build
+
+# Stop all services
+docker compose --env-file .env.docker down
+```
+
+### Persistent Volumes
+
+| Volume | Purpose |
+|--------|---------|
+| rad-engineer-data | Application data |
+| rad-engineer-logs | Application logs |
+| rad-engineer-checkpoints | Execution checkpoints |
+| rad-engineer-audit | Security audit logs |
+| rad-engineer-prometheus-data | Prometheus metrics |
+| rad-engineer-grafana-data | Grafana dashboards |
+
+### Accessing Services
+
+- **App Health**: http://localhost:3000/health
+- **Metrics**: http://localhost:9090/metrics
+- **Prometheus UI**: http://localhost:9091
+- **Grafana Dashboard**: http://localhost:3001 (admin/admin)
+
+### Troubleshooting
+
+```bash
+# Check container health
+docker ps --filter "name=rad-engineer"
+
+# View specific container logs
+docker logs rad-engineer-app --tail 100 -f
+
+# Restart single service
+docker compose --env-file .env.docker restart rad-engineer
+
+# Force rebuild
+docker compose --env-file .env.docker build --no-cache
+```
+
+---
+
+**Version**: 2.1.0
 **Status**: UI Integration Phase (Priority 1) + Platform Completion (Priority 2)
-**Last Updated**: 2026-01-13 (folder restructure, /execute skill integration)
+**Last Updated**: 2026-01-14 (added deployment documentation)
 
 ---
 

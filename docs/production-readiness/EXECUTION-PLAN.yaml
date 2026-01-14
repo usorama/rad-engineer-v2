@@ -616,7 +616,7 @@ ui_integration:
     tasks:
       - id: "U.1.1"
         description: "Create ipc-handlers.ts"
-        files: ["workspaces/Auto-Claude/apps/frontend/electron/main/ipc-handlers.ts"]
+        files: ["workspaces/rad-engineer-ui/apps/frontend/electron/main/ipc-handlers.ts"]
       - id: "U.1.2"
         description: "Register task channels"
       - id: "U.1.3"

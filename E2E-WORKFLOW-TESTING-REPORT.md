@@ -318,7 +318,7 @@ ipcMain.handle('planning:startIntake', ...)
 ### Step 1: Fix IPC Channel Names
 
 ```bash
-cd /Users/umasankr/Projects/rad-engineer-v2/workspaces/Auto-Claude
+cd /Users/umasankr/Projects/rad-engineer-v2/workspaces/rad-engineer-ui
 
 # Edit the constants file
 # File: apps/frontend/src/shared/constants/ipc.ts

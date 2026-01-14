@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Auto Claude is a multi-agent autonomous coding framework that builds software through coordinated AI agent sessions. It uses the Claude Agent SDK to run agents in isolated workspaces with security controls.
+rad-engineer is a multi-agent autonomous coding framework that builds software through coordinated AI agent sessions. It uses the Claude Agent SDK to run agents in isolated workspaces with security controls.
 
 **CRITICAL: All AI interactions use the Claude Agent SDK (`claude-agent-sdk` package), NOT the Anthropic API directly.**
 
@@ -227,7 +227,7 @@ Each spec in `.auto-claude/specs/XXX-name/` contains:
 
 ### Branching & Worktree Strategy
 
-Auto Claude uses git worktrees for isolated builds. All branches stay LOCAL until user explicitly pushes:
+rad-engineer uses git worktrees for isolated builds. All branches stay LOCAL until user explicitly pushes:
 
 ```
 main (user's branch)
@@ -250,14 +250,14 @@ main (user's branch)
 
 ### Contributing to Upstream
 
-**CRITICAL: When submitting PRs to AndyMik90/Auto-Claude, always target the `develop` branch, NOT `main`.**
+**CRITICAL: When submitting PRs to usorama/rad-engineer-v2, always target the `develop` branch, NOT `main`.**
 
 **Correct workflow for contributions:**
 1. Fetch upstream: `git fetch upstream`
 2. Create feature branch from upstream/develop: `git checkout -b fix/my-fix upstream/develop`
 3. Make changes and commit with sign-off: `git commit -s -m "fix: description"`
 4. Push to your fork: `git push origin fix/my-fix`
-5. Create PR targeting `develop`: `gh pr create --repo AndyMik90/Auto-Claude --base develop`
+5. Create PR targeting `develop`: `gh pr create --repo usorama/rad-engineer-v2 --base develop`
 
 **Verify before PR:**
 ```bash
@@ -276,7 +276,7 @@ Security profile cached in `.auto-claude-security.json`.
 
 ### Claude Agent SDK Integration
 
-**CRITICAL: Auto Claude uses the Claude Agent SDK for ALL AI interactions. Never use the Anthropic API directly.**
+**CRITICAL: rad-engineer uses the Claude Agent SDK for ALL AI interactions. Never use the Anthropic API directly.**
 
 **Client Location:** `apps/backend/core/client.py`
 
@@ -324,7 +324,7 @@ response = client.create_agent_session(
 
 **Graphiti Memory (Mandatory)** - `integrations/graphiti/`
 
-Auto Claude uses Graphiti as its primary memory system with embedded LadybugDB (no Docker required):
+rad-engineer uses Graphiti as its primary memory system with embedded LadybugDB (no Docker required):
 
 - **Graph database with semantic search** - Knowledge graph for cross-session context
 - **Session insights** - Patterns, gotchas, discoveries automatically extracted
