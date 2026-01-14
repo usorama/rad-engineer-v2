@@ -1,0 +1,149 @@
+{
+  "timestamp": "2026-01-14T05:43:04.943Z",
+  "overallStatus": "warn",
+  "totalChecks": 20,
+  "passed": 15,
+  "failed": 0,
+  "warnings": 5,
+  "results": [
+    {
+      "category": "dependencies",
+      "name": "bun version check",
+      "status": "pass",
+      "message": "bun 1.3.5 installed (>= 1.0.0)",
+      "details": "1.3.5"
+    },
+    {
+      "category": "dependencies",
+      "name": "node version check",
+      "status": "pass",
+      "message": "node 25.2.1 installed (>= 20.0.0)",
+      "details": "25.2.1"
+    },
+    {
+      "category": "dependencies",
+      "name": "@anthropic-ai/sdk package",
+      "status": "pass",
+      "message": "@anthropic-ai/sdk is installed",
+      "details": "^0.32.0"
+    },
+    {
+      "category": "dependencies",
+      "name": "zod package",
+      "status": "pass",
+      "message": "zod is installed",
+      "details": "^4.3.5"
+    },
+    {
+      "category": "dependencies",
+      "name": "pino package",
+      "status": "pass",
+      "message": "pino is installed",
+      "details": "^10.1.1"
+    },
+    {
+      "category": "dependencies",
+      "name": "@opentelemetry/api package",
+      "status": "pass",
+      "message": "@opentelemetry/api is installed",
+      "details": "^1.9.0"
+    },
+    {
+      "category": "configuration",
+      "name": "RAD_USE_REAL_AGENTS environment variable",
+      "status": "warn",
+      "message": "Optional environment variable RAD_USE_REAL_AGENTS is not set, using defaults",
+      "details": "Use real Claude agents (true/false)"
+    },
+    {
+      "category": "configuration",
+      "name": "RAD_API_KEY environment variable",
+      "status": "warn",
+      "message": "Optional environment variable RAD_API_KEY is not set, using defaults",
+      "details": "Anthropic API key (required if useRealAgents=true)"
+    },
+    {
+      "category": "configuration",
+      "name": "RAD_MAX_AGENTS environment variable",
+      "status": "warn",
+      "message": "Optional environment variable RAD_MAX_AGENTS is not set, using defaults",
+      "details": "Maximum concurrent agents (1-10)"
+    },
+    {
+      "category": "configuration",
+      "name": "RAD_TIMEOUT environment variable",
+      "status": "warn",
+      "message": "Optional environment variable RAD_TIMEOUT is not set, using defaults",
+      "details": "Agent timeout in ms"
+    },
+    {
+      "category": "configuration",
+      "name": "RAD_LOG_LEVEL environment variable",
+      "status": "warn",
+      "message": "Optional environment variable RAD_LOG_LEVEL is not set, using defaults",
+      "details": "Log level (debug/info/warn/error)"
+    },
+    {
+      "category": "configuration",
+      "name": "Configuration schema validation",
+      "status": "pass",
+      "message": "Configuration passes schema validation",
+      "details": "{\n  \"useRealAgents\": false,\n  \"maxAgents\": 3,\n  \"timeout\": 300000,\n  \"logLevel\": \"info\"\n}"
+    },
+    {
+      "category": "filesystem",
+      "name": "package.json file",
+      "status": "pass",
+      "message": "package.json exists and is readable",
+      "details": "Package manifest"
+    },
+    {
+      "category": "filesystem",
+      "name": "tsconfig.json file",
+      "status": "pass",
+      "message": "tsconfig.json exists and is readable",
+      "details": "TypeScript configuration"
+    },
+    {
+      "category": "filesystem",
+      "name": "src dir",
+      "status": "pass",
+      "message": "src exists and is readable",
+      "details": "Source directory"
+    },
+    {
+      "category": "filesystem",
+      "name": "src/config dir",
+      "status": "pass",
+      "message": "src/config exists and is readable",
+      "details": "Configuration directory"
+    },
+    {
+      "category": "filesystem",
+      "name": "src/observability dir",
+      "status": "pass",
+      "message": "src/observability exists and is readable",
+      "details": "Observability directory"
+    },
+    {
+      "category": "filesystem",
+      "name": "test dir",
+      "status": "pass",
+      "message": "test exists and is readable",
+      "details": "Test directory"
+    },
+    {
+      "category": "security",
+      "name": "package.json permissions",
+      "status": "pass",
+      "message": "package.json has appropriate permissions"
+    },
+    {
+      "category": "security",
+      "name": "tsconfig.json permissions",
+      "status": "pass",
+      "message": "tsconfig.json has appropriate permissions"
+    }
+  ],
+  "summary": "Total checks: 20\nPassed: 15\nFailed: 0\nWarnings: 5\n\n⚠ System has warnings but may be production-ready"
+}

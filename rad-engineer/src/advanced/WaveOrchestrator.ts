@@ -21,6 +21,7 @@ import type { ResourceManager } from "@/core/index.js";
 import type { PromptValidator } from "@/core/index.js";
 import type { ResponseParser, AgentResponse } from "@/core/index.js";
 import type { SDKIntegration } from "@/sdk/index.js";
+import type { Config } from "@/config/schema.js";
 import { HierarchicalMemory } from "@/memory/HierarchicalMemory.js";
 import { ScopeLevel } from "@/memory/Scope.js";
 
@@ -143,20 +144,26 @@ export class WaveOrchestrator {
   private readonly responseParser: ResponseParser;
   private readonly sdk: SDKIntegration;
   private readonly memory: HierarchicalMemory;
+  private readonly config: Config;
   private globalScopeId: string | null = null;
 
-  constructor(config: {
+  constructor(deps: {
     resourceManager: ResourceManager;
     promptValidator: PromptValidator;
     responseParser: ResponseParser;
     sdk: SDKIntegration;
     memory: HierarchicalMemory;
+    config: Config;
   }) {
-    this.resourceManager = config.resourceManager;
-    this.promptValidator = config.promptValidator;
-    this.responseParser = config.responseParser;
-    this.sdk = config.sdk;
-    this.memory = config.memory;
+    this.resourceManager = deps.resourceManager;
+    this.promptValidator = deps.promptValidator;
+    this.responseParser = deps.responseParser;
+    this.sdk = deps.sdk;
+    this.memory = deps.memory;
+    this.config = deps.config;
+
+    // Log agent mode at initialization
+    console.log(`[WaveOrchestrator] Initialized with ${this.config.useRealAgents ? "REAL" : "MOCK"} agents`);
   }
 
   /**
@@ -590,19 +597,44 @@ export class WaveOrchestrator {
   }
 
   /**
-   * Execute a single task using SDKIntegration
+   * Execute a single task using SDKIntegration or mock response
    *
    * Process:
-   * 1. Call sdk.testAgent() with task prompt
-   * 2. Parse response using responseParser
-   * 3. Return TaskResult with response and provider/model info
+   * 1. If config.useRealAgents=false, return mock response
+   * 2. If config.useRealAgents=true, call sdk.testAgent() with task prompt
+   * 3. Parse response using responseParser
+   * 4. Return TaskResult with response and provider/model info
    *
    * @param task - Task to execute
    * @returns TaskResult with execution outcome
    */
   private async executeTask(task: Task): Promise<TaskResult> {
     try {
-      // Execute agent via SDKIntegration
+      // Mock mode - return predefined success response
+      if (!this.config.useRealAgents) {
+        console.log(`[WaveOrchestrator] Executing task ${task.id} in MOCK mode`);
+
+        const mockResponse: AgentResponse = {
+          success: true,
+          filesModified: ["/mock/test.ts"],
+          testsWritten: ["/mock/test.test.ts"],
+          summary: "Mock task completed successfully",
+          errors: [],
+          nextSteps: [],
+        };
+
+        return {
+          id: task.id,
+          success: true,
+          response: mockResponse,
+          providerUsed: "mock",
+          modelUsed: "mock-model",
+        };
+      }
+
+      // Real agent mode - use SDK integration
+      console.log(`[WaveOrchestrator] Executing task ${task.id} with REAL agent`);
+
       const agentTask = {
         version: "1.0" as const,
         prompt: task.prompt,

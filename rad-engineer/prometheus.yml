@@ -1,0 +1,51 @@
+# Prometheus Configuration for rad-engineer
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'rad-engineer'
+    environment: 'production'
+
+# Alertmanager configuration (optional - add if needed)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
+
+# Load rules from files
+rule_files:
+  # - "alerts/*.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Scrape Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          component: 'prometheus'
+
+  # Scrape rad-engineer application metrics
+  - job_name: 'rad-engineer'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['rad-engineer:9090']
+        labels:
+          app: 'rad-engineer'
+          component: 'main-app'
+    # Optional: relabel configurations
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'rad-engineer-app'
+
+  # Node exporter (if you add it for system metrics)
+  # - job_name: 'node'
+  #   static_configs:
+  #     - targets: ['node-exporter:9100']
+  #       labels:
+  #         component: 'node-exporter'

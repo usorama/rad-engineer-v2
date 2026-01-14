@@ -14,7 +14,7 @@
 
 import { describe, it, expect } from "bun:test";
 import { FormatTranslator } from "@/ui-adapter/FormatTranslator.js";
-import type { AutoClaudeTaskSpec } from "@/ui-adapter/types.js";
+import type { RadEngineerTaskSpec } from "@/ui-adapter/types.js";
 import type { Wave } from "@/plan/types.js";
 import type { WaveState } from "@/advanced/StateManager.js";
 
@@ -22,7 +22,7 @@ describe("FormatTranslator: toRadEngineerWave", () => {
   it("Converts Auto-Claude TaskSpec to rad-engineer Wave with minimal fields", () => {
     const translator = new FormatTranslator();
 
-    const spec: AutoClaudeTaskSpec = {
+    const spec: RadEngineerTaskSpec = {
       title: "Implement authentication",
       description: "Add JWT authentication to API endpoints",
       priority: 5,
@@ -56,7 +56,7 @@ describe("FormatTranslator: toRadEngineerWave", () => {
   it("Handles TaskSpec without priority and tags", () => {
     const translator = new FormatTranslator();
 
-    const spec: AutoClaudeTaskSpec = {
+    const spec: RadEngineerTaskSpec = {
       title: "Simple task",
       description: "Basic task description",
     };
@@ -71,7 +71,7 @@ describe("FormatTranslator: toRadEngineerWave", () => {
   it("Converts TaskSpec with complex title", () => {
     const translator = new FormatTranslator();
 
-    const spec: AutoClaudeTaskSpec = {
+    const spec: RadEngineerTaskSpec = {
       title: "Multi-line\ntitle with special chars: @#$%",
       description: "Complex description",
     };
@@ -85,7 +85,7 @@ describe("FormatTranslator: toRadEngineerWave", () => {
   it("Generates unique wave IDs for different tasks", () => {
     const translator = new FormatTranslator();
 
-    const spec: AutoClaudeTaskSpec = {
+    const spec: RadEngineerTaskSpec = {
       title: "Test",
       description: "Test",
     };
@@ -100,7 +100,7 @@ describe("FormatTranslator: toRadEngineerWave", () => {
   it("Creates wave with proper story dependencies", () => {
     const translator = new FormatTranslator();
 
-    const spec: AutoClaudeTaskSpec = {
+    const spec: RadEngineerTaskSpec = {
       title: "Dependent task",
       description: "Task with dependencies",
     };
@@ -114,7 +114,7 @@ describe("FormatTranslator: toRadEngineerWave", () => {
   it("Creates wave with proper test requirements", () => {
     const translator = new FormatTranslator();
 
-    const spec: AutoClaudeTaskSpec = {
+    const spec: RadEngineerTaskSpec = {
       title: "Test requirements",
       description: "Check test config",
     };
@@ -129,7 +129,7 @@ describe("FormatTranslator: toRadEngineerWave", () => {
   });
 });
 
-describe("FormatTranslator: toAutoClaudeTask", () => {
+describe("FormatTranslator: toRadEngineerTask", () => {
   it("Converts rad-engineer Wave to Auto-Claude Task without state", () => {
     const translator = new FormatTranslator();
 
@@ -165,7 +165,7 @@ describe("FormatTranslator: toAutoClaudeTask", () => {
       ],
     };
 
-    const task = translator.toAutoClaudeTask(wave);
+    const task = translator.toRadEngineerTask(wave);
 
     // Validate task structure
     expect(task.id).toBe("task-789");
@@ -238,7 +238,7 @@ describe("FormatTranslator: toAutoClaudeTask", () => {
       timestamp: new Date().toISOString(),
     };
 
-    const task = translator.toAutoClaudeTask(wave, waveState);
+    const task = translator.toRadEngineerTask(wave, waveState);
 
     expect(task.status).toBe("in_progress");
     expect(task.progress).toBe(50); // 1 of 2 stories completed
@@ -286,7 +286,7 @@ describe("FormatTranslator: toAutoClaudeTask", () => {
       timestamp: new Date().toISOString(),
     };
 
-    const task = translator.toAutoClaudeTask(wave, waveState);
+    const task = translator.toRadEngineerTask(wave, waveState);
 
     expect(task.status).toBe("completed");
     expect(task.progress).toBe(100);
@@ -334,7 +334,7 @@ describe("FormatTranslator: toAutoClaudeTask", () => {
       timestamp: new Date().toISOString(),
     };
 
-    const task = translator.toAutoClaudeTask(wave, waveState);
+    const task = translator.toRadEngineerTask(wave, waveState);
 
     expect(task.status).toBe("failed");
   });
@@ -354,7 +354,7 @@ describe("FormatTranslator: toAutoClaudeTask", () => {
       stories: [],
     };
 
-    const task = translator.toAutoClaudeTask(wave);
+    const task = translator.toRadEngineerTask(wave);
 
     expect(task.id).toBe("task-empty");
     expect(task.title).toBe("Empty wave");
@@ -385,7 +385,7 @@ describe("FormatTranslator: toAutoClaudeTask", () => {
       timestamp: new Date().toISOString(),
     };
 
-    const task = translator.toAutoClaudeTask(wave, waveState);
+    const task = translator.toRadEngineerTask(wave, waveState);
 
     expect(task.progress).toBe(0); // Should handle division by zero
   });
@@ -458,7 +458,7 @@ describe("FormatTranslator: toAutoClaudeTask", () => {
       timestamp: new Date().toISOString(),
     };
 
-    const task = translator.toAutoClaudeTask(wave, waveState);
+    const task = translator.toRadEngineerTask(wave, waveState);
 
     // Should be failed because there are failed tasks
     expect(task.status).toBe("failed");
@@ -481,7 +481,7 @@ describe("FormatTranslator: toAutoClaudeTask", () => {
       stories: [],
     };
 
-    const task = translator.toAutoClaudeTask(wave);
+    const task = translator.toRadEngineerTask(wave);
 
     expect(task.id).toBe("custom-id-123");
   });
@@ -501,7 +501,7 @@ describe("FormatTranslator: toAutoClaudeTask", () => {
       stories: [],
     };
 
-    const task = translator.toAutoClaudeTask(wave);
+    const task = translator.toRadEngineerTask(wave);
 
     expect(task.id).toBe("custom-123"); // No prefix to remove
   });
@@ -537,13 +537,13 @@ describe("FormatTranslator: toAutoClaudeTask", () => {
       ],
     };
 
-    const task = translator.toAutoClaudeTask(wave);
+    const task = translator.toRadEngineerTask(wave);
 
     expect(task.description).toBe("Story description");
   });
 });
 
-describe("FormatTranslator: toAutoClaudeStatus", () => {
+describe("FormatTranslator: toRadEngineerStatus", () => {
   it("Returns 'failed' status when tasks have failed", () => {
     const translator = new FormatTranslator();
 
@@ -554,7 +554,7 @@ describe("FormatTranslator: toAutoClaudeStatus", () => {
       timestamp: new Date().toISOString(),
     };
 
-    const status = translator.toAutoClaudeStatus(waveState, 3);
+    const status = translator.toRadEngineerStatus(waveState, 3);
 
     expect(status).toBe("failed");
   });
@@ -569,7 +569,7 @@ describe("FormatTranslator: toAutoClaudeStatus", () => {
       timestamp: new Date().toISOString(),
     };
 
-    const status = translator.toAutoClaudeStatus(waveState, 3);
+    const status = translator.toRadEngineerStatus(waveState, 3);
 
     expect(status).toBe("completed");
   });
@@ -584,7 +584,7 @@ describe("FormatTranslator: toAutoClaudeStatus", () => {
       timestamp: new Date().toISOString(),
     };
 
-    const status = translator.toAutoClaudeStatus(waveState, 3);
+    const status = translator.toRadEngineerStatus(waveState, 3);
 
     expect(status).toBe("in_progress");
   });
@@ -599,7 +599,7 @@ describe("FormatTranslator: toAutoClaudeStatus", () => {
       timestamp: new Date().toISOString(),
     };
 
-    const status = translator.toAutoClaudeStatus(waveState, 3);
+    const status = translator.toRadEngineerStatus(waveState, 3);
 
     expect(status).toBe("pending");
   });
@@ -614,7 +614,7 @@ describe("FormatTranslator: toAutoClaudeStatus", () => {
       timestamp: new Date().toISOString(),
     };
 
-    const status = translator.toAutoClaudeStatus(waveState, 3);
+    const status = translator.toRadEngineerStatus(waveState, 3);
 
     // Failed takes precedence over completed
     expect(status).toBe("failed");
@@ -630,7 +630,7 @@ describe("FormatTranslator: toAutoClaudeStatus", () => {
       timestamp: new Date().toISOString(),
     };
 
-    const status = translator.toAutoClaudeStatus(waveState, 5);
+    const status = translator.toRadEngineerStatus(waveState, 5);
 
     expect(status).toBe("completed");
   });
@@ -645,7 +645,7 @@ describe("FormatTranslator: toAutoClaudeStatus", () => {
       timestamp: new Date().toISOString(),
     };
 
-    const status = translator.toAutoClaudeStatus(waveState, 0);
+    const status = translator.toRadEngineerStatus(waveState, 0);
 
     // With zero total stories, any completion count still results in pending
     expect(status).toBe("pending");
@@ -664,7 +664,7 @@ describe("FormatTranslator: toAutoClaudeStatus", () => {
     // Edge case: state has more completed than totalStories
     // Implementation checks if completedTasks.length === totalStories
     // Since 3 !== 2, this will be in_progress
-    const status = translator.toAutoClaudeStatus(waveState, 2);
+    const status = translator.toRadEngineerStatus(waveState, 2);
 
     expect(status).toBe("in_progress");
   });

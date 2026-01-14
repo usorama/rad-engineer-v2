@@ -101,12 +101,21 @@ function createTestOrchestrator(resourceManager?: ResourceManager): WaveOrchestr
     },
   });
 
+  // Default config for tests (mock mode)
+  const config = {
+    useRealAgents: false,
+    maxAgents: 3,
+    timeout: 300000,
+    logLevel: "info" as const,
+  };
+
   return new WaveOrchestrator({
     resourceManager: rm,
     promptValidator,
     responseParser,
     sdk,
     memory,
+    config,
   });
 }
 

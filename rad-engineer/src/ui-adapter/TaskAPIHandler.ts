@@ -10,7 +10,7 @@
  * - Task execution lifecycle (stub for P1-002 WaveOrchestrator integration)
  *
  * StateManager Integration:
- * - Checkpoint format: { tasks: AutoClaudeTask[], metadata: { version: string } }
+ * - Checkpoint format: { tasks: RadEngineerTask[], metadata: { version: string } }
  * - Checkpoint file: .rad-engineer-integration/tasks-checkpoint.json
  * - Auto-save on all mutations (create, update, delete)
  */
@@ -21,7 +21,7 @@ import type { WaveState } from "@/advanced/StateManager.js";
 import type { WaveOrchestrator, Task as WaveTask, WaveResult } from "@/advanced/WaveOrchestrator.js";
 import type { ResourceManager } from "@/core/ResourceManager.js";
 import { FormatTranslator } from "./FormatTranslator.js";
-import type { AutoClaudeTask, AutoClaudeTaskSpec, TaskProgressEvent, QualityGateResult, QualityGatesResults } from "./types.js";
+import type { RadEngineerTask, RadEngineerTaskSpec, TaskProgressEvent, QualityGateResult, QualityGatesResults } from "./types.js";
 import { execFileNoThrow } from "@/utils/execFileNoThrow.js";
 import type { ExecFileResult } from "@/utils/execFileNoThrow.js";
 
@@ -31,7 +31,7 @@ import type { ExecFileResult } from "@/utils/execFileNoThrow.js";
  */
 interface TaskCheckpoint extends WaveState {
   /** Array of all tasks */
-  tasks: AutoClaudeTask[];
+  tasks: RadEngineerTask[];
   /** Checkpoint metadata */
   metadata: {
     /** Checkpoint format version */
@@ -170,7 +170,7 @@ export class TaskAPIHandler extends EventEmitter {
    *
    * @returns Array of rad-engineer tasks
    */
-  async getAllTasks(): Promise<AutoClaudeTask[]> {
+  async getAllTasks(): Promise<RadEngineerTask[]> {
     try {
       const checkpoint = await this.loadCheckpoint();
 
@@ -200,7 +200,7 @@ export class TaskAPIHandler extends EventEmitter {
    * @param taskId - Task ID to retrieve
    * @returns Task if found, null otherwise
    */
-  async getTask(taskId: string): Promise<AutoClaudeTask | null> {
+  async getTask(taskId: string): Promise<RadEngineerTask | null> {
     try {
       const checkpoint = await this.loadCheckpoint();
       const task = checkpoint.tasks.find((t) => t.id === taskId);
@@ -232,13 +232,13 @@ export class TaskAPIHandler extends EventEmitter {
    * @returns Created rad-engineer task
    * @throws Error if task creation fails (after emitting error event)
    */
-  async createTask(spec: AutoClaudeTaskSpec): Promise<AutoClaudeTask> {
+  async createTask(spec: RadEngineerTaskSpec): Promise<RadEngineerTask> {
     try {
       // Generate unique task ID with counter to avoid collisions within same millisecond
       const taskId = `task-${Date.now()}-${this.taskIdCounter++}`;
 
       // Create task object
-      const task: AutoClaudeTask = {
+      const task: RadEngineerTask = {
         id: taskId,
         title: spec.title,
         description: spec.description,
@@ -292,8 +292,8 @@ export class TaskAPIHandler extends EventEmitter {
    */
   async updateTask(
     taskId: string,
-    updates: Partial<AutoClaudeTask>
-  ): Promise<AutoClaudeTask> {
+    updates: Partial<RadEngineerTask>
+  ): Promise<RadEngineerTask> {
     try {
       const checkpoint = await this.loadCheckpoint();
       const taskIndex = checkpoint.tasks.findIndex((t) => t.id === taskId);

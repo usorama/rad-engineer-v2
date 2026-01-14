@@ -16,7 +16,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { ElectronIPCAdapter } from "@/ui-adapter/ElectronIPCAdapter.js";
-import type { AutoClaudeTaskSpec, TaskProgressEvent } from "@/ui-adapter/types.js";
+import type { RadEngineerTaskSpec, TaskProgressEvent } from "@/ui-adapter/types.js";
 import { promises as fs } from "fs";
 import { join } from "path";
 
@@ -71,7 +71,7 @@ describe("ElectronIPCAdapter: getAllTasks", () => {
 
 describe("ElectronIPCAdapter: createTask", () => {
   it("Creates task with generated unique ID", async () => {
-    const spec: AutoClaudeTaskSpec = {
+    const spec: RadEngineerTaskSpec = {
       title: "New feature",
       description: "Implement feature X",
       priority: 5,
@@ -108,7 +108,7 @@ describe("ElectronIPCAdapter: createTask", () => {
   });
 
   it("Creates task without optional fields", async () => {
-    const spec: AutoClaudeTaskSpec = {
+    const spec: RadEngineerTaskSpec = {
       title: "Simple task",
       description: "Basic task",
     };

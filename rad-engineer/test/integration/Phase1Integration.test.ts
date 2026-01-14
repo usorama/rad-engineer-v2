@@ -34,8 +34,8 @@ import type {
   TaskResult,
 } from "@/advanced/WaveOrchestrator.js";
 import type {
-  AutoClaudeTask,
-  AutoClaudeTaskSpec,
+  RadEngineerTask,
+  RadEngineerTaskSpec,
   TaskProgressEvent,
 } from "@/ui-adapter/types.js";
 import type { TerminalManager, TerminalOperationResult } from "@/ui-adapter/TerminalAPIHandler.js";
@@ -276,7 +276,7 @@ describe("Phase 1 E2E Integration Tests", () => {
   describe("Scenario 1: Create → Start → Execute → Complete → Quality Gates", () => {
     test("should create task, execute it, and verify quality gates", async () => {
       // Step 1: Create task
-      const spec: AutoClaudeTaskSpec = {
+      const spec: RadEngineerTaskSpec = {
         title: "Implement UserService",
         description: "Add CRUD operations for user management",
         priority: 5,
@@ -333,7 +333,7 @@ describe("Phase 1 E2E Integration Tests", () => {
       mockWaveOrchestrator.setShouldFail(true);
 
       // Create and start task
-      const spec: AutoClaudeTaskSpec = {
+      const spec: RadEngineerTaskSpec = {
         title: "Failing Task",
         description: "This task will fail during execution",
       };
@@ -355,9 +355,9 @@ describe("Phase 1 E2E Integration Tests", () => {
   describe("Scenario 2: Multi-Task Execution (2-3 concurrent)", () => {
     test("should execute multiple tasks concurrently", async () => {
       // Create 3 tasks
-      const tasks: AutoClaudeTask[] = [];
+      const tasks: RadEngineerTask[] = [];
       for (let i = 0; i < 3; i++) {
-        const spec: AutoClaudeTaskSpec = {
+        const spec: RadEngineerTaskSpec = {
           title: `Task ${i + 1}`,
           description: `Execute concurrent task ${i + 1}`,
         };
@@ -386,9 +386,9 @@ describe("Phase 1 E2E Integration Tests", () => {
 
     test("should retrieve all tasks in correct order", async () => {
       // Create multiple tasks with different timestamps
-      const tasks: AutoClaudeTask[] = [];
+      const tasks: RadEngineerTask[] = [];
       for (let i = 0; i < 5; i++) {
-        const spec: AutoClaudeTaskSpec = {
+        const spec: RadEngineerTaskSpec = {
           title: `Task ${i + 1}`,
           description: `Task ${i + 1} description`,
         };
@@ -415,7 +415,7 @@ describe("Phase 1 E2E Integration Tests", () => {
   describe("Scenario 3: Task Cancellation", () => {
     test("should cancel running task successfully", async () => {
       // Create task
-      const spec: AutoClaudeTaskSpec = {
+      const spec: RadEngineerTaskSpec = {
         title: "Long Running Task",
         description: "Task to be cancelled",
       };
@@ -446,7 +446,7 @@ describe("Phase 1 E2E Integration Tests", () => {
 
     test("should fail to cancel non-running task", async () => {
       // Create pending task
-      const spec: AutoClaudeTaskSpec = {
+      const spec: RadEngineerTaskSpec = {
         title: "Pending Task",
         description: "Task not yet started",
       };
@@ -674,7 +674,7 @@ describe("Phase 1 E2E Integration Tests", () => {
   describe("Scenario 6: Real-Time Event Broadcasting", () => {
     test("should broadcast task progress events", async () => {
       // Create task
-      const spec: AutoClaudeTaskSpec = {
+      const spec: RadEngineerTaskSpec = {
         title: "Event Broadcasting Task",
         description: "Test event broadcasting",
       };
@@ -700,13 +700,13 @@ describe("Phase 1 E2E Integration Tests", () => {
 
     test("should broadcast task status changes", async () => {
       // Track task-updated events
-      const taskUpdates: AutoClaudeTask[] = [];
-      taskHandler.on("task-updated", (task: AutoClaudeTask) => {
+      const taskUpdates: RadEngineerTask[] = [];
+      taskHandler.on("task-updated", (task: RadEngineerTask) => {
         taskUpdates.push(task);
       });
 
       // Create task
-      const spec: AutoClaudeTaskSpec = {
+      const spec: RadEngineerTaskSpec = {
         title: "Status Change Task",
         description: "Test status changes",
       };
@@ -736,7 +736,7 @@ describe("Phase 1 E2E Integration Tests", () => {
   describe("Integration: Task Lifecycle End-to-End", () => {
     test("should complete full task lifecycle: create → execute → verify → delete", async () => {
       // Step 1: Create task
-      const spec: AutoClaudeTaskSpec = {
+      const spec: RadEngineerTaskSpec = {
         title: "Full Lifecycle Task",
         description: "Complete task lifecycle test",
         priority: 3,
@@ -785,7 +785,7 @@ describe("Phase 1 E2E Integration Tests", () => {
       expect(activeProfile).not.toBeNull();
 
       // Step 2: Create task
-      const spec: AutoClaudeTaskSpec = {
+      const spec: RadEngineerTaskSpec = {
         title: "Multi-Component Task",
         description: "Task using multiple components",
       };

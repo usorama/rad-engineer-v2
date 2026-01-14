@@ -7,20 +7,34 @@
 **ALWAYS READ FIRST**: `docs/platform-foundation/`
 
 This folder contains critical context documents:
-1. `PROJECT-MANIFEST.md` - Vision, objectives, outcomes, progress
+1. `PROJECT-MANIFEST.md` - Vision, objectives, outcomes, progress (91% complete, 20/22 components)
 2. `RESEARCH-SUMMARY.md` - Meta's CCA architecture + VAC innovation for deterministic engineering
+3. `ANALYSIS-MEMORY.yaml` - YAML tracking pattern with GLOBAL/TASK/LOCAL scopes
+4. `INTEGRATION-DEPENDENCIES.md` - Dependencies with engg-support-system project
 
 Read these at session start to understand what we're building and the research backing it.
 
 ---
 
-**Current Focus**: Phase 1 - /execute skill + Claude Agent SDK orchestration (~15% of full platform)
+**Current Focus**: UI Integration + Platform Completion (91% backend complete, 0% UI exposure)
 
-**Active Integration Project**: Auto-Claude UI + rad-engineer-v2 Backend
-> ⚠️ **IMPORTANT**: For Auto-Claude integration workflows, protocols, and execution instructions, refer to:
-> `rad-engineer/docs/auto-claude-integration/CLAUDE.md`
->
-> That file contains: parallel/sequential execution decisions, DoD, success criteria, verification protocols, and 78-task roadmap.
+**Active Integration Projects**:
+
+### 1. UI Integration (Priority 1)
+Auto-Claude UI + rad-engineer-v2 Backend integration
+
+**Key Documents**:
+- **Integration Plan**: `~/.claude/plans/stateless-petting-eclipse.md` (approved, 6 weeks, 3 phases)
+- **Gap Analysis**: `docs/platform-foundation/UI-INTEGRATION-GAP-ANALYSIS.yaml` (10 gaps identified)
+
+**Status**: Phase 1 ready to start (fix initialization bug)
+
+### 2. Platform Completion (Priority 2)
+Finish remaining 2 deferred components
+
+**Progress Files**:
+- **Master Progress**: `.claude/orchestration/specs/PROGRESS.md`
+- **Full Vision**: `.claude/orchestration/docs/planning/AUTONOMOUS_ENGINEERING_PLATFORM_ANALYSIS.md`
 
 ---
 
@@ -127,7 +141,66 @@ cat .claude/orchestration/specs/PROGRESS.md
 
 ## 🔧 Skills Reference
 
-### /orchestrate-spec
+### /execute (Deterministic Execution)
+
+**Location**: `.claude/skills/execute/SKILL.md`
+
+**What it does**:
+- Deterministic task execution with mathematical certainty
+- TDD protocol: Validate → Write Test → Implement → Verify → Capture Evidence
+- Triple verification: Preconditions → Implementation → Postconditions
+- Cross-session context sharing via memory-keeper MCP
+- Git workflow with automatic commits
+- Quality gates: typecheck → lint → test (serialized with flock)
+
+**Protocol**:
+```
+1. Validate preconditions (from contract)
+2. Create failing test FIRST
+3. Run test (expect FAIL)
+4. Implement minimal code
+5. Run test (expect PASS)
+6. Verify postconditions
+7. Capture evidence (save to memory-keeper)
+8. Update progress file
+9. Git commit (if requested)
+
+Max 3 retries per story, then escalate
+```
+
+**Expected Plan Format**:
+```markdown
+# Story 1: Fix Initialization Button
+
+## Tasks
+- Task 1.1: Add error toast to GeneralSettings
+- Task 1.2: Add i18n keys
+
+## Tests
+- [ ] Error toast appears on failure
+- [ ] Success toast appears on success
+
+## Dependencies
+- None
+
+## Wave Assignment
+- Wave 1, Agent 1
+```
+
+**Usage**:
+```bash
+/execute                              # Auto-detect plan file
+/execute --plan-file path/to/PLAN.md  # Specific plan
+```
+
+**Plan File Locations** (auto-detected):
+- `docs/platform-foundation/RAD-ENGINEER-IMPLEMENTATION-PLAN.md`
+- `docs/platform-foundation/RAD-ENGINEER-UI-INTEGRATION-PLAN.md`
+- `docs/engg-support-system/IMPLEMENTATION-PLAN.md`
+
+---
+
+### /orchestrate-spec (Research-First Specification)
 
 **Location**: `.claude/skills/orchestrate-spec.md`
 
@@ -283,18 +356,33 @@ flock -w 300 "$LOCK" sh -c 'bun run typecheck && bun run lint && bun test'
 
 ## 🔗 Quick Links
 
+### Platform Documentation
 - **Platform Foundation**: `docs/platform-foundation/` ⭐ (read first)
-- **Progress**: `.claude/orchestration/specs/PROGRESS.md`
-- **Implementation**: `rad-engineer/`
-- **Full Vision**: `.claude/orchestration/docs/planning/AUTONOMOUS_ENGINEERING_PLATFORM_ANALYSIS.md`
-- **Integration Plan**: `.claude/orchestration/docs/planning/SMART_ORCHESTRATOR_EXECUTE_INTEGRATION_PLAN.md`
-- **Orchestrate Spec**: `.claude/skills/orchestrate-spec.md`
+  - `PROJECT-MANIFEST.md` - Progress, status, components
+  - `RESEARCH-SUMMARY.md` - CCA patterns, VAC protocol
+  - `ANALYSIS-MEMORY.yaml` - YAML tracking pattern
+  - `INTEGRATION-DEPENDENCIES.md` - External dependencies
+
+### UI Integration
+- **Integration Plan**: `~/.claude/plans/stateless-petting-eclipse.md` (6 weeks, 3 phases)
+- **Gap Analysis**: `docs/platform-foundation/UI-INTEGRATION-GAP-ANALYSIS.yaml` (10 gaps)
+- **Implementation**: `rad-engineer/src/ui-adapter/` (backend IPC handlers)
+- **Frontend**: `workspaces/Auto-Claude/apps/frontend/` (React UI)
+
+### Skills
+- **Execute Skill**: `.claude/skills/execute/SKILL.md` (deterministic execution)
+- **Orchestrate Spec**: `.claude/skills/orchestrate-spec.md` (research-first specs)
+
+### Legacy (Deprecated Folders)
+- ~~`.claude/orchestration/`~~ → Use `docs/platform-foundation/` instead
+- Old Progress: `.claude/orchestration/specs/PROGRESS.md` (still maintained)
+- Old Vision: `.claude/orchestration/docs/planning/AUTONOMOUS_ENGINEERING_PLATFORM_ANALYSIS.md`
 
 ---
 
-**Version**: 1.1.0
-**Status**: Phase 1 - /execute skill implementation
-**Last Updated**: 2026-01-13
+**Version**: 2.0.0
+**Status**: UI Integration Phase (Priority 1) + Platform Completion (Priority 2)
+**Last Updated**: 2026-01-13 (folder restructure, /execute skill integration)
 
 ---
 

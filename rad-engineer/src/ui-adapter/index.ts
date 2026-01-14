@@ -50,9 +50,9 @@ export type {
 } from "./EventBroadcaster.js";
 export { FormatTranslator } from "./FormatTranslator.js";
 export type {
-  AutoClaudeTask,
-  AutoClaudeTaskSpec,
-  AutoClaudeTaskStatus,
+  RadEngineerTask,
+  RadEngineerTaskSpec,
+  RadEngineerTaskStatus,
   TaskProgressEvent,
   IPCAdapterConfig,
   TaskWaveMapping,

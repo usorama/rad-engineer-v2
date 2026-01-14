@@ -17,7 +17,7 @@
 import { EventEmitter } from "events";
 import type { TaskAPIHandler } from "./TaskAPIHandler.js";
 import type { AIMergeIntegration, ConflictRegion, TaskSnapshot } from "@/python-bridge/AIMergePluginIntegration.js";
-import type { AutoClaudeTask, AutoClaudeTaskSpec } from "./types.js";
+import type { RadEngineerTask, RadEngineerTaskSpec } from "./types.js";
 
 /**
  * GitHub issue representation
@@ -351,9 +351,9 @@ export class GitHubAPIHandler extends EventEmitter {
    * @param issue - GitHub issue to convert
    * @returns Created rad-engineer task
    */
-  async createTaskFromIssue(issue: GitHubIssue): Promise<AutoClaudeTask> {
+  async createTaskFromIssue(issue: GitHubIssue): Promise<RadEngineerTask> {
     // Build task spec from issue
-    const spec: AutoClaudeTaskSpec = {
+    const spec: RadEngineerTaskSpec = {
       title: issue.title,
       description: `${issue.body}\n\n---\nIssue #${issue.number}: ${issue.html_url}`,
       tags: [

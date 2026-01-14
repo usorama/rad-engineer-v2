@@ -31,10 +31,11 @@ import { SDKIntegration } from "@/sdk/SDKIntegration.js";
 import { HierarchicalMemory } from "@/memory/HierarchicalMemory.js";
 import { ProviderFactory } from "@/sdk/providers/ProviderFactory.js";
 import { ProviderType } from "@/sdk/providers/types.js";
+import { getDefaultConfig } from "@/config/schema.js";
 import type {
   IPCAdapterConfig,
-  AutoClaudeTask,
-  AutoClaudeTaskSpec,
+  RadEngineerTask,
+  RadEngineerTaskSpec,
   TaskProgressEvent,
   TaskWaveMapping,
 } from "./types.js";
@@ -100,6 +101,7 @@ export class ElectronIPCAdapter extends EventEmitter {
       const promptValidator = new PromptValidator();
       const responseParser = new ResponseParser();
       const memory = new HierarchicalMemory();
+      const waveConfig = getDefaultConfig();
 
       return new WaveOrchestrator({
         resourceManager,
@@ -107,6 +109,7 @@ export class ElectronIPCAdapter extends EventEmitter {
         responseParser,
         sdk,
         memory,
+        config: waveConfig,
       });
     })();
 
@@ -126,7 +129,7 @@ export class ElectronIPCAdapter extends EventEmitter {
       });
 
       // Forward task-updated events to EventBroadcaster
-      this.taskHandler.on("task-updated", (task: AutoClaudeTask) => {
+      this.taskHandler.on("task-updated", (task: RadEngineerTask) => {
         this.emit("task:updated", task);
         this.eventBroadcaster?.broadcastTaskObject(task);
       });
@@ -138,7 +141,7 @@ export class ElectronIPCAdapter extends EventEmitter {
       });
     } else {
       // Fallback: Just forward events without broadcasting
-      this.taskHandler.on("task-updated", (task: AutoClaudeTask) => {
+      this.taskHandler.on("task-updated", (task: RadEngineerTask) => {
         this.emit("task:updated", task);
       });
 
@@ -163,7 +166,7 @@ export class ElectronIPCAdapter extends EventEmitter {
    *
    * @returns Array of rad-engineer tasks
    */
-  async getAllTasks(): Promise<AutoClaudeTask[]> {
+  async getAllTasks(): Promise<RadEngineerTask[]> {
     if (this.config.debug) {
       console.log("[ElectronIPCAdapter] getAllTasks() called");
     }
@@ -180,7 +183,7 @@ export class ElectronIPCAdapter extends EventEmitter {
    * @param spec - Task specification from frontend
    * @returns Created rad-engineer task
    */
-  async createTask(spec: AutoClaudeTaskSpec): Promise<AutoClaudeTask> {
+  async createTask(spec: RadEngineerTaskSpec): Promise<RadEngineerTask> {
     if (this.config.debug) {
       console.log("[ElectronIPCAdapter] createTask() called", spec);
     }
@@ -234,7 +237,7 @@ export class ElectronIPCAdapter extends EventEmitter {
    * @param taskId - Task ID
    * @returns Task if found, null otherwise
    */
-  async getTask(taskId: string): Promise<AutoClaudeTask | null> {
+  async getTask(taskId: string): Promise<RadEngineerTask | null> {
     return this.taskHandler.getTask(taskId);
   }
 
@@ -251,8 +254,8 @@ export class ElectronIPCAdapter extends EventEmitter {
    */
   async updateTask(
     taskId: string,
-    updates: Partial<AutoClaudeTask>
-  ): Promise<AutoClaudeTask> {
+    updates: Partial<RadEngineerTask>
+  ): Promise<RadEngineerTask> {
     if (this.config.debug) {
       console.log(`[ElectronIPCAdapter] updateTask() called for: ${taskId}`);
     }

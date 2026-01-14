@@ -12,7 +12,7 @@ import type { WaveState } from "@/advanced/StateManager.js";
  * rad-engineer task status enum
  * Maps to rad-engineer wave execution states
  */
-export type AutoClaudeTaskStatus =
+export type RadEngineerTaskStatus =
   | "pending"      // Task created, not started
   | "in_progress"  // Task executing
   | "completed"    // Task succeeded
@@ -23,7 +23,7 @@ export type AutoClaudeTaskStatus =
  * rad-engineer task specification from frontend
  * User input for creating a new task
  */
-export interface AutoClaudeTaskSpec {
+export interface RadEngineerTaskSpec {
   /** Task title/name */
   title: string;
   /** Task description/prompt */
@@ -38,7 +38,7 @@ export interface AutoClaudeTaskSpec {
  * rad-engineer task representation
  * Full task object with metadata
  */
-export interface AutoClaudeTask {
+export interface RadEngineerTask {
   /** Unique task ID */
   id: string;
   /** Task title */
@@ -46,7 +46,7 @@ export interface AutoClaudeTask {
   /** Task description */
   description: string;
   /** Current task status */
-  status: AutoClaudeTaskStatus;
+  status: RadEngineerTaskStatus;
   /** Creation timestamp (ISO) */
   createdAt: string;
   /** Last updated timestamp (ISO) */

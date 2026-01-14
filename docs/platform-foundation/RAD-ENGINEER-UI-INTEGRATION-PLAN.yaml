@@ -1,0 +1,236 @@
+---
+meta:
+  version: "2.0.0"
+  purpose: "Track UI integration progress with wave-based execution"
+  certainty_threshold: 0.85
+  current_certainty: 0.95
+  status: "READY_FOR_EXECUTION"
+  generated: "2026-01-13T11:00:00Z"
+  plan_file: "docs/platform-foundation/RAD-ENGINEER-UI-INTEGRATION-PLAN.md"
+  contracts_file: "docs/platform-foundation/UI-INTEGRATION-CONTRACTS.yaml"
+  memory_strategy: "docs/platform-foundation/UI-INTEGRATION-MEMORY-STRATEGY.md"
+
+---
+# GLOBAL SCOPE (Immutable Project Context)
+
+vision: |
+  Autonomous Engineering Platform that can engineer digital solutions from
+  ideation to production and beyond, fully autonomously using Claude Code
+  and Claude Agent SDK.
+
+ui_integration_objective: |
+  Integrate rad-engineer backend (91% complete, 20/22 components) with
+  Auto-Claude UI (276 React components) to expose VAC verification,
+  decision learning, /plan workflow, and /execute dashboard to users.
+
+critical_issues:
+  - issue_1: "Initialization button fails silently (GeneralSettings.tsx:65)"
+  - issue_2: "127+ 'Auto-Claude' references throughout codebase"
+  - issue_3: "0% rad-engineer features exposed in UI (VAC, learning, /plan, /execute)"
+
+architecture_constraints:
+  max_parallel_agents: "2-3 per wave"
+  quality_gates: "bun test only, flock serialization"
+  context_management: "GLOBAL/TASK/LOCAL, compact at 70%"
+  tdd_protocol: "Write test first, verify with evidence"
+  vac_protocol: "Pre/post conditions, invariants per story"
+  memory_keeper: "Checkpoints per wave, saves per story"
+
+target_capabilities:
+  - hierarchical_memory: "GLOBAL/TASK/LOCAL scopes"
+  - vac_verification: "Contract-first UI components"
+  - decision_learning_ui: "Charts, patterns, timeline"
+  - plan_workflow_ui: "Intake → Research → Generate → Approve"
+  - execute_dashboard_ui: "Waves, agents, quality gates, recovery"
+
+integration_stats:
+  total_waves: 16
+  total_stories: 30
+  total_effort_hours: "278-398"
+  timeline_weeks: 6
+  current_wave: 0
+  current_story: 0
+
+---
+# TASK SCOPE (Current Execution State)
+
+objective: |
+  Execute UI integration plan using /execute skill with TDD protocol,
+  wave-based orchestration, and memory-keeper MCP for cross-session context.
+
+current_wave:
+  id: null
+  title: null
+  status: "NOT_STARTED"
+  agents: []
+  stories: []
+  started_at: null
+  completed_at: null
+
+current_story:
+  id: null
+  title: null
+  status: "NOT_STARTED"
+  tasks: []
+  tests: []
+  files_modified: []
+  started_at: null
+  completed_at: null
+
+progress_log: []
+
+---
+# LOCAL SCOPE (Ephemeral Execution Context)
+
+immediate_context:
+  current_file: null
+  current_test: null
+  current_error: null
+  next_action: "Create todos and start Wave 1, Story 1"
+
+working_memory:
+  decision: "Enhanced plan created in /execute format with VAC contracts"
+  reasoning: "Original plan incompatible with /execute skill, needed restructure"
+  evidence:
+    - "Gap analysis identified 10 critical gaps"
+    - "Created RAD-ENGINEER-UI-INTEGRATION-PLAN.md (30 stories, 16 waves)"
+    - "Created UI-INTEGRATION-CONTRACTS.yaml (VAC contracts)"
+    - "Created UI-INTEGRATION-MEMORY-STRATEGY.md (memory hierarchy)"
+  next_steps:
+    - "Create detailed todos using TodoWrite"
+    - "Start Wave 1: Fix initialization button"
+    - "Follow TDD protocol: Write test → Implement → Verify"
+
+---
+# HINDSIGHT (Learnings from Previous Attempts)
+
+previous_attempts:
+  - timestamp: "2026-01-13T09:00:00Z"
+    attempt: "Created prose-based plan (stateless-petting-eclipse.md)"
+    outcome: "SUCCESSFUL (user approved)"
+    lesson: "User approved plan but needed enhancement for execution"
+
+  - timestamp: "2026-01-13T10:00:00Z"
+    attempt: "Gap analysis against CCA patterns"
+    outcome: "SUCCESSFUL (10 gaps identified)"
+    lesson: "Plan format incompatible with /execute skill, missing VAC contracts"
+    confidence: 0.92
+
+  - timestamp: "2026-01-13T11:00:00Z"
+    attempt: "Enhanced plan creation"
+    outcome: "SUCCESSFUL (plan + contracts + memory strategy)"
+    lesson: "Story-based format enables /execute skill, VAC ensures quality"
+    confidence: 0.95
+
+failure_patterns:
+  - pattern: "Prose plans don't work with /execute"
+    resolution: "Use story-based format with tasks/tests/dependencies"
+    embedding_signature: "format_mismatch"
+
+  - pattern: "No memory strategy leads to context overflow"
+    resolution: "Define GLOBAL/TASK/LOCAL scopes with token budgets"
+    embedding_signature: "memory_overflow"
+
+success_patterns:
+  - pattern: "VAC contracts provide clear verification criteria"
+    evidence: "Pre/post conditions, invariants, drift detection"
+    embedding_signature: "contract_verification"
+
+  - pattern: "Wave-based execution prevents agent overload"
+    evidence: "Max 2-3 agents per wave, dependencies between waves"
+    embedding_signature: "wave_orchestration"
+
+---
+# VERIFICATION (Quality Assurance)
+
+verification_contracts:
+  plan_structure:
+    preconditions:
+      - "Gap analysis complete"
+      - "Original plan approved by user"
+    postconditions:
+      - "Plan in /execute format (stories, tasks, tests, waves)"
+      - "VAC contracts defined for each story"
+      - "Memory strategy documented"
+    status: "VERIFIED"
+
+  ready_for_execution:
+    preconditions:
+      - "All support files created"
+      - "CLAUDE.md updated with new structure"
+      - "Todos created"
+    postconditions:
+      - "Can invoke /execute skill"
+      - "Story 1 can start with TDD protocol"
+    status: "PENDING (creating todos next)"
+
+---
+# AGENTS (Orchestration Tracking)
+
+orchestrator:
+  role: "Claude Sonnet 4.5"
+  responsibilities:
+    - "Coordinate waves (max 2-3 agents)"
+    - "Verify agent outputs with quality gates"
+    - "Manage memory (GLOBAL/TASK/LOCAL)"
+    - "Create checkpoints per wave"
+    - "Track progress in this YAML file"
+
+wave_assignments:
+  wave_1:
+    id: 1
+    title: "Critical Bug Fix"
+    agents:
+      - agent_id: "developer-001"
+        type: "developer"
+        story: "Story 1: Fix Initialization Button"
+        status: "PENDING"
+
+  wave_2:
+    id: 2
+    title: "Rebrand Configuration"
+    agents:
+      - agent_id: "developer-002"
+        type: "developer"
+        story: "Story 2: Update Package Configuration"
+        status: "PENDING"
+      - agent_id: "developer-003"
+        type: "developer"
+        story: "Story 3: Bulk i18n Replacement"
+        status: "PENDING"
+
+  # Additional waves...
+
+---
+# OUTPUT (Session Results)
+
+summary: |
+  Enhanced plan created successfully for UI integration.
+
+  - Converted prose plan to /execute-compatible format (30 stories, 16 waves)
+  - Created VAC contracts with pre/post conditions for each story
+  - Documented memory strategy (GLOBAL/TASK/LOCAL hierarchy)
+  - Updated CLAUDE.md with new folder structure and /execute skill docs
+  - Created gap analysis identifying 10 critical gaps
+
+  Next: Create detailed todos and start Wave 1, Story 1.
+
+files_created:
+  - "docs/platform-foundation/RAD-ENGINEER-UI-INTEGRATION-PLAN.md" (story format)
+  - "docs/platform-foundation/UI-INTEGRATION-CONTRACTS.yaml" (VAC contracts)
+  - "docs/platform-foundation/UI-INTEGRATION-MEMORY-STRATEGY.md" (memory hierarchy)
+  - "docs/platform-foundation/RAD-ENGINEER-UI-INTEGRATION-PLAN.yaml" (this file)
+  - "docs/platform-foundation/UI-INTEGRATION-GAP-ANALYSIS.yaml" (gap analysis)
+  - "docs/platform-foundation/GAP-ANALYSIS-SUMMARY.md" (executive summary)
+
+files_updated:
+  - "CLAUDE.md" (v2.0.0, new folder structure, /execute skill docs)
+
+next_actions:
+  - "Create detailed todos using TodoWrite"
+  - "Start memory-keeper session"
+  - "Begin Wave 1, Story 1: Fix initialization button"
+  - "Follow TDD protocol: Write test → Implement → Verify"
+
+confidence: 0.95
+status: "READY_FOR_EXECUTION"
